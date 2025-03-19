@@ -69,6 +69,10 @@ module air_soc (
    logic                data_rvalid;
    logic [`MEM_W  -1:0] data_rdata;
 
+   logic                demux_data_gnt;
+   logic                demux_data_rvalid;
+   logic [`MEM_W  -1:0] demux_data_rdata;
+
    logic                cache_req;
    logic [       31:0]  cache_addr;
    logic                cache_we;
@@ -250,6 +254,10 @@ module air_soc (
             .mem_rdata_i (dmem_rdata)
          );
          assign dmem_be = 4'b1111;
+         
+         assign data_gnt = demux_data_gnt;
+         assign data_rvalid = demux_data_rvalid;
+         assign data_rdata = demux_data_rdata;
       end
       else begin
          assign dmem_req     = cache_req;
@@ -260,6 +268,22 @@ module air_soc (
          assign cache_gnt    = dmem_gnt;
          assign cache_rvalid = dmem_rvalid | dmem_wvalid;
          assign cache_rdata  = dmem_rdata;
+         
+         assign data_gnt = demux_data_gnt;
+         assign data_rvalid = demux_data_rvalid;
+         assign data_rdata = demux_data_rdata;
+
+         //assign dmem_req     = data_req; //cache_req;
+         //assign dmem_we      = data_we; //cache_we;
+         //assign dmem_be      = data_be; //cache_be;
+         //assign dmem_addr    = data_addr; //cache_addr;
+         //assign dmem_wdata   = data_wdata; //cache_wdata;
+         //assign cache_gnt    = dmem_gnt;
+         //assign cache_rvalid = dmem_rvalid | dmem_wvalid;
+         //assign cache_rdata  = dmem_rdata;
+         //assign data_gnt    = dmem_gnt;
+         //assign data_rvalid = dmem_rvalid | dmem_wvalid;
+         //assign data_rdata  = dmem_rdata;
       end
    endgenerate
 
@@ -322,7 +346,7 @@ module air_soc (
    ) main_memory (
       .clk_i   (clkwiz_o),
       .rst_ni  (rst_ni),
-      .req_i   (mem_req),
+      .req_i   (mem_req & ((`MEM_BASE_ADDR  + `MEM_RANGE)  > mem_addr) & (mem_addr >= `MEM_BASE_ADDR)),
       .we_i    (mem_req & mem_we),
       .be_i    (mem_be),
       .addr_i  (mem_addr),
@@ -340,13 +364,13 @@ module air_soc (
       .rst_ni(rst_n),
 
       .data_req_i   (data_req),
-      .data_gnt_o   (data_gnt),
-      .data_rvalid_o(data_rvalid),
+      .data_gnt_o   (demux_data_gnt),
+      .data_rvalid_o(demux_data_rvalid),
       .data_we_i    (data_we),
       .data_be_i    (data_be),
       .data_addr_i  (data_addr),
       .data_wdata_i (data_wdata),
-      .data_rdata_o (data_rdata),
+      .data_rdata_o (demux_data_rdata),
 
       .cache_req_o   (cache_req),
       .cache_addr_o  (cache_addr),

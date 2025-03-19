@@ -84,7 +84,17 @@ module obi_demux (
    assign timer_wdata_o = data_wdata;
    assign qspi_wdata_o = data_wdata;
 
-   assign cache_req_o = (`MEM_BASE_ADDR  + `MEM_RANGE  > data_addr )   && (data_addr >= `MEM_BASE_ADDR)   ? (state == WAITING) & data_req : 'h0;
+   //assign cache_req_o = (`MEM_BASE_ADDR  + `MEM_RANGE  > data_addr )   && (data_addr >= `MEM_BASE_ADDR)   ? (state == WAITING) & data_req : 'h0;
+   generate
+      if (`DCACHE_SZ > 0) begin
+         assign cache_req_o = (`MEM_BASE_ADDR + `MEM_RANGE > data_addr ) && 
+                              (data_addr >= `MEM_BASE_ADDR) ? (state == WAITING) & data_req : 'h0;
+      end else begin
+         assign cache_req_o = (`MEM_BASE_ADDR + `MEM_RANGE > data_addr ) && 
+                              (data_addr >= `MEM_BASE_ADDR) ? data_req : 'h0;
+      end
+   endgenerate
+
    assign cache_we_o  = (`MEM_BASE_ADDR  + `MEM_RANGE  > data_addr )   && (data_addr >= `MEM_BASE_ADDR)   ? data_we  : 'h0;
    assign cache_be_o  = (`MEM_BASE_ADDR  + `MEM_RANGE  > data_addr )   && (data_addr >= `MEM_BASE_ADDR)   ? data_be  : 'h0;
   
@@ -118,7 +128,7 @@ module obi_demux (
                          (`QSPI_BASE_ADDR+`QSPI_RANGE   > data_addr) && (data_addr >= `QSPI_BASE_ADDR ) ? qspi_gnt_i  :
                                                                                                           'h0         ;
 
-   assign data_gnt_o = (state == IDLE) & periph_gnt;
+   assign data_gnt_o = (state == IDLE) & periph_gnt | (`DCACHE_SZ == 0) & data_req_i;
 
    // verilog_format: on
 
