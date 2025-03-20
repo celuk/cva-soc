@@ -1,4 +1,4 @@
-// air_soc.sv
+// obi_demux.sv
 `timescale 1ns / 1ps
 
 `include "header.vh"
@@ -94,7 +94,7 @@ module obi_demux (
                               (data_addr >= `MEM_BASE_ADDR) ? data_req : 'h0;
       end
    endgenerate
-
+   
    assign cache_we_o  = (`MEM_BASE_ADDR  + `MEM_RANGE  > data_addr )   && (data_addr >= `MEM_BASE_ADDR)   ? data_we  : 'h0;
    assign cache_be_o  = (`MEM_BASE_ADDR  + `MEM_RANGE  > data_addr )   && (data_addr >= `MEM_BASE_ADDR)   ? data_be  : 'h0;
   
@@ -128,7 +128,7 @@ module obi_demux (
                          (`QSPI_BASE_ADDR+`QSPI_RANGE   > data_addr) && (data_addr >= `QSPI_BASE_ADDR ) ? qspi_gnt_i  :
                                                                                                           'h0         ;
 
-   assign data_gnt_o = (state == IDLE) & periph_gnt | (`DCACHE_SZ == 0) & data_req_i;
+   assign data_gnt_o = (state == IDLE) & periph_gnt;
 
    // verilog_format: on
 
@@ -146,8 +146,14 @@ module obi_demux (
          case (state)
             IDLE: begin
                if (data_req_i & data_gnt_o) begin
-                  state <= WAITING;
+                  if(`DCACHE_SZ == 0) begin
+                     if ((`MEM_BASE_ADDR+`MEM_RANGE     > data_addr) && (data_addr >= `MEM_BASE_ADDR  )) begin
+                        state <= IDLE;
+                     end
+                  end
+                  else state <= WAITING;
                end
+
             end
             WAITING: begin
                if (data_rvalid_o) state <= IDLE;
