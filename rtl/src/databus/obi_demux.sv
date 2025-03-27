@@ -84,17 +84,7 @@ module obi_demux (
    assign timer_wdata_o = data_wdata;
    assign qspi_wdata_o = data_wdata;
 
-   //assign cache_req_o = (`MEM_BASE_ADDR  + `MEM_RANGE  > data_addr )   && (data_addr >= `MEM_BASE_ADDR)   ? (state == WAITING) & data_req : 'h0;
-   generate
-      if (`DCACHE_SZ > 0) begin
-         assign cache_req_o = (`MEM_BASE_ADDR + `MEM_RANGE > data_addr ) && 
-                              (data_addr >= `MEM_BASE_ADDR) ? (state == WAITING) & data_req : 'h0;
-      end else begin
-         assign cache_req_o = (`MEM_BASE_ADDR + `MEM_RANGE > data_addr ) && 
-                              (data_addr >= `MEM_BASE_ADDR) ? data_req : 'h0;
-      end
-   endgenerate
-   
+   assign cache_req_o = (`MEM_BASE_ADDR  + `MEM_RANGE  > data_addr )   && (data_addr >= `MEM_BASE_ADDR)   ? (state == WAITING) & data_req : 'h0;
    assign cache_we_o  = (`MEM_BASE_ADDR  + `MEM_RANGE  > data_addr )   && (data_addr >= `MEM_BASE_ADDR)   ? data_we  : 'h0;
    assign cache_be_o  = (`MEM_BASE_ADDR  + `MEM_RANGE  > data_addr )   && (data_addr >= `MEM_BASE_ADDR)   ? data_be  : 'h0;
   
@@ -146,14 +136,8 @@ module obi_demux (
          case (state)
             IDLE: begin
                if (data_req_i & data_gnt_o) begin
-                  if(`DCACHE_SZ == 0) begin
-                     if ((`MEM_BASE_ADDR+`MEM_RANGE     > data_addr) && (data_addr >= `MEM_BASE_ADDR  )) begin
-                        state <= IDLE;
-                     end
-                  end
-                  else state <= WAITING;
+                  state <= WAITING;
                end
-
             end
             WAITING: begin
                if (data_rvalid_o) state <= IDLE;
