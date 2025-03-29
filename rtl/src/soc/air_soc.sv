@@ -258,8 +258,59 @@ module air_soc (
          assign data_gnt = demux_data_gnt;
          assign data_rvalid = demux_data_rvalid;
          assign data_rdata = demux_data_rdata;
+
+         obi_demux obi_demux_dut (
+      .clk_i (clkwiz_o),
+      .rst_ni(rst_n),
+
+      .data_req_i   (data_req),
+      .data_gnt_o   (demux_data_gnt),
+      .data_rvalid_o(demux_data_rvalid),
+      .data_we_i    (data_we),
+      .data_be_i    (data_be),
+      .data_addr_i  (data_addr),
+      .data_wdata_i (data_wdata),
+      .data_rdata_o (demux_data_rdata),
+
+      .cache_req_o   (cache_req),
+      .cache_addr_o  (cache_addr),
+      .cache_we_o    (cache_we),
+      .cache_be_o    (cache_be),
+      .cache_wdata_o (cache_wdata),
+      .cache_gnt_i   (cache_gnt),
+      .cache_rvalid_i(cache_rvalid),
+      .cache_rdata_i (cache_rdata),
+
+      .uart_req_o   (uart_req),
+      .uart_addr_o  (uart_addr),
+      .uart_we_o    (uart_we),
+      .uart_be_o    (uart_be),
+      .uart_wdata_o (uart_wdata),
+      .uart_gnt_i   (uart_gnt),
+      .uart_rvalid_i(uart_rvalid),
+      .uart_rdata_i (uart_rdata),
+
+      .timer_req_o   (timer_req),
+      .timer_addr_o  (timer_addr),
+      .timer_we_o    (timer_we),
+      .timer_be_o    (timer_be),
+      .timer_wdata_o (timer_wdata),
+      .timer_gnt_i   (timer_gnt),
+      .timer_rvalid_i(timer_rvalid),
+      .timer_rdata_i (timer_rdata)
+
+      ,.qspi_req_o   (qspi_req)
+      ,.qspi_addr_o  (qspi_addr)
+      ,.qspi_we_o    (qspi_we)
+      ,.qspi_be_o    (qspi_be)
+      ,.qspi_wdata_o (qspi_wdata)
+      ,.qspi_gnt_i   (qspi_gnt)
+      ,.qspi_rvalid_i(qspi_rvalid)
+      ,.qspi_rdata_i (qspi_rdata)
+   );
       end
       else begin
+         /*
          assign dmem_req     = cache_req;
          assign dmem_we      = cache_we;
          assign dmem_be      = cache_be;
@@ -272,6 +323,7 @@ module air_soc (
          assign data_gnt = demux_data_gnt;
          assign data_rvalid = demux_data_rvalid;
          assign data_rdata = demux_data_rdata;
+         */
 
          //assign dmem_req     = data_req; //cache_req;
          //assign dmem_we      = data_we; //cache_we;
@@ -284,6 +336,64 @@ module air_soc (
          //assign data_gnt    = dmem_gnt;
          //assign data_rvalid = dmem_rvalid | dmem_wvalid;
          //assign data_rdata  = dmem_rdata;
+
+         logic is_mem_addr;
+         // Check if the core's data address targets the main memory range
+         assign is_mem_addr = (data_addr >= `MEM_BASE_ADDR) && (data_addr < (`MEM_BASE_ADDR + `MEM_RANGE));
+
+         // Connect Core directly TO Memory Arbiter (dmem) if address is memory
+         assign dmem_req     = is_mem_addr ? data_req : 1'b0;
+         assign dmem_we      = data_we;  // Pass through, arbiter uses dmem_req
+         assign dmem_be      = data_be;  // Pass through
+         assign dmem_addr    = data_addr; // Pass through
+         assign dmem_wdata   = data_wdata; // Pass through
+
+         // --- Path for Peripheral Accesses via OBI Demux ---
+
+         logic demux_data_req_i; // Filtered request for peripherals
+         assign demux_data_req_i = ~is_mem_addr ? data_req : 1'b0;
+
+         // Instantiate OBI Demux - Note cache_* ports are tied off/unused here
+         obi_demux obi_demux_dut (
+            .clk_i(clkwiz_o),
+            .rst_ni(rst_n),
+
+            // Core side (filtered for peripherals)
+            .data_req_i   (demux_data_req_i), // Only active for peripheral addresses
+            .data_gnt_o   (demux_data_gnt), // Grant from demux (for peripherals)
+            .data_rvalid_o(demux_data_rvalid),// Valid from demux (for peripherals)
+            .data_we_i    (data_we),          // Pass through
+            .data_be_i    (data_be),          // Pass through
+            .data_addr_i  (data_addr),        // Pass through (demux decodes)
+            .data_wdata_i (data_wdata),       // Pass through
+            .data_rdata_o (demux_data_rdata),// Read data from demux (for peripherals)
+
+            // Cache side (UNUSED in this DCACHE_SZ=0 scenario)
+            .cache_req_o   (), .cache_addr_o  (), .cache_we_o    (), .cache_be_o    (), .cache_wdata_o (),
+            .cache_gnt_i   (1'b0), .cache_rvalid_i(1'b0), .cache_rdata_i (32'b0), // Tie off inputs
+
+            // Peripheral Interfaces (Connected as before)
+            .uart_req_o   (uart_req), .uart_addr_o  (uart_addr), .uart_we_o    (uart_we), .uart_be_o    (uart_be), .uart_wdata_o (uart_wdata),
+            .uart_gnt_i   (uart_gnt), .uart_rvalid_i(uart_rvalid), .uart_rdata_i (uart_rdata),
+
+            .timer_req_o   (timer_req), .timer_addr_o  (timer_addr), .timer_we_o    (timer_we), .timer_be_o    (timer_be), .timer_wdata_o (timer_wdata),
+            .timer_gnt_i   (timer_gnt), .timer_rvalid_i(timer_rvalid), .timer_rdata_i (timer_rdata),
+
+            .qspi_req_o   (qspi_req), .qspi_addr_o  (qspi_addr), .qspi_we_o    (qspi_we), .qspi_be_o    (qspi_be), .qspi_wdata_o (qspi_wdata),
+            .qspi_gnt_i   (qspi_gnt), .qspi_rvalid_i(qspi_rvalid), .qspi_rdata_i (qspi_rdata)
+         );
+
+         // --- Mux Responses back TO Core ---
+
+         // Grant to Core: From Arbiter if memory, from Demux if peripheral
+         assign data_gnt    = is_mem_addr ? dmem_gnt : demux_data_gnt;
+
+         // Valid to Core: From Arbiter if memory, from Demux if peripheral
+         // Combine arbiter's read valid and write valid (acknowledgement)
+         assign data_rvalid = is_mem_addr ? (dmem_rvalid | dmem_wvalid) : demux_data_rvalid;
+
+         // Read Data to Core: From Arbiter if memory, from Demux if peripheral
+         assign data_rdata  = is_mem_addr ? dmem_rdata : demux_data_rdata;
       end
    endgenerate
 
@@ -359,55 +469,7 @@ module air_soc (
       ,.prog_mode_led_o(prog_mode_led_o)
    );
 
-   obi_demux obi_demux_dut (
-      .clk_i (clkwiz_o),
-      .rst_ni(rst_n),
-
-      .data_req_i   (data_req),
-      .data_gnt_o   (demux_data_gnt),
-      .data_rvalid_o(demux_data_rvalid),
-      .data_we_i    (data_we),
-      .data_be_i    (data_be),
-      .data_addr_i  (data_addr),
-      .data_wdata_i (data_wdata),
-      .data_rdata_o (demux_data_rdata),
-
-      .cache_req_o   (cache_req),
-      .cache_addr_o  (cache_addr),
-      .cache_we_o    (cache_we),
-      .cache_be_o    (cache_be),
-      .cache_wdata_o (cache_wdata),
-      .cache_gnt_i   (cache_gnt),
-      .cache_rvalid_i(cache_rvalid),
-      .cache_rdata_i (cache_rdata),
-
-      .uart_req_o   (uart_req),
-      .uart_addr_o  (uart_addr),
-      .uart_we_o    (uart_we),
-      .uart_be_o    (uart_be),
-      .uart_wdata_o (uart_wdata),
-      .uart_gnt_i   (uart_gnt),
-      .uart_rvalid_i(uart_rvalid),
-      .uart_rdata_i (uart_rdata),
-
-      .timer_req_o   (timer_req),
-      .timer_addr_o  (timer_addr),
-      .timer_we_o    (timer_we),
-      .timer_be_o    (timer_be),
-      .timer_wdata_o (timer_wdata),
-      .timer_gnt_i   (timer_gnt),
-      .timer_rvalid_i(timer_rvalid),
-      .timer_rdata_i (timer_rdata)
-
-      ,.qspi_req_o   (qspi_req)
-      ,.qspi_addr_o  (qspi_addr)
-      ,.qspi_we_o    (qspi_we)
-      ,.qspi_be_o    (qspi_be)
-      ,.qspi_wdata_o (qspi_wdata)
-      ,.qspi_gnt_i   (qspi_gnt)
-      ,.qspi_rvalid_i(qspi_rvalid)
-      ,.qspi_rdata_i (qspi_rdata)
-   );
+   
 
    uart_controller_obi uart_dut (
       .clk_i   (clkwiz_o),
