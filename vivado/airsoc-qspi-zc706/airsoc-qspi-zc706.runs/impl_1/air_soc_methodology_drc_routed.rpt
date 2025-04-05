@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
 -----------------------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version : Vivado v.2022.2 (win64) Build 3671981 Fri Oct 14 05:00:03 MDT 2022
-| Date         : Wed Jan 15 00:45:06 2025
+| Date         : Sat Apr  5 23:20:15 2025
 | Host         : DESKTOP-NCDM7BC running 64-bit major release  (build 9200)
 | Command      : report_methodology -file air_soc_methodology_drc_routed.rpt -pb air_soc_methodology_drc_routed.pb -rpx air_soc_methodology_drc_routed.rpx
 | Design       : air_soc
@@ -23,14 +23,14 @@ Table of Contents
           Floorplan: design_1
       Design limits: <entire design considered>
              Max violations: <unlimited>
-             Violations found: 92
+             Violations found: 93
 +-----------+------------------+------------------------------------------------------------------+------------+
 | Rule      | Severity         | Description                                                      | Violations |
 +-----------+------------------+------------------------------------------------------------------+------------+
 | TIMING-6  | Critical Warning | No common primary clock between related clocks                   | 2          |
 | TIMING-14 | Critical Warning | LUT on the clock tree                                            | 35         |
 | DPIR-1    | Warning          | Asynchronous driver check                                        | 32         |
-| LUTAR-1   | Warning          | LUT drives async reset alert                                     | 1          |
+| LUTAR-1   | Warning          | LUT drives async reset alert                                     | 2          |
 | SYNTH-10  | Warning          | Wide multiplier                                                  | 3          |
 | SYNTH-15  | Warning          | Byte wide write enable not inferred                              | 16         |
 | TIMING-56 | Warning          | Missing logically or physically excluded clock groups constraint | 2          |
@@ -386,13 +386,33 @@ Related violations: <none>
 
 LUTAR-1#1 Warning
 LUT drives async reset alert  
-LUT cell main_memory/cpu_addr_q[31]_i_2, with 2 or more inputs, drives asynchronous preset/clear pin(s) req_count_reg[0]/CLR, req_count_reg[1]/CLR, req_count_reg[2]/CLR,
+LUT cell main_memory/cnt_q[1]_i_7, with 2 or more inputs, drives asynchronous preset/clear pin(s) cv32e40p_core_ip/core_i/load_store_unit_i/rdata_q_reg[27]/CLR,
+cv32e40p_core_ip/core_i/load_store_unit_i/rdata_q_reg[28]/CLR,
+cv32e40p_core_ip/core_i/load_store_unit_i/rdata_q_reg[29]/CLR,
+cv32e40p_core_ip/core_i/load_store_unit_i/rdata_q_reg[2]/CLR,
+cv32e40p_core_ip/core_i/load_store_unit_i/rdata_q_reg[30]/CLR,
+cv32e40p_core_ip/core_i/load_store_unit_i/rdata_q_reg[31]/CLR,
+cv32e40p_core_ip/core_i/load_store_unit_i/rdata_q_reg[3]/CLR,
+cv32e40p_core_ip/core_i/load_store_unit_i/rdata_q_reg[4]/CLR,
+cv32e40p_core_ip/core_i/load_store_unit_i/rdata_q_reg[5]/CLR,
+cv32e40p_core_ip/core_i/load_store_unit_i/rdata_q_reg[6]/CLR,
+cv32e40p_core_ip/core_i/load_store_unit_i/rdata_q_reg[7]/CLR,
+cv32e40p_core_ip/core_i/load_store_unit_i/rdata_q_reg[8]/CLR,
+cv32e40p_core_ip/core_i/load_store_unit_i/rdata_q_reg[9]/CLR,
+cv32e40p_core_ip/core_i/sleep_unit_i/core_busy_q_reg/CLR,
+cv32e40p_core_ip/core_i/sleep_unit_i/fetch_enable_q_reg/CLR
+ (the first 15 of 2177 listed). The LUT may glitch and trigger an unexpected reset, even if it is a properly timed path.
+Related violations: <none>
+
+LUTAR-1#2 Warning
+LUT drives async reset alert  
+LUT cell main_memory/data_addr[31]_i_1, with 2 or more inputs, drives asynchronous preset/clear pin(s) req_count_reg[0]/CLR, req_count_reg[1]/CLR, req_count_reg[2]/CLR,
 req_count_reg[3]/CLR, req_count_reg[4]/CLR, uart_dut/rdata_o_reg[31]/CLR,
 uart_dut/rdata_o_reg[3]/CLR, uart_dut/rdata_o_reg[4]/CLR,
 uart_dut/rdata_o_reg[5]/CLR, uart_dut/rdata_o_reg[6]/CLR,
 uart_dut/rdata_o_reg[7]/CLR, uart_dut/rdata_o_reg[8]/CLR,
 uart_dut/rdata_o_reg[9]/CLR, uart_dut/rvalid_o_reg/CLR,
-uart_dut/wb_cyc_r_reg/CLR (the first 15 of 893 listed). The LUT may glitch and trigger an unexpected reset, even if it is a properly timed path.
+uart_dut/wb_cyc_r_reg/CLR (the first 15 of 73 listed). The LUT may glitch and trigger an unexpected reset, even if it is a properly timed path.
 Related violations: <none>
 
 SYNTH-10#1 Warning

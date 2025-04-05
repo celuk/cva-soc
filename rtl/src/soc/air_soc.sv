@@ -257,7 +257,7 @@ module air_soc (
          assign dmem_be      = cache_be;
          assign dmem_addr    = cache_addr;
          assign dmem_wdata   = cache_wdata;
-         assign cache_gnt    = 1; //dmem_gnt;
+         assign cache_gnt    = 1'b1; //((`MEM_BASE_ADDR+`MEM_RANGE     >= data_addr) && (data_addr >= `MEM_BASE_ADDR  )) ? 1 : 0; //dmem_gnt;
          assign cache_rvalid = dmem_rvalid | dmem_wvalid;
          assign cache_rdata  = dmem_rdata;
       end
