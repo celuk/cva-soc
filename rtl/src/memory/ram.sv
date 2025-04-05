@@ -47,7 +47,6 @@ module ram32 #(
    
    reg  [clogb2(RAM_DEPTH-1)-1:0] prog_addr;
 
-   /*
    generate
    if (INIT_FILE != "") begin: use_init_file
      initial
@@ -59,7 +58,6 @@ module ram32 #(
          ram[ram_index] = {(NB_COL*COL_WIDTH){1'b0}};
    end
    endgenerate
-   */
 
    /*
    always @(posedge clk_i)
@@ -189,7 +187,7 @@ module ram32 #(
      received_sequence    <= 72'h0;
      rcv_seq_ctr          <= 4'h0;
      prog_inst_valid      <= 1'b0;
-     prog_sys_rst_n       <= 1'b0;
+     prog_sys_rst_n       <= 1'b1;
    end else begin
      case (state_prog)
        SequenceWait: begin
@@ -279,29 +277,17 @@ module ram32 #(
       .reg_dat_do  (prog_uart_do)
    );
 
-   // assume that if there is an init file, then wont be programmed with another code
-   generate
-      if (INIT_FILE != "") begin: use_init_file
-        initial
-          $readmemh(INIT_FILE, ram, 0, RAM_DEPTH-1);
+   always @(posedge clk_i) begin
+      if ((req_i && we_i) || (prog_mode_led_o && ram_prog_data_valid)) begin
+         for (int i = 0; i < 4; i++) if (be_i[i] == 1'b1) ram[wr_addr_ram][i*8+:8] <= wr_data_ram[i*8+:8];
       end
-   endgenerate
+      rdata_o <= ram[mem_addr];
+   end
 
    always_ff @(posedge clk_i) begin
-      if (!rst_ni) begin
-         if (INIT_FILE == "") begin
-              for (int ram_index = 0; ram_index < RAM_DEPTH; ram_index = ram_index + 1)
-                 ram[ram_index] <= {(NB_COL*COL_WIDTH){1'b0}};
-         end
-        
-         rdata_o <= 0;
-         rvalid_o <= 0;
-      end
-      else begin
-         if ((req_i && we_i) || (prog_mode_led_o && ram_prog_data_valid)) begin
-            for (int i = 0; i < 4; i++) if (be_i[i] == 1'b1) ram[wr_addr_ram][i*8+:8] <= wr_data_ram[i*8+:8];
-         end
-         rdata_o <= ram[mem_addr];
+      if (!(rst_ni && system_reset_o)) begin
+         rvalid_o <= '0;
+      end else begin
          rvalid_o <= req_i;
       end
    end
