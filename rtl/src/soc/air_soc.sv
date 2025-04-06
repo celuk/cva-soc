@@ -321,7 +321,7 @@ module air_soc (
       .INIT_FILE(`RAM_FPATH)
    ) main_memory (
       .clk_i   (clkwiz_o),
-      .rst_ni  (rst_ni),
+      .rst_ni  (rst_ni & clkwiz_locked),
       .req_i   (mem_req),
       .we_i    (mem_req & mem_we),
       .be_i    (mem_be),
@@ -512,7 +512,7 @@ module air_soc (
 
    qspi_controller_obi qspi (
       .clk_i         (clkwiz_o),
-      .rst_ni        (rst_ni),
+      .rst_ni        (rst_n),
       .req_i         (qspi_req),
       .we_i          (qspi_we),
       .be_i          (qspi_be),
