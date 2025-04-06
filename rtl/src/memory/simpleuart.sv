@@ -50,7 +50,7 @@
 
 	assign reg_dat_do = recv_buf_valid ? {24'b0,recv_buf_data} : ~0;
 
-	always @(posedge clk) begin
+	always @(posedge clk or negedge resetn) begin
 		if (!resetn) begin
 			cfg_divider <= DEFAULT_DIV;
 		end else begin
@@ -61,7 +61,7 @@
 		end
 	end
 
-	always @(posedge clk) begin
+	always @(posedge clk or negedge resetn) begin
 		if (!resetn) begin
 			recv_state <= 0;
 			recv_divcnt <= 0;
@@ -104,7 +104,7 @@
 
 	assign ser_tx = send_pattern[0];
 
-	always @(posedge clk) begin
+	always @(posedge clk or negedge resetn) begin
 		if (reg_div_we != 0)
 			send_dummy <= 1;
 		send_divcnt <= send_divcnt + 1;

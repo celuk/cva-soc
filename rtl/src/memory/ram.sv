@@ -80,15 +80,16 @@ module ram32 #(
    assign wr_addr_ram = (prog_mode_led_o && ram_prog_data_valid) ? prog_addr : mem_addr;
    assign wr_data_ram = (prog_mode_led_o && ram_prog_data_valid) ? ram_prog_data : wdata_i;
 
-   
-   always @(posedge clk_i) begin
-   if (!(rst_ni && system_reset_o)) begin
-     prog_addr <= 'h0;
-   end else begin
-     if (prog_mode_led_o && ram_prog_data_valid) begin
-       prog_addr <= prog_addr + 1'b1;
-     end
-   end
+   wire rst_n = rst_ni && system_reset_o;
+
+   always @(posedge clk_i or negedge rst_n) begin
+      if (!rst_n) begin
+        prog_addr <= 'h0;
+      end else begin
+        if (prog_mode_led_o && ram_prog_data_valid) begin
+          prog_addr <= prog_addr + 1'b1;
+        end
+      end
    end
    
    localparam PROGRAM_SEQUENCE    = "TEKNOFEST";
@@ -127,7 +128,7 @@ module ram32 #(
    assign prog_mode_led_o     = (state_prog == SequenceProgram);
    assign sequence_break      = sequence_break_ctr == SEQ_BREAK_THRESHOLD;
    
-   always @(posedge clk_i) begin
+   always @(posedge clk_i or negedge rst_ni) begin
    if (!rst_ni) begin
      state_prog <= SequenceWait;
    end else begin
@@ -177,7 +178,7 @@ module ram32 #(
    endcase
    end
    
-   always @(posedge clk_i) begin
+   always @(posedge clk_i or negedge rst_ni) begin
    if (!rst_ni) begin
      instruction_byte_ctr <= 2'b0;
      prog_instruction     <= 32'h0;
@@ -278,7 +279,7 @@ module ram32 #(
    );
 
    always @(posedge clk_i) begin
-      if (!(rst_ni && system_reset_o)) begin
+      if (!rst_n) begin
          rdata_o <= 0;
       end else begin
          if ((req_i && we_i) || (prog_mode_led_o && ram_prog_data_valid)) begin
@@ -288,8 +289,8 @@ module ram32 #(
       end
    end
 
-   always_ff @(posedge clk_i) begin
-      if (!(rst_ni && system_reset_o)) begin
+   always_ff @(posedge clk_i or negedge rst_n) begin
+      if (!rst_n) begin
          rvalid_o <= 0;
       end else begin
          rvalid_o <= req_i;
