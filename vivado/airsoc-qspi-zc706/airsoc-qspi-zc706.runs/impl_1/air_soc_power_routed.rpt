@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
 -------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version     : Vivado v.2022.2 (win64) Build 3671981 Fri Oct 14 05:00:03 MDT 2022
-| Date             : Sat Apr  5 23:20:22 2025
+| Date             : Sun Apr  6 18:12:44 2025
 | Host             : DESKTOP-NCDM7BC running 64-bit major release  (build 9200)
 | Command          : report_power -file air_soc_power_routed.rpt -pb air_soc_power_summary_routed.pb -rpx air_soc_power_routed.rpx
 | Design           : air_soc
@@ -33,7 +33,7 @@ Table of Contents
 | Total On-Chip Power (W)  | 0.216        |
 | Design Power Budget (W)  | Unspecified* |
 | Power Budget Margin (W)  | NA           |
-| Dynamic (W)              | 0.143        |
+| Dynamic (W)              | 0.144        |
 | Device Static (W)        | 0.073        |
 | Effective TJA (C/W)      | 5.0          |
 | Max Ambient (C)          | 83.9         |
@@ -52,15 +52,15 @@ Table of Contents
 +--------------------------+-----------+----------+-----------+-----------------+
 | On-Chip                  | Power (W) | Used     | Available | Utilization (%) |
 +--------------------------+-----------+----------+-----------+-----------------+
-| Clocks                   |     0.012 |        8 |       --- |             --- |
-| Slice Logic              |     0.003 |    14839 |       --- |             --- |
-|   LUT as Logic           |     0.003 |     8261 |     20800 |           39.72 |
+| Clocks                   |     0.013 |        8 |       --- |             --- |
+| Slice Logic              |     0.003 |    14831 |       --- |             --- |
+|   LUT as Logic           |     0.003 |     8253 |     20800 |           39.68 |
 |   CARRY4                 |    <0.001 |      247 |      8150 |            3.03 |
 |   Register               |    <0.001 |     3814 |     41600 |            9.17 |
 |   F7/F8 Muxes            |    <0.001 |      368 |     32600 |            1.13 |
 |   LUT as Distributed RAM |    <0.001 |        6 |      9600 |            0.06 |
 |   Others                 |     0.000 |      116 |       --- |             --- |
-| Signals                  |     0.004 |    12288 |       --- |             --- |
+| Signals                  |     0.004 |    12290 |       --- |             --- |
 | Block RAM                |     0.007 |       16 |        50 |           32.00 |
 | MMCM                     |     0.116 |        1 |         5 |           20.00 |
 | DSPs                     |    <0.001 |        5 |        90 |            5.56 |
@@ -150,17 +150,17 @@ Table of Contents
 +--------------------+-----------+
 | Name               | Power (W) |
 +--------------------+-----------+
-| air_soc            |     0.143 |
-|   cv32e40p_core_ip |     0.014 |
-|     core_i         |     0.014 |
+| air_soc            |     0.144 |
+|   cv32e40p_core_ip |     0.015 |
+|     core_i         |     0.015 |
 |       ex_stage_i   |     0.001 |
-|       id_stage_i   |     0.010 |
+|       id_stage_i   |     0.011 |
 |       if_stage_i   |     0.002 |
 |   dutclk           |     0.116 |
 |     inst           |     0.116 |
 |   main_memory      |     0.009 |
-|   qspi             |     0.002 |
-|     qspi_iface_dut |     0.002 |
+|   qspi             |     0.001 |
+|     qspi_iface_dut |     0.001 |
 +--------------------+-----------+
 
 

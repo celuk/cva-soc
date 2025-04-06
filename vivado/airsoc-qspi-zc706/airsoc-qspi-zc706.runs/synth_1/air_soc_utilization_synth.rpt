@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
 ---------------------------------------------------------------------------------------------------------
 | Tool Version : Vivado v.2022.2 (win64) Build 3671981 Fri Oct 14 05:00:03 MDT 2022
-| Date         : Sat Apr  5 23:16:21 2025
+| Date         : Sun Apr  6 18:08:53 2025
 | Host         : DESKTOP-NCDM7BC running 64-bit major release  (build 9200)
 | Command      : report_utilization -file air_soc_utilization_synth.rpt -pb air_soc_utilization_synth.pb
 | Design       : air_soc
@@ -31,8 +31,8 @@ Table of Contents
 +----------------------------+------+-------+------------+-----------+-------+
 |          Site Type         | Used | Fixed | Prohibited | Available | Util% |
 +----------------------------+------+-------+------------+-----------+-------+
-| Slice LUTs*                | 8372 |     0 |          0 |     20800 | 40.25 |
-|   LUT as Logic             | 8364 |     0 |          0 |     20800 | 40.21 |
+| Slice LUTs*                | 8360 |     0 |          0 |     20800 | 40.19 |
+|   LUT as Logic             | 8352 |     0 |          0 |     20800 | 40.15 |
 |   LUT as Memory            |    8 |     0 |          0 |      9600 |  0.08 |
 |     LUT as Distributed RAM |    8 |     0 |            |           |       |
 |     LUT as Shift Register  |    0 |     0 |            |           |       |
@@ -155,20 +155,20 @@ Warning! LUT value is adjusted to account for LUT combining.
 +-----------+------+---------------------+
 |  Ref Name | Used | Functional Category |
 +-----------+------+---------------------+
-| LUT6      | 4929 |                 LUT |
-| LUT3      | 2004 |                 LUT |
+| LUT6      | 4912 |                 LUT |
+| LUT3      | 1999 |                 LUT |
 | FDRE      | 1493 |        Flop & Latch |
 | FDCE      | 1284 |        Flop & Latch |
-| LUT4      | 1236 |                 LUT |
-| LUT5      | 1200 |                 LUT |
+| LUT4      | 1233 |                 LUT |
+| LUT5      | 1215 |                 LUT |
 | LDCE      | 1025 |        Flop & Latch |
-| LUT2      |  888 |                 LUT |
+| LUT2      |  891 |                 LUT |
 | MUXF7     |  339 |               MuxFx |
 | CARRY4    |  247 |          CarryLogic |
 | MUXF8     |   29 |               MuxFx |
 | RAMB36E1  |   16 |        Block Memory |
+| LUT1      |   12 |                 LUT |
 | BUFG      |   12 |               Clock |
-| LUT1      |   11 |                 LUT |
 | RAMD32    |   10 |  Distributed Memory |
 | FDPE      |    8 |        Flop & Latch |
 | IBUF      |    6 |                  IO |

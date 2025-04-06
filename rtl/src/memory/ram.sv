@@ -278,15 +278,19 @@ module ram32 #(
    );
 
    always @(posedge clk_i) begin
-      if ((req_i && we_i) || (prog_mode_led_o && ram_prog_data_valid)) begin
-         for (int i = 0; i < 4; i++) if (be_i[i] == 1'b1) ram[wr_addr_ram][i*8+:8] <= wr_data_ram[i*8+:8];
+      if (!(rst_ni && system_reset_o)) begin
+         rdata_o <= 0;
+      end else begin
+         if ((req_i && we_i) || (prog_mode_led_o && ram_prog_data_valid)) begin
+            for (int i = 0; i < 4; i++) if (be_i[i] == 1'b1) ram[wr_addr_ram][i*8+:8] <= wr_data_ram[i*8+:8];
+         end
+         rdata_o <= ram[mem_addr];
       end
-      rdata_o <= ram[mem_addr];
    end
 
    always_ff @(posedge clk_i) begin
       if (!(rst_ni && system_reset_o)) begin
-         rvalid_o <= '0;
+         rvalid_o <= 0;
       end else begin
          rvalid_o <= req_i;
       end

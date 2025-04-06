@@ -19,8 +19,7 @@
 `define CPU_CLK 25_000_000
 `define BAUD_RATE 115200
 
-// TODO: Handle if DCACHE_SZ is 0
-// Cache sizes must be at least multiple of 64 --> e.g. 64, 128, 256, ...
+// Cache sizes must be multiple of 64 --> e.g. 0, 64, 128, 256, ...
 `define ICACHE_SZ 0
 `define DCACHE_SZ 0
 `define MEM_W 32

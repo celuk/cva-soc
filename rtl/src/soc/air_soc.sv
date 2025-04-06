@@ -321,7 +321,7 @@ module air_soc (
       .INIT_FILE(`RAM_FPATH)
    ) main_memory (
       .clk_i   (clkwiz_o),
-      .rst_ni  (rst_ni & clkwiz_locked),
+      .rst_ni  (rst_ni `ifdef BASYS3 & clkwiz_locked `endif),
       .req_i   (mem_req),
       .we_i    (mem_req & mem_we),
       .be_i    (mem_be),
