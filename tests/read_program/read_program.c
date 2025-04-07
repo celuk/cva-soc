@@ -12,7 +12,7 @@ int main(){
 
     unsigned int address = 0x00000000;
     unsigned int* data;
-    for (unsigned int i = 0; i < 3000; i += 32) {
+    for (unsigned int i = 0; i < 30000; i += 32) { // 28872
         data = qspi_read_qor(address);
 
         tekno_printf("DR0: %x\n", data[0]);
