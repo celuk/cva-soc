@@ -203,6 +203,44 @@ int main() {
     wait_for_not_busy();
     wait_for_wel_down();
 
+    qspi_set_ccr(
+        /*inst_value*/       CMD_WREN,
+        /*data_mod*/         1,
+        /*wr_flash*/         0,
+        /*dummy_cycle*/      0,
+        /*data_size*/        0,
+        /*prescaler*/        1,
+        /*clear_status_reg*/ 1
+    );
+    wait_for_not_busy();
+    wait_for_wel_set();
+
+    // clears 64 or 256kB??
+    QSPI_ADR = 0x00010000;
+    qspi_set_ccr(
+        /*inst_value*/       CMD_SE,
+        /*data_mod*/         1,
+        /*wr_flash*/         0,
+        /*dummy_cycle*/      0,
+        /*data_size*/        0,
+        /*prescaler*/        1,
+        /*clear_status_reg*/ 1
+    );
+    wait_for_not_busy();
+    wait_for_wip_done();
+
+    qspi_set_ccr(
+        /*inst_value*/       CMD_WRDI,
+        /*data_mod*/         1,
+        /*wr_flash*/         0,
+        /*dummy_cycle*/      0,
+        /*data_size*/        0,
+        /*prescaler*/        1,
+        /*clear_status_reg*/ 1
+    );
+    wait_for_not_busy();
+    wait_for_wel_down();
+
     write_all_flash_data();
     
     tekno_printf("QSPI write done\n");
