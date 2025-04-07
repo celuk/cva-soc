@@ -3,8 +3,8 @@
 #include "defines.h"
 
 void qspi_init(){
-    //wait_for_us(500);
-    wait_for_us(10);
+    wait_for_us(500);
+    //wait_for_us(10);
 }
 
 void qspi_set_ccr(unsigned int inst_value, unsigned int data_mod, unsigned int wr_flash, unsigned int dummy_cycle, unsigned int data_size, unsigned int prescaler, unsigned int clear_status_reg){
