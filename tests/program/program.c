@@ -40,7 +40,30 @@ void qspi_32byte_write(unsigned int* data, unsigned int addr){
     wait_for_not_busy();
     wait_for_wip_done();
 
+    qspi_set_ccr(
+        /*inst_value*/       CMD_WRDI,
+        /*data_mod*/         1,
+        /*wr_flash*/         0,
+        /*dummy_cycle*/      0,
+        /*data_size*/        0,
+        /*prescaler*/        1,
+        /*clear_status_reg*/ 1
+    );
+    wait_for_not_busy();
+    wait_for_wel_down();
+
     tekno_printf("Wrote 32 bytes to address: %x\n", addr);
+
+    //if(addr == 0x00001c00) {
+    //    tekno_printf("data0: %x\n", data[0]);
+    //    tekno_printf("data1: %x\n", data[1]);
+    //    tekno_printf("data2: %x\n", data[2]);
+    //    tekno_printf("data3: %x\n", data[3]);
+    //    tekno_printf("data4: %x\n", data[4]);
+    //    tekno_printf("data5: %x\n", data[5]);
+    //    tekno_printf("data6: %x\n", data[6]);
+    //    tekno_printf("data7: %x\n", data[7]);
+    //}
 }
 
 void write_all_flash_data(void) {
@@ -179,6 +202,43 @@ int main() {
 
     // clears 64 or 256kB??
     QSPI_ADR = 0x00000000;
+    qspi_set_ccr(
+        /*inst_value*/       CMD_SE,
+        /*data_mod*/         1,
+        /*wr_flash*/         0,
+        /*dummy_cycle*/      0,
+        /*data_size*/        0,
+        /*prescaler*/        1,
+        /*clear_status_reg*/ 1
+    );
+    wait_for_not_busy();
+    wait_for_wip_done();
+
+    qspi_set_ccr(
+        /*inst_value*/       CMD_WRDI,
+        /*data_mod*/         1,
+        /*wr_flash*/         0,
+        /*dummy_cycle*/      0,
+        /*data_size*/        0,
+        /*prescaler*/        1,
+        /*clear_status_reg*/ 1
+    );
+    wait_for_not_busy();
+    wait_for_wel_down();
+
+    qspi_set_ccr(
+        /*inst_value*/       CMD_WREN,
+        /*data_mod*/         1,
+        /*wr_flash*/         0,
+        /*dummy_cycle*/      0,
+        /*data_size*/        0,
+        /*prescaler*/        1,
+        /*clear_status_reg*/ 1
+    );
+    wait_for_not_busy();
+    wait_for_wel_set();
+
+    QSPI_ADR = 0x00001c00;
     qspi_set_ccr(
         /*inst_value*/       CMD_SE,
         /*data_mod*/         1,
