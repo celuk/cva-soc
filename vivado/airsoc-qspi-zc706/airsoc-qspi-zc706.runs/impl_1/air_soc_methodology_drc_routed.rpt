@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
 -----------------------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version : Vivado v.2022.2 (win64) Build 3671981 Fri Oct 14 05:00:03 MDT 2022
-| Date         : Sun Apr  6 19:08:03 2025
+| Date         : Mon Apr  7 03:14:10 2025
 | Host         : DESKTOP-NCDM7BC running 64-bit major release  (build 9200)
 | Command      : report_methodology -file air_soc_methodology_drc_routed.rpt -pb air_soc_methodology_drc_routed.pb -rpx air_soc_methodology_drc_routed.rpx
 | Design       : air_soc
@@ -23,14 +23,14 @@ Table of Contents
           Floorplan: design_1
       Design limits: <entire design considered>
              Max violations: <unlimited>
-             Violations found: 94
+             Violations found: 93
 +-----------+------------------+------------------------------------------------------------------+------------+
 | Rule      | Severity         | Description                                                      | Violations |
 +-----------+------------------+------------------------------------------------------------------+------------+
 | TIMING-6  | Critical Warning | No common primary clock between related clocks                   | 2          |
 | TIMING-14 | Critical Warning | LUT on the clock tree                                            | 35         |
 | DPIR-1    | Warning          | Asynchronous driver check                                        | 32         |
-| LUTAR-1   | Warning          | LUT drives async reset alert                                     | 3          |
+| LUTAR-1   | Warning          | LUT drives async reset alert                                     | 2          |
 | SYNTH-10  | Warning          | Wide multiplier                                                  | 3          |
 | SYNTH-15  | Warning          | Byte wide write enable not inferred                              | 16         |
 | TIMING-56 | Warning          | Missing logically or physically excluded clock groups constraint | 2          |
@@ -386,29 +386,18 @@ Related violations: <none>
 
 LUTAR-1#1 Warning
 LUT drives async reset alert  
-LUT cell main_memory/cnt_q[1]_i_7, with 2 or more inputs, drives asynchronous preset/clear pin(s) qspi/rdata_o_reg[27]/CLR, qspi/rdata_o_reg[28]/CLR,
-qspi/rdata_o_reg[29]/CLR, qspi/rdata_o_reg[2]/CLR,
-qspi/rdata_o_reg[30]/CLR, qspi/rdata_o_reg[31]/CLR,
-qspi/rdata_o_reg[3]/CLR, qspi/rdata_o_reg[4]/CLR, qspi/rdata_o_reg[5]/CLR,
-qspi/rdata_o_reg[6]/CLR, qspi/rdata_o_reg[7]/CLR, qspi/rdata_o_reg[8]/CLR,
-qspi/rdata_o_reg[9]/CLR, qspi/rvalid_o_reg/CLR, qspi/wb_cyc_r_reg/CLR
- (the first 15 of 2211 listed). The LUT may glitch and trigger an unexpected reset, even if it is a properly timed path.
-Related violations: <none>
-
-LUTAR-1#2 Warning
-LUT drives async reset alert  
-LUT cell main_memory/ram_reg_0_0_i_2, with 2 or more inputs, drives asynchronous preset/clear pin(s) req_count_reg[0]/CLR, req_count_reg[1]/CLR, req_count_reg[2]/CLR,
+LUT cell main_memory/cpu_addr_q[31]_i_2, with 2 or more inputs, drives asynchronous preset/clear pin(s) req_count_reg[0]/CLR, req_count_reg[1]/CLR, req_count_reg[2]/CLR,
 req_count_reg[3]/CLR, req_count_reg[4]/CLR, uart_dut/rdata_o_reg[31]/CLR,
 uart_dut/rdata_o_reg[3]/CLR, uart_dut/rdata_o_reg[4]/CLR,
 uart_dut/rdata_o_reg[5]/CLR, uart_dut/rdata_o_reg[6]/CLR,
 uart_dut/rdata_o_reg[7]/CLR, uart_dut/rdata_o_reg[8]/CLR,
 uart_dut/rdata_o_reg[9]/CLR, uart_dut/rvalid_o_reg/CLR,
-uart_dut/wb_cyc_r_reg/CLR (the first 15 of 159 listed). The LUT may glitch and trigger an unexpected reset, even if it is a properly timed path.
+uart_dut/wb_cyc_r_reg/CLR (the first 15 of 981 listed). The LUT may glitch and trigger an unexpected reset, even if it is a properly timed path.
 Related violations: <none>
 
-LUTAR-1#3 Warning
+LUTAR-1#2 Warning
 LUT drives async reset alert  
-LUT cell main_memory/simpleuart/FSM_onehot_state_prog[5]_i_2, with 2 or more inputs, drives asynchronous preset/clear pin(s) main_memory/sequence_break_ctr_reg[25]/CLR,
+LUT cell main_memory/simpleuart/cpu_addr_q[31]_i_5, with 2 or more inputs, drives asynchronous preset/clear pin(s) main_memory/sequence_break_ctr_reg[25]/CLR,
 main_memory/sequence_break_ctr_reg[26]/CLR,
 main_memory/sequence_break_ctr_reg[27]/CLR,
 main_memory/sequence_break_ctr_reg[28]/CLR,
