@@ -15,6 +15,7 @@ int main(){
     for (unsigned int i = 0; i < 30000; i += 32) { // 7218*4 = 28872
         data = qspi_read_qor(address);
 
+        tekno_printf("address: %x\n", address);
         tekno_printf("DR0: %x\n", data[0]);
         tekno_printf("DR1: %x\n", data[1]);
         tekno_printf("DR2: %x\n", data[2]);

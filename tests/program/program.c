@@ -238,7 +238,8 @@ int main() {
     wait_for_not_busy();
     wait_for_wel_set();
 
-    QSPI_ADR = 0x00001c00;
+    //QSPI_ADR = 0x00001c00;
+    QSPI_ADR = 0x00007000;
     qspi_set_ccr(
         /*inst_value*/       CMD_SE,
         /*data_mod*/         1,
@@ -301,7 +302,18 @@ int main() {
     wait_for_not_busy();
     wait_for_wel_down();
 
-    QSPI_ADR = 0x00001c00;
+    unsigned int* data;
+    data = qspi_read_qor(0x00007000);
+
+    tekno_printf("DR0: %x\n", data[0]);
+    tekno_printf("DR1: %x\n", data[1]);
+    tekno_printf("DR2: %x\n", data[2]);
+    tekno_printf("DR3: %x\n", data[3]);
+    tekno_printf("DR4: %x\n", data[4]);
+    tekno_printf("DR5: %x\n", data[5]);
+    tekno_printf("DR6: %x\n", data[6]);
+    tekno_printf("DR7: %x\n", data[7]);
+
     qspi_set_ccr(
         /*inst_value*/       CMD_WREN,
         /*data_mod*/         1,
@@ -323,6 +335,7 @@ int main() {
     QSPI_DR6 = 0xbbbbbbbb;
     QSPI_DR7 = 0xbbbbbbbb;
 
+    QSPI_ADR = 0x00007000;
     qspi_set_ccr(
         /*inst_value*/       CMD_QPP,
         /*data_mod*/         3,
@@ -347,25 +360,25 @@ int main() {
     wait_for_not_busy();
     wait_for_wel_down();
 
-    qspi_set_ccr(
-        /*inst_value*/       CMD_QOR,
-        /*data_mod*/         3,
-        /*wr_flash*/         0,
-        /*dummy_cycle*/      8,
-        /*data_size*/        31,
-        /*prescaler*/        1,
-        /*clear_status_reg*/ 1
-    );
-    wait_for_not_busy();
+    QSPI_DR0 = 0xaaaaaaaa;
+    QSPI_DR1 = 0xaaaaaaaa;
+    QSPI_DR2 = 0xaaaaaaaa;
+    QSPI_DR3 = 0xaaaaaaaa;
+    QSPI_DR4 = 0xaaaaaaaa;
+    QSPI_DR5 = 0xaaaaaaaa;
+    QSPI_DR6 = 0xaaaaaaaa;
+    QSPI_DR7 = 0xaaaaaaaa;
 
-    tekno_printf("DR0: %x\n", QSPI_DR0);
-    tekno_printf("DR1: %x\n", QSPI_DR1);
-    tekno_printf("DR2: %x\n", QSPI_DR2);
-    tekno_printf("DR3: %x\n", QSPI_DR3);
-    tekno_printf("DR4: %x\n", QSPI_DR4);
-    tekno_printf("DR5: %x\n", QSPI_DR5);
-    tekno_printf("DR6: %x\n", QSPI_DR6);
-    tekno_printf("DR7: %x\n", QSPI_DR7);
+    data = qspi_read_qor(0x00007000);
+
+    tekno_printf("DR0: %x\n", data[0]);
+    tekno_printf("DR1: %x\n", data[1]);
+    tekno_printf("DR2: %x\n", data[2]);
+    tekno_printf("DR3: %x\n", data[3]);
+    tekno_printf("DR4: %x\n", data[4]);
+    tekno_printf("DR5: %x\n", data[5]);
+    tekno_printf("DR6: %x\n", data[6]);
+    tekno_printf("DR7: %x\n", data[7]);
 
     //write_all_flash_data();
     
