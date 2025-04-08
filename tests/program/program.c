@@ -52,6 +52,64 @@ void qspi_32byte_write(unsigned int* data, unsigned int addr){
     wait_for_not_busy();
     wait_for_wel_down();
 
+    if(addr == 0x6ff8) { // 0x7000
+        tekno_printf("DR0: %x\n", QSPI_DR0);
+        tekno_printf("DR1: %x\n", QSPI_DR1);
+        tekno_printf("DR2: %x\n", QSPI_DR2);
+        tekno_printf("DR3: %x\n", QSPI_DR3);
+        tekno_printf("DR4: %x\n", QSPI_DR4);
+        tekno_printf("DR5: %x\n", QSPI_DR5);
+        tekno_printf("DR6: %x\n", QSPI_DR6);
+        tekno_printf("DR7: %x\n", QSPI_DR7);
+
+        qspi_set_ccr(
+            /*inst_value*/       CMD_WREN,
+            /*data_mod*/         1,
+            /*wr_flash*/         0,
+            /*dummy_cycle*/      0,
+            /*data_size*/        0,
+            /*prescaler*/        1,
+            /*clear_status_reg*/ 1
+        );
+        wait_for_not_busy();
+        wait_for_wel_set();
+
+        QSPI_DR0 = 0x2C2A2A2A;
+        QSPI_DR1 = 0x2C2E2E2A;
+        QSPI_DR2 = 0x2E2C2E2E;
+        QSPI_DR3 = 0x2E2E2E2E;
+        QSPI_DR4 = 0x2E2E2E2E;
+        QSPI_DR5 = 0x2E2E2E2E;
+        QSPI_DR6 = 0x2C2C2C2E;
+        QSPI_DR7 = 0x2E2E2C2C;
+
+        QSPI_ADR = 0x00007000;
+        qspi_set_ccr(
+            /*inst_value*/       CMD_QPP,
+            /*data_mod*/         3,
+            /*wr_flash*/         1,
+            /*dummy_cycle*/      0,
+            /*data_size*/        31,
+            /*prescaler*/        1,
+            /*clear_status_reg*/ 1
+        );
+        wait_for_not_busy();
+        wait_for_wip_done();
+
+        qspi_set_ccr(
+            /*inst_value*/       CMD_WRDI,
+            /*data_mod*/         1,
+            /*wr_flash*/         0,
+            /*dummy_cycle*/      0,
+            /*data_size*/        0,
+            /*prescaler*/        1,
+            /*clear_status_reg*/ 1
+        );
+        wait_for_not_busy();
+        wait_for_wel_down();
+
+    }
+
     tekno_printf("Wrote 32 bytes to address: %x\n", addr);
 
     //if(addr == 0x00001c00) {
@@ -90,6 +148,15 @@ void write_all_flash_data(void) {
                 qspi_32byte_write(&block->data[i * 8], addr);
                 if(addr == 0x6ff8) { // 0x7000
                     tekno_printf("data: %x\n", block->data[i * 8]);
+                    tekno_printf("data: %x\n", block->data[i * 8+1]);
+                    tekno_printf("data: %x\n", block->data[i * 8+2]);
+                    tekno_printf("data: %x\n", block->data[i * 8+3]);
+                    tekno_printf("data: %x\n", block->data[i * 8+4]);
+                    tekno_printf("data: %x\n", block->data[i * 8+5]);
+                    tekno_printf("data: %x\n", block->data[i * 8+6]);
+                    tekno_printf("data: %x\n", block->data[i * 8+7]);
+                    tekno_printf("data: %x\n", block->data[i * 8+8]);
+                    tekno_printf("data: %x\n", block->data[i * 8+9]);
                 }
                 bytes_written += 32;
             } else {
