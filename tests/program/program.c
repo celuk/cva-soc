@@ -301,7 +301,73 @@ int main() {
     wait_for_not_busy();
     wait_for_wel_down();
 
-    write_all_flash_data();
+    QSPI_ADR = 0x00001c00;
+    qspi_set_ccr(
+        /*inst_value*/       CMD_WREN,
+        /*data_mod*/         1,
+        /*wr_flash*/         0,
+        /*dummy_cycle*/      0,
+        /*data_size*/        0,
+        /*prescaler*/        1,
+        /*clear_status_reg*/ 1
+    );
+    wait_for_not_busy();
+    wait_for_wel_set();
+
+    QSPI_DR0 = 0xbbbbbbbb;
+    QSPI_DR1 = 0xbbbbbbbb;
+    QSPI_DR2 = 0xbbbbbbbb;
+    QSPI_DR3 = 0xbbbbbbbb;
+    QSPI_DR4 = 0xbbbbbbbb;
+    QSPI_DR5 = 0xbbbbbbbb;
+    QSPI_DR6 = 0xbbbbbbbb;
+    QSPI_DR7 = 0xbbbbbbbb;
+
+    qspi_set_ccr(
+        /*inst_value*/       CMD_QPP,
+        /*data_mod*/         3,
+        /*wr_flash*/         1,
+        /*dummy_cycle*/      0,
+        /*data_size*/        31,
+        /*prescaler*/        1,
+        /*clear_status_reg*/ 1
+    );
+    wait_for_not_busy();
+    wait_for_wip_done();
+
+    qspi_set_ccr(
+        /*inst_value*/       CMD_WRDI,
+        /*data_mod*/         1,
+        /*wr_flash*/         0,
+        /*dummy_cycle*/      0,
+        /*data_size*/        0,
+        /*prescaler*/        1,
+        /*clear_status_reg*/ 1
+    );
+    wait_for_not_busy();
+    wait_for_wel_down();
+
+    qspi_set_ccr(
+        /*inst_value*/       CMD_QOR,
+        /*data_mod*/         3,
+        /*wr_flash*/         0,
+        /*dummy_cycle*/      8,
+        /*data_size*/        31,
+        /*prescaler*/        1,
+        /*clear_status_reg*/ 1
+    );
+    wait_for_not_busy();
+
+    tekno_printf("DR0: %x\n", QSPI_DR0);
+    tekno_printf("DR1: %x\n", QSPI_DR1);
+    tekno_printf("DR2: %x\n", QSPI_DR2);
+    tekno_printf("DR3: %x\n", QSPI_DR3);
+    tekno_printf("DR4: %x\n", QSPI_DR4);
+    tekno_printf("DR5: %x\n", QSPI_DR5);
+    tekno_printf("DR6: %x\n", QSPI_DR6);
+    tekno_printf("DR7: %x\n", QSPI_DR7);
+
+    //write_all_flash_data();
     
     tekno_printf("QSPI write done\n");
 
