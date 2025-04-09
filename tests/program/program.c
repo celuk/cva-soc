@@ -5,7 +5,7 @@
 
 #include "gen_mem_blocks.h"
 
-void qspi_32byte_write(unsigned int* data, unsigned int addr){
+void qspi_4byte_write(unsigned int* data, unsigned int addr){
     qspi_set_ccr(
         /*inst_value*/       CMD_WREN,
         /*data_mod*/         1,
@@ -19,13 +19,6 @@ void qspi_32byte_write(unsigned int* data, unsigned int addr){
     wait_for_wel_set();
 
     QSPI_DR0 = data[0];
-    QSPI_DR1 = data[1];
-    QSPI_DR2 = data[2];
-    QSPI_DR3 = data[3];
-    QSPI_DR4 = data[4];
-    QSPI_DR5 = data[5];
-    QSPI_DR6 = data[6];
-    QSPI_DR7 = data[7];
 
     QSPI_ADR = addr;
     qspi_set_ccr(
@@ -33,7 +26,7 @@ void qspi_32byte_write(unsigned int* data, unsigned int addr){
         /*data_mod*/         3,
         /*wr_flash*/         1,
         /*dummy_cycle*/      0,
-        /*data_size*/        31,
+        /*data_size*/        3,
         /*prescaler*/        1,
         /*clear_status_reg*/ 1
     );
@@ -52,9 +45,7 @@ void qspi_32byte_write(unsigned int* data, unsigned int addr){
     wait_for_not_busy();
     wait_for_wel_down();
 
-    
-
-    tekno_printf("Wrote 32 bytes to address: %x\n", addr);
+    tekno_printf("Wrote 4 bytes to address: %x\n", addr);
 
     //if(addr == 0x00001c00) {
     //    tekno_printf("data0: %x\n", data[0]);
@@ -69,76 +60,55 @@ void qspi_32byte_write(unsigned int* data, unsigned int addr){
 }
 
 void write_all_flash_data(void) {
-    unsigned int zero_data[8] = {0}; // Buffer of zeros for filling gaps
-    unsigned int temp_buffer[8]; // Temporary buffer for partial writes
-    unsigned int addr, i, j;
+    unsigned int zero_data = 0; // Single zero word for filling gaps
+    unsigned int temp_buffer; // Temporary buffer for partial writes
+    unsigned int addr, i;
     unsigned int bytes_written;
     
     // Process each memory block
     for (int block_idx = 0; block_idx < NUM_MEMORY_BLOCKS; block_idx++) {
         const memory_block_t* block = &memory_blocks[block_idx];
         
-        // Calculate the number of 32-byte chunks needed
-        unsigned int chunks = (block->length + 31) / 32; // Round up division
+        // Calculate the number of words (4-byte chunks) needed
+        unsigned int words = (block->length + 3) / 4; // Round up division
         
         // Write the current block
         addr = block->address;
         bytes_written = 0;
         
-        for (i = 0; i < chunks; i++) {
-            // Check if we have a full chunk
-            if (bytes_written + 32 <= block->length) {
-                // Write a full chunk
-                qspi_32byte_write(&block->data[i * 8], addr);
-                if(addr == 0x6ff8) { // 0x7000
-                    tekno_printf("data: %x\n", block->data[i * 8]);
-                    tekno_printf("data: %x\n", block->data[i * 8+1]);
-                    tekno_printf("data: %x\n", block->data[i * 8+2]);
-                    tekno_printf("data: %x\n", block->data[i * 8+3]);
-                    tekno_printf("data: %x\n", block->data[i * 8+4]);
-                    tekno_printf("data: %x\n", block->data[i * 8+5]);
-                    tekno_printf("data: %x\n", block->data[i * 8+6]);
-                    tekno_printf("data: %x\n", block->data[i * 8+7]);
-                    tekno_printf("data: %x\n", block->data[i * 8+8]);
-                    tekno_printf("data: %x\n", block->data[i * 8+9]);
-                }
-                bytes_written += 32;
+        for (i = 0; i < words; i++) {
+            // Check if we have a full word
+            if (bytes_written + 4 <= block->length) {
+                // Write a full word
+                qspi_4byte_write(&block->data[i], addr);
+                bytes_written += 4;
             } else {
-                // Handle partial chunk (last chunk might not be complete)
+                // Handle partial word (last word might not be complete)
                 unsigned int remaining = block->length - bytes_written;
-                unsigned int words_to_copy = (remaining + 3) / 4; // Number of whole words
                 
-                // Clear temp buffer
-                for (j = 0; j < 8; j++) {
-                    temp_buffer[j] = 0;
-                }
-                
-                // Copy remaining data
-                for (j = 0; j < words_to_copy; j++) {
-                    temp_buffer[j] = block->data[i * 8 + j];
-                }
-                
-                qspi_32byte_write(temp_buffer, addr);
+                // For partial writes, we'll write the full word anyway since we're
+                // working with 4-byte alignment in the data array
+                qspi_4byte_write(&block->data[i], addr);
                 bytes_written += remaining;
             }
             
-            addr += 32;
+            addr += 4;
         }
         
         // Fill gap between this block and the next one (if any)
         if (block_idx < NUM_MEMORY_BLOCKS - 1) {
-            unsigned int end_addr_current = block->address + ((chunks * 32) > block->length ? 
-                                          (chunks * 32) : block->length);
+            unsigned int end_addr_current = block->address + ((words * 4) > block->length ? 
+                                          (words * 4) : block->length);
             unsigned int start_addr_next = memory_blocks[block_idx + 1].address;
             
-            // Calculate how many 32-byte chunks we need to fill the gap
+            // Calculate how many 4-byte words we need to fill the gap
             if (end_addr_current < start_addr_next) {
                 unsigned int gap_size = start_addr_next - end_addr_current;
-                unsigned int gap_chunks = gap_size / 32;
+                unsigned int gap_words = gap_size / 4;
                 
                 // Fill the gap with zeros
-                for (i = 0; i < gap_chunks; i++) {
-                    qspi_32byte_write(zero_data, end_addr_current + (i * 32));
+                for (i = 0; i < gap_words; i++) {
+                    qspi_4byte_write(&zero_data, end_addr_current + (i * 4));
                 }
             }
         }
@@ -316,65 +286,7 @@ int main() {
     wait_for_not_busy();
     wait_for_wel_down();
 
-        qspi_set_ccr(
-            /*inst_value*/       CMD_WREN,
-            /*data_mod*/         1,
-            /*wr_flash*/         0,
-            /*dummy_cycle*/      0,
-            /*data_size*/        0,
-            /*prescaler*/        1,
-            /*clear_status_reg*/ 1
-        );
-        wait_for_not_busy();
-        wait_for_wel_set();
-
-        QSPI_DR0 = 0x28282828;
-        QSPI_DR1 = 0x2a2f2f28;
-        QSPI_DR2 = 0x2C2A2A2A; // wrote to 0x6F00 (28416) after this??
-        QSPI_DR3 = 0x2C2E2E2A;
-        QSPI_DR4 = 0x2E2C2E2E;
-        QSPI_DR5 = 0x2E2E2E2E;
-        QSPI_DR6 = 0x2E2E2E2E;
-        QSPI_DR7 = 0x2E2E2E2E;
-
-        QSPI_ADR = 0x6ff8;
-        qspi_set_ccr(
-            /*inst_value*/       CMD_QPP,
-            /*data_mod*/         3,
-            /*wr_flash*/         1,
-            /*dummy_cycle*/      0,
-            /*data_size*/        31,
-            /*prescaler*/        1,
-            /*clear_status_reg*/ 1
-        );
-        wait_for_not_busy();
-        wait_for_wip_done();
-
-        qspi_set_ccr(
-            /*inst_value*/       CMD_WRDI,
-            /*data_mod*/         1,
-            /*wr_flash*/         0,
-            /*dummy_cycle*/      0,
-            /*data_size*/        0,
-            /*prescaler*/        1,
-            /*clear_status_reg*/ 1
-        );
-        wait_for_not_busy();
-        wait_for_wel_down();
-
-        unsigned int* data;
-        data = qspi_read_qor(0x00006ff8); // 0x00007000
-
-        tekno_printf("DR0: %x\n", data[0]);
-        tekno_printf("DR1: %x\n", data[1]);
-        tekno_printf("DR2: %x\n", data[2]);
-        tekno_printf("DR3: %x\n", data[3]);
-        tekno_printf("DR4: %x\n", data[4]);
-        tekno_printf("DR5: %x\n", data[5]);
-        tekno_printf("DR6: %x\n", data[6]);
-        tekno_printf("DR7: %x\n", data[7]);
-
-    //write_all_flash_data();
+    write_all_flash_data();
     
     tekno_printf("QSPI write done\n");
 
