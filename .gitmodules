@@ -1,9 +1,0 @@
-[submodule "ip/cv32e40p"]
-	path = ip/cv32e40p
-	url = https://github.com/openhwgroup/cv32e40p
-[submodule "core-ip"]
-	path = core-ip
-	url = https://github.com/openhwgroup/cv32e40p
-[submodule "cv32e40p"]
-	path = cv32e40p
-	url = https://github.com/openhwgroup/cv32e40p
