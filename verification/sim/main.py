@@ -17,13 +17,11 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
     verilog_headers = hdl_dir.rglob("*.vh")
     system_verilog_headers = hdl_dir.rglob("*.svh")
 
-    submodule_dir = Path(SCRIPT_DIR / "../../cv32e40p/rtl")
+    submodule_dir = Path(SCRIPT_DIR / "../../cva6/rtl")
     submodule_verilog_files = submodule_dir.rglob("*.v")
     submodule_system_verilog_files = submodule_dir.rglob("*.sv")
     submodule_verilog_headers = submodule_dir.rglob("*.vh")
     submodule_system_verilog_headers = submodule_dir.rglob("*.svh")
-    # submodule_include_dir = Path(SCRIPT_DIR / "../../cv32e40p/rtl/include")
-    # submodule_include_files = submodule_dir.rglob("*.sv")
 
     verilog_sources = (
         list(verilog_files)

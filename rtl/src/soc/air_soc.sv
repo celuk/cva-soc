@@ -123,6 +123,7 @@ module air_soc (
    logic                dmem_wvalid;
    logic [`MEM_W  -1:0] dmem_rdata;
 
+   /*
    cv32e40p_top #(
        .COREV_PULP               ( `COREV_PULP ),
        .COREV_CLUSTER            ( `COREV_CLUSTER ),
@@ -180,6 +181,28 @@ module air_soc (
        .fetch_enable_i           (1'b1),
        .core_sleep_o             ()
    );
+   */
+
+   cva6 #(
+      .CVA6Cfg ( CVA6Cfg ),
+      .rvfi_probes_instr_t  ( rvfi_probes_instr_t ),
+      .rvfi_probes_csr_t    ( rvfi_probes_csr_t   ),
+      .rvfi_probes_t        ( rvfi_probes_t       )
+   ) i_cva6 (
+      .clk_i                ( clk_i                        ),
+      .rst_ni               ( rst_ni                       ),
+      .boot_addr_i          ( boot_addr_i                  ),
+      .hart_id_i            ( default_inputs_vif.hart_id   ),
+      .irq_i                ( {1'b0, irq_i[0]}             ),
+      .ipi_i                ( 1'b0                         ),
+      .time_irq_i           ( irq_i[1]                     ),
+      .debug_req_i          ( debug_if.debug_req           ),
+      .rvfi_probes_o        ( rvfi_probes                  ),
+      .cvxif_req_o          ( cvxif_req                    ),
+      .cvxif_resp_i         ( cvxif_resp                   ),
+      .noc_req_o            ( axi_ariane_req               ),
+      .noc_resp_i           ( axi_ariane_resp              )
+  );
 
    generate
       if(`ICACHE_SZ > 0) begin
