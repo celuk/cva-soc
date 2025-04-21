@@ -38,6 +38,11 @@ sim:
 	+@$(SUBMAKE) verification/sim clean
 	+@$(SUBMAKE) verification/sim air CFILE=$(ARGS)
 
+.PHONY: simp
+simp:
+	+@$(SUBMAKE) verification/sim clean
+	+@$(SUBMAKE) verification/sim air_program CFILE=$(ARGS)
+
 .PHONY: send
 send:
 	@if [ "$(MAKECMDGOALS)" = "send" ]; then \
