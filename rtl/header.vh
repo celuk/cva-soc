@@ -1,3 +1,5 @@
+//`define PITON_ARIANE 1
+
 `define COREV_PULP 1'b0
 `define COREV_CLUSTER 1'b0
 `define FPU 1'b0

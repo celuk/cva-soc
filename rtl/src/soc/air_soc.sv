@@ -198,7 +198,7 @@ module air_soc (
    localparam CVA6ConfigAxiAddrWidth = 64;  // axi_pkg.sv
    localparam CVA6ConfigAxiDataWidth = 64;  // axi_pkg.sv
    localparam CVA6ConfigDataUserWidth = 32;  // axi_pkg.sv
-   localparam cva6_user_cfg_t rv32_cfg = '{
+   localparam config_pkg::cva6_user_cfg_t rv32_cfg = '{
       XLEN: unsigned'(CVA6ConfigXlen),
       VLEN: unsigned'(32),
       FpgaEn: bit'(0),

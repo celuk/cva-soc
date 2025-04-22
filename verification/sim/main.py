@@ -37,15 +37,18 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
         if not str(path).rsplit('/', 1)[-1].startswith("tb_")
         and not str(path).rsplit('/', 1)[-1].endswith("_tb.sv")
         and not str(path).rsplit('/', 1)[-1].endswith("_tb.v")
+        and not str(path).__contains__("blackbox")
+        and not str(path).__contains__("hpdcache")
     ]
 
     ## sort the sources to make sure that the def and pkg.sv files are at the beginning
     ## otherwise the simulator might not find the packages
     def_sv_paths = [path for path in verilog_sources if str(path).rsplit('/', 1)[-1].startswith("def")]
-    pre_pkg_sv_paths = [path for path in verilog_sources if str(path).startswith("config_pkg.sv") or str(path).startswith("riscv_pkg.sv")]
-    pkg_sv_paths = [path for path in verilog_sources if str(path).endswith("pkg.sv") and not str(path).startswith("config_pkg.sv") and not str(path).startswith("riscv_pkg.sv")]
+    config_pkg_path = [path for path in verilog_sources if str(path).rsplit('/', 1)[-1].startswith("config_pkg.sv")]
+    pre_pkg_sv_paths = [path for path in verilog_sources if str(path).endswith("config_pkg.sv") or str(path).endswith("riscv_pkg.sv") or str(path).startswith("axi_pkg.sv")]
+    pkg_sv_paths = [path for path in verilog_sources if str(path).endswith("pkg.sv") and not str(path).endswith("config_pkg.sv") and not str(path).endswith("riscv_pkg.sv") and not str(path).startswith("axi_pkg.sv")]
     other_paths = [path for path in verilog_sources if not str(path).rsplit('/', 1)[-1].startswith("def") and not str(path).endswith("pkg.sv")]
-    verilog_sources = list(def_sv_paths) + list(pre_pkg_sv_paths) + list(pkg_sv_paths) + list(other_paths)
+    verilog_sources = list(def_sv_paths) + list(config_pkg_path) + list(pre_pkg_sv_paths) + list([Path(SCRIPT_DIR / "../../cva6/corev_apu/tb/ariane_axi_pkg.sv")]) + list(pkg_sv_paths) + list(other_paths)
 
     include_dirs = [
         header.parent
@@ -53,7 +56,10 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
         + list(system_verilog_headers)
         + list(submodule_verilog_headers)
         + list(submodule_system_verilog_headers)
+
+        + list([Path(SCRIPT_DIR / "../../cva6/corev_apu/tb")])
     ]
+    # + list(pre_pkg_sv_paths)
 
     # subdirectories = [x[0] for x in os.walk(hdl_dir)]
     # include_dirs.extend(subdirectories)
