@@ -17,28 +17,41 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
     verilog_headers = hdl_dir.rglob("*.vh")
     system_verilog_headers = hdl_dir.rglob("*.svh")
 
-    submodule_dir = Path(SCRIPT_DIR / "../../cva6/core")
-    submodule_verilog_files = submodule_dir.rglob("*.v")
-    submodule_system_verilog_files = submodule_dir.rglob("*.sv")
-    submodule_verilog_headers = submodule_dir.rglob("*.vh")
-    submodule_system_verilog_headers = submodule_dir.rglob("*.svh")
-
+    # List of submodule directories to search
+    submodule_dirs = [
+        Path(SCRIPT_DIR / "../../cva6/core"),
+        Path(SCRIPT_DIR / "../../cva6/vendor"),
+        Path(SCRIPT_DIR / "../../cva6/common"),
+        Path(SCRIPT_DIR / "../../cva6/corev_apu")
+    ]
+    
+    # Gather all relevant files from all submodule directories
+    submodule_verilog_files = []
+    submodule_system_verilog_files = []
+    submodule_verilog_headers = []
+    submodule_system_verilog_headers = []
+    for submodule_dir in submodule_dirs:
+        submodule_verilog_files.extend(submodule_dir.rglob("*.v"))
+        submodule_system_verilog_files.extend(submodule_dir.rglob("*.sv"))
+        submodule_verilog_headers.extend(submodule_dir.rglob("*.vh"))
+        submodule_system_verilog_headers.extend(submodule_dir.rglob("*.svh"))
+    
+    # Combine all verilog sources
     verilog_sources = (
         list(verilog_files)
         + list(system_verilog_files)
-        + list(submodule_verilog_files)
-        + list(submodule_system_verilog_files)
-        #+ list(mem_files)
+        + submodule_verilog_files
+        + submodule_system_verilog_files
     )
-
-    ## exclude the testbenches from the sources
+    
+    # Exclude testbenches and specific undesired modules
     verilog_sources = [
         path for path in verilog_sources
         if not str(path).rsplit('/', 1)[-1].startswith("tb_")
         and not str(path).rsplit('/', 1)[-1].endswith("_tb.sv")
         and not str(path).rsplit('/', 1)[-1].endswith("_tb.v")
-        and not str(path).__contains__("blackbox")
-        and not str(path).__contains__("hpdcache")
+        and "blackbox" not in str(path)
+        and "hpdcache" not in str(path)
     ]
 
     ## sort the sources to make sure that the def and pkg.sv files are at the beginning
