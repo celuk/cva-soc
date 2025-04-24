@@ -5,10 +5,6 @@
 
 `default_nettype none
 
-`include "config_pkg.sv"
-`include "build_config_pkg.sv"
-`include "ariane_axi_pkg.sv"
-
 module air_soc (
    input wire clk_i,
 
@@ -187,112 +183,9 @@ module air_soc (
    );
    */
 
-   import config_pkg::*;
-   import build_config_pkg::*;
-   //localparam cva6_user_cfg_t rv32_cfg = '{
-   //   XLEN: 32,
-   //   VLEN: 32
-   //};
-   localparam CVA6ConfigXlen = 32;
-   localparam CVA6ConfigAxiIdWidth = 4;  // axi_pkg.sv
-   localparam CVA6ConfigAxiAddrWidth = 64;  // axi_pkg.sv
-   localparam CVA6ConfigAxiDataWidth = 64;  // axi_pkg.sv
-   localparam CVA6ConfigDataUserWidth = 32;  // axi_pkg.sv
-   localparam config_pkg::cva6_user_cfg_t rv32_cfg = '{
-      XLEN: unsigned'(CVA6ConfigXlen),
-      VLEN: unsigned'(32),
-      FpgaEn: bit'(0),
-      FpgaAlteraEn: bit'(0),
-      TechnoCut: bit'(1),
-      SuperscalarEn: bit'(1),
-      NrCommitPorts: unsigned'(1),
-      AxiAddrWidth: unsigned'(CVA6ConfigAxiAddrWidth),
-      AxiDataWidth: unsigned'(CVA6ConfigAxiDataWidth),
-      AxiIdWidth: unsigned'(CVA6ConfigAxiIdWidth),
-      AxiUserWidth: unsigned'(CVA6ConfigDataUserWidth),
-      MemTidWidth: unsigned'(CVA6ConfigAxiIdWidth),
-      NrLoadBufEntries: unsigned'(2),
-      RVF: bit'(0),
-      RVD: bit'(0),
-      XF16: bit'(0),
-      XF16ALT: bit'(0),
-      XF8: bit'(0),
-      RVA: bit'(0),
-      RVB: bit'(1),
-      ZKN: bit'(0),
-      RVV: bit'(0),
-      RVC: bit'(1),
-      RVH: bit'(0),
-      RVZCMT: bit'(0),
-      RVZCB: bit'(1),
-      RVZCMP: bit'(0),
-      XFVec: bit'(0),
-      CvxifEn: bit'(1),
-      RVZiCond: bit'(0),
-      RVZicntr: bit'(0),
-      RVZihpm: bit'(0),
-      NrScoreboardEntries: unsigned'(8),
-      PerfCounterEn: bit'(0),
-      MmuPresent: bit'(0),
-      RVS: bit'(0),
-      RVU: bit'(0),
-      SoftwareInterruptEn: bit'(0),
-      HaltAddress: 64'h800,
-      ExceptionAddress: 64'h808,
-      RASDepth: unsigned'(2),
-      BTBEntries: unsigned'(0),
-      BHTEntries: unsigned'(32),
-      DmBaseAddress: 64'h0,
-      TvalEn: bit'(0),
-      DirectVecOnly: bit'(1),
-      NrPMPEntries: unsigned'(8),
-      PMPCfgRstVal: {64{64'h0}},
-      PMPAddrRstVal: {64{64'h0}},
-      PMPEntryReadOnly: 64'd0,
-      PMPNapotEn: bit'(0),
-      NOCType: config_pkg::NOC_TYPE_AXI4_ATOP,
-      NrNonIdempotentRules: unsigned'(0),
-      NonIdempotentAddrBase: 1024'({64'b0, 64'b0}),
-      NonIdempotentLength: 1024'({64'b0, 64'b0}),
-      NrExecuteRegionRules: unsigned'(0),
-      ExecuteRegionAddrBase: 1024'({64'h8000_0000, 64'h1_0000, 64'h0}),
-      ExecuteRegionLength: 1024'({64'h40000000, 64'h10000, 64'h1000}),
-      NrCachedRegionRules: unsigned'(1),
-      CachedRegionAddrBase: 1024'({64'h8000_0000}),
-      CachedRegionLength: 1024'({64'h40000000}),
-      MaxOutstandingStores: unsigned'(7),
-      DebugEn: bit'(0),
-      AxiBurstWriteEn: bit'(0),
-      IcacheByteSize: unsigned'(2048),
-      IcacheSetAssoc: unsigned'(2),
-      IcacheLineWidth: unsigned'(128),
-      DCacheType: config_pkg::HPDCACHE_WT,
-      DcacheByteSize: unsigned'(2028),
-      DcacheSetAssoc: unsigned'(2),
-      DcacheLineWidth: unsigned'(128),
-      DcacheFlushOnFence: bit'(0),
-      DcacheInvalidateOnFlush: bit'(0),
-      DataUserEn: unsigned'(1),
-      WtDcacheWbufDepth: int'(8),
-      FetchUserWidth: unsigned'(32),
-      FetchUserEn: unsigned'(1),
-      InstrTlbEntries: int'(2),
-      DataTlbEntries: int'(2),
-      UseSharedTlb: bit'(1),
-      SharedTlbDepth: int'(64),
-      NrLoadPipeRegs: int'(0),
-      NrStorePipeRegs: int'(0),
-      DcacheIdWidth: int'(1)
-   };
-
-   localparam cva6_cfg_t CVA6Cfg = build_config(rv32_cfg);
-
-   import ariane_axi::*;
-   ariane_axi::req_t  axi_ariane_req;
-   ariane_axi::resp_t axi_ariane_resp;
 
    cva6 #(
-      .CVA6Cfg ( CVA6Cfg )
+      .CVA6Cfg (  )
    ) i_cva6 (
       .clk_i                ( clkwiz_o                     ),
       .rst_ni               ( rst_n                        ),
@@ -302,25 +195,10 @@ module air_soc (
       .ipi_i                ( 1'b0                         ),
       .time_irq_i           ( 1'b0                         ),
       .debug_req_i          ( 1'b0                         ),
-      .noc_req_o            ( axi_ariane_req               ),
-      .noc_resp_i           ( axi_ariane_resp              )
+      .noc_req_o            (                ),
+      .noc_resp_i           (                )
    );
 
-   assign axi_ariane_resp.aw_ready = 1'b0;
-   assign axi_ariane_resp.ar_ready = 1'b0;
-   assign axi_ariane_resp.w_ready  = 1'b0;
-
-   assign axi_ariane_resp.b_valid = 1'b0;
-   assign axi_ariane_resp.b.id    = '0;
-   assign axi_ariane_resp.b.resp  = '0;
-   assign axi_ariane_resp.b.user  = '0;
-
-   assign axi_ariane_resp.r_valid = 1'b0;
-   assign axi_ariane_resp.r.id    = '0;
-   assign axi_ariane_resp.r.data  = '0;
-   assign axi_ariane_resp.r.resp  = '0;
-   assign axi_ariane_resp.r.last  = 1'b0;
-   assign axi_ariane_resp.r.user  = '0;
 
    generate
       if(`ICACHE_SZ > 0) begin
