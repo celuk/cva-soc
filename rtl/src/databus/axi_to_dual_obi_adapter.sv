@@ -10,7 +10,7 @@ module axi_to_dual_obi_adapter import axi_pkg::*; #(
 
     // Parameter to identify instruction fetches (NEEDS VERIFICATION FROM CVA6 DOCS)
     // Assuming ARPROT[1] indicates instruction fetch. Adjust if different.
-    parameter bit [2:0] INSTR_FETCH_PROT = 3'b010 // Example: AxPROT[1]=1
+    parameter bit [2:0] INSTR_FETCH_PROT = 3'b011 // Example: AxPROT[1]=1
 ) (
     input  logic                          clk_i,
     input  logic                          rst_ni,
@@ -115,7 +115,7 @@ module axi_to_dual_obi_adapter import axi_pkg::*; #(
         // --- AXI Input Handshake Logic ---
 
         // Assign values to the wires declared outside
-        is_instr_fetch = (axi_req_i.ar.prot == INSTR_FETCH_PROT);
+        is_instr_fetch = 1; //(axi_req_i.ar.prot == INSTR_FETCH_PROT);
         can_accept_instr_ar = (instr_state_q == IDLE);
         can_accept_data_ar = (data_read_state_q == IDLE);
         can_accept_data_aw = (data_write_state_q == IDLE) && !latched_data_awvalid;

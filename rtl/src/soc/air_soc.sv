@@ -310,7 +310,7 @@ module air_soc (
    localparam AXI_ID_W   = 4;  // Example from CVA6Cfg
    localparam AXI_USER_W = 1;  // Example from CVA6Cfg
    // *** VERIFY THIS in CVA6 documentation/config ***
-   localparam INSTR_PROT = 3'b010; // Example: ARPROT[1]=1 for instruction
+   localparam INSTR_PROT = 3'b000; // Example: ARPROT[1]=1 for instruction
 
    axi_to_dual_obi_adapter #(
        .AXI_ADDR_WIDTH     ( AXI_ADDR_W ),
