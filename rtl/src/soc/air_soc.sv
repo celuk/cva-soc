@@ -223,6 +223,15 @@ module air_soc (
                        timer_rvalid    ? timer_rdata    :
                        qspi_rvalid     ? qspi_rdata     : main_mem_rdata;
 
+
+   //always_ff @(posedge clkwiz_o or negedge rst_n) begin
+   //   if (!rst_n) begin
+   //      mem_rvalid <= 1'b0;
+   //   end else begin
+   //      mem_rvalid <= mem_req;
+   //   end
+   //end
+
    ram32 #(
       .SIZE     (`RAM_SIZE / 4),
       .INIT_FILE(`RAM_FPATH)
