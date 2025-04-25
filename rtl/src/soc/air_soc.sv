@@ -185,6 +185,73 @@ module air_soc (
       .noc_resp_i           ( cva6_axi_resp                )
    );
 
+   logic                      ram_awready;
+   logic                      ram_wready;
+   logic [CVA6ConfigAxiIdWidth-1:0] ram_bid;
+   logic [1:0]                ram_bresp;
+   logic                      ram_bvalid;
+   logic                      ram_arready;
+   logic [CVA6ConfigAxiIdWidth-1:0] ram_rid;
+   logic [CVA6ConfigAxiDataWidth-1:0] ram_rdata;
+   logic [1:0]                ram_rresp;
+   logic                      ram_rvalid;
+
+   ram_axi #(
+       .AXI_ADDR_WIDTH ( CVA6ConfigAxiAddrWidth ),
+       .AXI_DATA_WIDTH ( CVA6ConfigAxiDataWidth ),
+       .AXI_ID_WIDTH   ( CVA6ConfigAxiIdWidth   ),
+       .SIZE           ( `RAM_SIZE / 4 ), // Assuming SIZE is # of 32-bit words
+       .INIT_FILE      ( `RAM_FPATH    )
+   ) main_memory (
+       .ACLK           ( clkwiz_o                   ),
+       .ARESETn        ( rst_n                      ),
+
+       // Write Address Channel (Input to RAM from CVA6 req struct)
+       .AWID           ( cva6_axi_req.aw.id         ),
+       .AWADDR         ( cva6_axi_req.aw.addr       ),
+       .AWVALID        ( cva6_axi_req.aw_valid      ),
+       .AWREADY        ( ram_awready                ), // Output from RAM
+
+       // Write Data Channel (Input to RAM from CVA6 req struct)
+       .WDATA          ( cva6_axi_req.w.data        ),
+       .WSTRB          ( cva6_axi_req.w.strb        ),
+       .WVALID         ( cva6_axi_req.w_valid       ),
+       .WREADY         ( ram_wready                 ), // Output from RAM
+
+       // Write Response Channel (Output from RAM)
+       .BID            ( ram_bid                    ),
+       .BRESP          ( ram_bresp                  ),
+       .BVALID         ( ram_bvalid                 ),
+       .BREADY         ( cva6_axi_req.b_ready       ), // Input to RAM from CVA6 req struct
+
+       // Read Address Channel (Input to RAM from CVA6 req struct)
+       .ARID           ( cva6_axi_req.ar.id         ),
+       .ARADDR         ( cva6_axi_req.ar.addr       ),
+       .ARVALID        ( cva6_axi_req.ar_valid      ),
+       .ARREADY        ( ram_arready                ), // Output from RAM
+
+       // Read Data Channel (Output from RAM)
+       .RID            ( ram_rid                    ),
+       .RDATA          ( ram_rdata                  ),
+       .RRESP          ( ram_rresp                  ),
+       .RVALID         ( ram_rvalid                 ),
+       .RREADY         ( cva6_axi_req.r_ready       )  // Input to RAM from CVA6 req struct
+   );
+
+   assign cva6_axi_resp.aw_ready = ram_awready;
+   assign cva6_axi_resp.w_ready  = ram_wready;
+   assign cva6_axi_resp.b_valid  = ram_bvalid;
+   assign cva6_axi_resp.b.id     = ram_bid;
+   assign cva6_axi_resp.b.resp   = ram_bresp;
+   assign cva6_axi_resp.b.user   = '0; // Assign default if RAM doesn't provide user signals
+   assign cva6_axi_resp.ar_ready = ram_arready;
+   assign cva6_axi_resp.r_valid  = ram_rvalid;
+   assign cva6_axi_resp.r.id     = ram_rid;
+   assign cva6_axi_resp.r.data   = ram_rdata;
+   assign cva6_axi_resp.r.resp   = ram_rresp;
+   assign cva6_axi_resp.r.last   = ram_rvalid; // For AXI4-Lite, RLAST is high when RVALID is high
+   assign cva6_axi_resp.r.user   = '0; // Assign default if RAM doesn't provide user signals
+
    localparam AXI_ADDR_W = 32;
    localparam AXI_DATA_W = 32;
    localparam AXI_ID_W   = 4;
@@ -202,8 +269,8 @@ module air_soc (
        .rst_ni             ( rst_n         ),
 
        // AXI side connected to CVA6
-       .axi_req_i          ( cva6_axi_req  ),
-       .axi_resp_o         ( cva6_axi_resp ),
+       .axi_req_i          (   ),
+       .axi_resp_o         (  ),
 
        // Unified OBI side connected to RAM
        .mem_req_o          ( mem_req       ),
@@ -235,7 +302,7 @@ module air_soc (
    ram32 #(
       .SIZE     (`RAM_SIZE / 4),
       .INIT_FILE(`RAM_FPATH)
-   ) main_memory (
+   ) main_memory_obi (
       .clk_i   (clkwiz_o),
       .rst_ni  (rst_ni `ifdef BASYS3 & clkwiz_locked `endif),
       .req_i   (mem_req & (((`MEM_BASE_ADDR  + `MEM_RANGE)  > mem_addr )   && (mem_addr >= `MEM_BASE_ADDR))),
