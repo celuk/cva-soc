@@ -192,8 +192,8 @@ module air_soc (
    //};
    localparam CVA6ConfigXlen = 32;
    localparam CVA6ConfigAxiIdWidth = 4;  // axi_pkg.sv
-   localparam CVA6ConfigAxiAddrWidth = 64;  // axi_pkg.sv
-   localparam CVA6ConfigAxiDataWidth = 64;  // axi_pkg.sv
+   localparam CVA6ConfigAxiAddrWidth = 32;  // axi_pkg.sv
+   localparam CVA6ConfigAxiDataWidth = 32;  // axi_pkg.sv
    localparam CVA6ConfigDataUserWidth = 32;  // axi_pkg.sv
    localparam config_pkg::cva6_user_cfg_t rv32_cfg = '{
       XLEN: unsigned'(CVA6ConfigXlen),
@@ -285,8 +285,8 @@ module air_soc (
    localparam cva6_cfg_t CVA6Cfg = build_config(rv32_cfg);
 
    import ariane_axi::*;
-   ariane_axi::req_t  axi_ariane_req;
-   ariane_axi::resp_t axi_ariane_resp;
+   ariane_axi::req_t  cva6_axi_req;
+   ariane_axi::resp_t cva6_axi_resp;
 
    cva6 #(
       .CVA6Cfg ( CVA6Cfg )
@@ -301,25 +301,48 @@ module air_soc (
       .ipi_i                ( 1'b0                         ),
       .time_irq_i           ( 1'b0                         ),
       .debug_req_i          ( 1'b0                         ),
-      .noc_req_o            ( axi_ariane_req               ),
-      .noc_resp_i           ( axi_ariane_resp              )
+      .noc_req_o            ( cva6_axi_req                 ),
+      .noc_resp_i           ( cva6_axi_resp                )
    );
 
-   assign axi_ariane_resp.aw_ready = 1'b0;
-   assign axi_ariane_resp.ar_ready = 1'b0;
-   assign axi_ariane_resp.w_ready  = 1'b0;
+   localparam AXI_ADDR_W = 32; // Example from CVA6Cfg
+   localparam AXI_DATA_W = 32; // Example from CVA6Cfg
+   localparam AXI_ID_W   = 4;  // Example from CVA6Cfg
+   localparam AXI_USER_W = 1;  // Example from CVA6Cfg
+   // *** VERIFY THIS in CVA6 documentation/config ***
+   localparam INSTR_PROT = 3'b010; // Example: ARPROT[1]=1 for instruction
 
-   assign axi_ariane_resp.b_valid = 1'b0;
-   assign axi_ariane_resp.b.id    = '0;
-   assign axi_ariane_resp.b.resp  = '0;
-   assign axi_ariane_resp.b.user  = '0;
+   axi_to_dual_obi_adapter #(
+       .AXI_ADDR_WIDTH     ( AXI_ADDR_W ),
+       .AXI_DATA_WIDTH     ( AXI_DATA_W ),
+       .AXI_ID_WIDTH       ( AXI_ID_W   ),
+       .AXI_USER_WIDTH     ( AXI_USER_W ),
+       .INSTR_FETCH_PROT   ( INSTR_PROT )
+   ) i_axi_obi_bridge (
+       .clk_i              ( clkwiz_o      ),
+       .rst_ni             ( rst_n         ),
 
-   assign axi_ariane_resp.r_valid = 1'b0;
-   assign axi_ariane_resp.r.id    = '0;
-   assign axi_ariane_resp.r.data  = '0;
-   assign axi_ariane_resp.r.resp  = '0;
-   assign axi_ariane_resp.r.last  = 1'b0;
-   assign axi_ariane_resp.r.user  = '0;
+       // AXI side connected to CVA6
+       .axi_req_i          ( cva6_axi_req  ),
+       .axi_resp_o         ( cva6_axi_resp ),
+
+       // OBI Instruction side connected to SoC interconnect/memory
+       .instr_req_o        ( instr_req     ),
+       .instr_gnt_i        ( instr_gnt     ), // From SoC
+       .instr_rvalid_i     ( instr_rvalid  ), // From SoC
+       .instr_addr_o       ( instr_addr    ),
+       .instr_rdata_i      ( instr_rdata   ), // From SoC
+
+       // OBI Data side connected to SoC interconnect/memory
+       .data_req_o         ( data_req      ),
+       .data_gnt_i         ( data_gnt      ), // From SoC
+       .data_rvalid_i      ( data_rvalid   ), // From SoC
+       .data_we_o          ( data_we       ),
+       .data_be_o          ( data_be       ),
+       .data_addr_o        ( data_addr     ),
+       .data_wdata_o       ( data_wdata    ),
+       .data_rdata_i       ( data_rdata    )  // From SoC
+   );
 
    generate
       if(`ICACHE_SZ > 0) begin
