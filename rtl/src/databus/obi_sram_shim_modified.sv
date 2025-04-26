@@ -2,81 +2,109 @@
 
 module obi_sram_shim_modified #(
     parameter obi_pkg::obi_cfg_t ObiCfg    = obi_pkg::ObiDefaultConfig,
+    // Define OBI types locally if not passed explicitly, assuming basic structure.
+    // It's strongly recommended to pass the actual types defined in the top module.
     parameter type               obi_req_t = logic,
     parameter type               obi_rsp_t = logic
 ) (
     input  logic                          clk_i,
     input  logic                          rst_ni,
 
-    // OBI Slave Interface (from axi_to_obi)
-    input  obi_req_t                      obi_req_i,
-    output obi_rsp_t                      obi_rsp_o,
+    // OBI Slave Interface (Connects to OBI Master, e.g., axi_to_obi)
+    input  obi_req_t                      obi_req_i, // Input OBI request structure
+    output obi_rsp_t                      obi_rsp_o, // Output OBI response structure
 
-    // Simple RAM Master Interface (to ram32)
-    output logic                          req_o,
-    output logic                          we_o,
-    output logic [  ObiCfg.AddrWidth-1:0] addr_o,
-    output logic [  ObiCfg.DataWidth-1:0] wdata_o,
-    output logic [ObiCfg.DataWidth/8-1:0] be_o,
+    // Simple RAM Master Interface (Connects to simple RAM, e.g., ram32)
+    output logic                          req_o,     // Request signal to RAM
+    output logic                          we_o,      // Write enable to RAM
+    output logic [  ObiCfg.AddrWidth-1:0] addr_o,    // Address to RAM
+    output logic [  ObiCfg.DataWidth-1:0] wdata_o,   // Write data to RAM
+    output logic [ObiCfg.DataWidth/8-1:0] be_o,      // Byte enable to RAM
 
-    // Inputs from RAM (ram32)
-    input  logic                          rvalid_i, // <<< Input from RAM rvalid_o
-    input  logic [  ObiCfg.DataWidth-1:0] rdata_i   // Data FROM RAM
+    // Inputs FROM RAM (Connect to simple RAM outputs)
+    input  logic                          rvalid_i,  // Valid signal from RAM read
+    input  logic [  ObiCfg.DataWidth-1:0] rdata_i    // Read data from RAM
+    // Note: No gnt_i input port, as the downstream memory doesn't provide one.
 );
 
-    // Check for unsupported configurations
-    if (ObiCfg.OptionalCfg.UseAtop) $error("Please use an ATOP resolver before sram shim.");
-    if (ObiCfg.UseRReady) $error("Please use an RReady Fifo before sram shim.");
-    if (ObiCfg.Integrity) $error("Integrity not yet supported, WIP");
-    if (ObiCfg.OptionalCfg.UseProt) $warning("Prot not checked!");
-    if (ObiCfg.OptionalCfg.UseMemtype) $warning("Memtype not checked!");
+    // --- Sanity Checks ---
+    // Check for configurations potentially incompatible with a simple SRAM shim
+    if (ObiCfg.OptionalCfg.UseAtop)    $error("obi_sram_shim_modified: ATOP operations not supported by simple RAM. Use an ATOP resolver upstream.");
+    if (ObiCfg.UseRReady)              $error("obi_sram_shim_modified: RReady signal not handled. Use an RReady FIFO upstream.");
+    if (ObiCfg.Integrity)              $error("obi_sram_shim_modified: Integrity signals not supported.");
+    if (ObiCfg.OptionalCfg.UseProt)    $warning("obi_sram_shim_modified: OBI Prot signals received but ignored.");
+    if (ObiCfg.OptionalCfg.UseMemtype) $warning("obi_sram_shim_modified: OBI Memtype signals received but ignored.");
+    if (ObiCfg.OptionalCfg.UseDbg)     $warning("obi_sram_shim_modified: OBI Dbg signal received but ignored.");
 
-    // Internal state for grant generation and ID tracking
+    // --- Internal Logic ---
+
+    // Request path: Directly pass through relevant signals to the simple RAM interface
+    assign req_o   = obi_req_i.req;   // Forward OBI request signal
+    assign we_o    = obi_req_i.a.we;    // Forward write enable
+    assign addr_o  = obi_req_i.a.addr;  // Forward address
+    assign wdata_o = obi_req_i.a.wdata; // Forward write data
+    assign be_o    = obi_req_i.a.be;    // Forward byte enable
+
+    // Grant generation logic based on CombGnt parameter
     logic gnt_d, gnt_q;
-    logic [ObiCfg.IdWidth-1:0] id_d, id_q;
 
-    // Pass through request signals directly to RAM
-    assign req_o   = obi_req_i.req;
-    assign we_o    = obi_req_i.a.we;
-    assign addr_o  = obi_req_i.a.addr;
-    assign wdata_o = obi_req_i.a.wdata;
-    assign be_o    = obi_req_i.a.be;
+    assign gnt_d = obi_req_i.req; // Grant is based on request arrival
 
-    // Generate OBI Grant Response
-    // If CombGnt=1, grant immediately. If CombGnt=0, grant one cycle after req.
-    assign gnt_d = obi_req_i.req;
     always_ff @(posedge clk_i or negedge rst_ni) begin
         if (!rst_ni) begin
             gnt_q <= 1'b0;
-        end
-        else begin
-            gnt_q <= gnt_d;
+        end else begin
+            gnt_q <= gnt_d; // Register the grant signal
         end
     end
+
+    // Assign grant based on configuration:
+    // CombGnt=1 -> Grant asserted combinatorially in the same cycle as req.
+    // CombGnt=0 -> Grant asserted registered, one cycle after req.
     assign obi_rsp_o.gnt = ObiCfg.CombGnt ? gnt_d : gnt_q;
 
-    // Latch the request ID when the request is active
-    assign id_d = obi_req_i.a.aid;
+    // Response ID handling: Latch the ID of the request *when it is granted*.
+    // This ensures the correct ID is associated with the transaction processed downstream.
+    logic [ObiCfg.IdWidth-1:0] id_inflight_q; // Register to hold the ID of the granted transaction
+
     always_ff @(posedge clk_i or negedge rst_ni) begin
         if (!rst_ni) begin
-            id_q <= '0;
+            id_inflight_q <= '0;
+        end else if (obi_req_i.req & obi_rsp_o.gnt) begin
+            // Latch the ID when the OBI transaction is acknowledged by the grant.
+            // If CombGnt=1, gnt=req, latch happens same cycle as req.
+            // If CombGnt=0, gnt=gnt_q, latch happens cycle after req.
+            id_inflight_q <= obi_req_i.a.aid;
         end
-        else if (obi_req_i.req) begin // Latch ID when request is active
-            id_q <= id_d;
-        end
+        // Otherwise, id_inflight_q holds its value until the next granted request.
     end
 
-    // Pass through response signals from RAM
-    assign obi_rsp_o.rvalid = rvalid_i;      // <<< Use input from RAM
-    assign obi_rsp_o.r.rdata = rdata_i;
-    assign obi_rsp_o.r.rid   = id_q;         // Use the latched request ID
-    assign obi_rsp_o.r.err   = 1'b0;         // Assume no errors from simple RAM
+    // Response path: Pass through signals from RAM and use the latched ID.
+    assign obi_rsp_o.rvalid = rvalid_i;      // Pass through valid signal from RAM
+    assign obi_rsp_o.r.rdata = rdata_i;      // Pass through read data from RAM
+    assign obi_rsp_o.r.rid   = id_inflight_q;// Use the ID of the transaction that was granted/processed
+    assign obi_rsp_o.r.err   = 1'b0;         // Assume simple RAM does not generate errors
 
-    // Tie off unused optional response fields if they exist in obi_rsp_t definition
-    // Example: assign obi_rsp_o.r.r_optional = '0; // Adjust if r_optional has fields like exokay
+    // Tie off optional OBI response fields if they exist in the obi_rsp_t definition.
+    // Check the specific definition generated by OBI_TYPEDEF macros used in air_soc.sv.
+    // Example for OBI_TYPEDEF_ALL_R_OPTIONAL:
+    // Need to check if OptionalCfg.RUserWidth > 0 and OptionalCfg.RChkWidth > 0 in ObiCfg.
+    generate
+      if (ObiCfg.OptionalCfg.RChkWidth > 0) begin : gen_rchk_tieoff
+        assign obi_rsp_o.r.r_optional.rchk = {ObiCfg.OptionalCfg.RChkWidth{1'b0}};
+      end
+    endgenerate
 
-    // If adapter_obi_r_optional_t was defined with fields, assign them:
-    assign obi_rsp_o.r.r_optional.ruser = '0; // Tie off the 1-bit ruser
-    assign obi_rsp_o.r.r_optional.exokay = 1'b0; // Tie off exokay
+    // Helper function (conceptual) to check struct fields - replace with actual check if needed
+    // In practice, you might need to rely on tool warnings or conditional compilation
+    // based on the specific typedef macros used in the top module.
+    // For this specific case based on the air_soc code:
+    // `OBI_TYPEDEF_ALL_R_OPTIONAL` was used with RUserWidth=1, RChkWidth=0.
+    // So, ruser exists (width 1) and exokay exists.
+    // This block is a more robust way than the manual check above:
+    assign obi_rsp_o.r.r_optional.ruser = '0; // Width is 1 based on air_soc config
+    assign obi_rsp_o.r.r_optional.exokay = 1'b0;
+    // assign obi_rsp_o.r.r_optional.rchk = ...; // Not present as RChkWidth=0
+
 
 endmodule

@@ -272,26 +272,23 @@ module air_soc (
       .rsp_read_ruser_o      (), .rsp_r_user_i          ('0)
    );
 
-   obi_sram_shim #(
-       .ObiCfg    ( AdapterObiCfg     ), // Use the same OBI config
-       .obi_req_t ( adapter_obi_req_t ), // Pass OBI type definitions
+   obi_sram_shim_modified #(
+       .ObiCfg    ( AdapterObiCfg     ),
+       .obi_req_t ( adapter_obi_req_t ),
        .obi_rsp_t ( adapter_obi_rsp_t )
    ) i_obi_sram_shim (
        .clk_i      ( clkwiz_o        ),
        .rst_ni     ( rst_n           ),
-
-       // OBI Slave Interface (Connected to Adapter)
        .obi_req_i  ( adapter_obi_req ),
        .obi_rsp_o  ( adapter_obi_rsp ),
-
-       // Simple RAM Master Interface (Connected to ram32)
        .req_o      ( mem_req         ),
        .we_o       ( mem_we          ),
        .addr_o     ( mem_addr        ),
        .wdata_o    ( mem_wdata       ),
        .be_o       ( mem_be          ),
-       .gnt_i      ( 1'b1            ),
-       .rdata_i    ( mem_rdata       )  // From ram32
+       // No .gnt_i port
+       .rvalid_i   ( mem_rvalid      ), // Connect RAM's rvalid here
+       .rdata_i    ( mem_rdata       )  // Connect RAM's rdata here
    );
 
    logic [31:0] main_mem_rdata;
