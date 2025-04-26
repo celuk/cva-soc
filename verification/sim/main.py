@@ -22,7 +22,9 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
         Path(SCRIPT_DIR / "../../cva6/core"),
         Path(SCRIPT_DIR / "../../cva6/vendor"),
         Path(SCRIPT_DIR / "../../cva6/common"),
-        Path(SCRIPT_DIR / "../../cva6/corev_apu")
+        Path(SCRIPT_DIR / "../../cva6/corev_apu"),
+        Path(SCRIPT_DIR / "../../axi"),
+        Path(SCRIPT_DIR / "../../obi")
     ]
     
     # Gather all relevant files from all submodule directories
@@ -63,6 +65,9 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
         and "cache_subsystem/wt_" not in str(path)
         and "hpdcache" not in str(path)
         and "tb_wb_dcache" not in str(path)
+        and not str(path).rsplit('/', 1)[-1].endswith("obi_atop_resolver.sv")
+        and not str(path).rsplit('/', 1)[-1].endswith("axi_lite_lfsr.sv")
+        and not str(path).rsplit('/', 1)[-1].endswith("axi_zero_mem.sv")
     ]
     #and "hpdcache" not in str(path)
 
