@@ -268,7 +268,7 @@ module air_soc (
       .rsp_read_ruser_o      (), .rsp_r_user_i          ('0)
    );
 
-   obi_sram_shim #(
+   obi_sram_shim_modified #(
        .ObiCfg    ( AdapterObiCfg     ), // Use the same OBI config
        .obi_req_t ( adapter_obi_req_t ), // Pass OBI type definitions
        .obi_rsp_t ( adapter_obi_rsp_t )
@@ -286,7 +286,7 @@ module air_soc (
        .addr_o     ( mem_addr        ),
        .wdata_o    ( mem_wdata       ),
        .be_o       ( mem_be          ),
-       .gnt_i      ( 1'b1            ),
+       .rvalid_i   ( mem_rvalid      ), // main_mem_rvalid
        .rdata_i    ( mem_rdata       )  // From ram32
    );
 
