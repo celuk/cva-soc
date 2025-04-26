@@ -172,8 +172,13 @@ module air_soc (
 
    cva6 #(
       .CVA6Cfg ( CVA6Cfg )
-      ,.noc_req_t      ( ariane_axi::req_t )
-      ,.noc_resp_t     ( ariane_axi::resp_t )
+      ,.axi_ar_chan_t ( ariane_axi::ar_chan_t )
+      ,.axi_aw_chan_t ( ariane_axi::aw_chan_t )
+      ,.axi_w_chan_t  ( ariane_axi::w_chan_t  )
+      ,.b_chan_t      ( ariane_axi::b_chan_t  )
+      ,.r_chan_t      ( ariane_axi::r_chan_t  )
+      ,.noc_req_t     ( ariane_axi::req_t )
+      ,.noc_resp_t    ( ariane_axi::resp_t )
    ) i_cva6 (
       .clk_i                ( clkwiz_o                     ),
       .rst_ni               ( rst_n                        ),
@@ -187,7 +192,6 @@ module air_soc (
       .noc_resp_i           ( cva6_axi_resp                )
    );
 
-   import axi_pkg::*;
    import obi_pkg::*;
 
    // --- OBI Interface (Adapter <-> Shim) ---
@@ -268,75 +272,25 @@ module air_soc (
       .rsp_read_ruser_o      (), .rsp_r_user_i          ('0)
    );
 
-   logic                          shim_to_adapter_req;
-   logic                          shim_to_adapter_we;
-   logic [CVA6ConfigAxiAddrWidth-1:0] shim_to_adapter_addr;
-   logic [CVA6ConfigAxiDataWidth-1:0] shim_to_adapter_wdata;
-   logic [(CVA6ConfigAxiDataWidth/8)-1:0] shim_to_adapter_be;
-   logic                          adapter_to_shim_gnt;
-   logic [CVA6ConfigAxiDataWidth-1:0] adapter_to_shim_rdata;
-
-   // --- Interface between ram32_obi_adapter and ram32 ---
-   logic                          adapter_to_ram_req;
-   logic                          adapter_to_ram_we;
-   logic [CVA6ConfigAxiAddrWidth-1:0] adapter_to_ram_addr;
-   logic [CVA6ConfigAxiDataWidth-1:0] adapter_to_ram_wdata;
-   logic [(CVA6ConfigAxiDataWidth/8)-1:0] adapter_to_ram_be;
-   logic                          ram_to_adapter_rvalid;
-   logic [CVA6ConfigAxiDataWidth-1:0] ram_to_adapter_rdata;
-
    obi_sram_shim #(
        .ObiCfg    ( AdapterObiCfg     ),
        .obi_req_t ( adapter_obi_req_t ),
        .obi_rsp_t ( adapter_obi_rsp_t )
    ) i_obi_sram_shim (
-       .clk_i      ( clkwiz_o              ),
-       .rst_ni     ( rst_n                 ),
+       .clk_i      ( clkwiz_o        ),
+       .rst_ni     ( rst_n           ),
        // OBI Slave Interface (Connected to Adapter)
-       .obi_req_i  ( adapter_obi_req       ), // From axi_to_obi
-       .obi_rsp_o  ( adapter_obi_rsp       ), // To axi_to_obi
-       // Simple RAM Master Interface (Connected to ram32_obi_adapter)
-       .req_o      ( shim_to_adapter_req   ), // To adapter
-       .we_o       ( shim_to_adapter_we    ), // To adapter
-       .addr_o     ( shim_to_adapter_addr  ), // To adapter
-       .wdata_o    ( shim_to_adapter_wdata ), // To adapter
-       .be_o       ( shim_to_adapter_be    ), // To adapter
-       // Inputs from ram32_obi_adapter
-       .gnt_i      ( adapter_to_shim_gnt   ), // <<< From adapter
-       .rdata_i    ( adapter_to_shim_rdata )  // <<< From adapter
-   );
-
-   assign mem_req = shim_to_adapter_req;
-   assign mem_we  = shim_to_adapter_we;
-   assign mem_addr = shim_to_adapter_addr;
-   assign mem_wdata = shim_to_adapter_wdata;
-   assign mem_be  = shim_to_adapter_be;
-   assign ram_to_adapter_rvalid = mem_rvalid;
-   assign ram_to_adapter_rdata  = mem_rdata;
-
-   ram32_obi_adapter #(
-       .ADDR_WIDTH ( CVA6ConfigAxiAddrWidth ),
-       .DATA_WIDTH ( CVA6ConfigAxiDataWidth ),
-       .BE_WIDTH   ( CVA6ConfigAxiDataWidth / 8 )
-   ) i_ram32_adapter (
-       .clk_i        ( clkwiz_o              ),
-       .rst_ni       ( rst_n                 ),
-       // Interface towards obi_sram_shim
-       .shim_req_i   ( shim_to_adapter_req   ), // From shim
-       .shim_we_i    ( shim_to_adapter_we    ), // From shim
-       .shim_addr_i  ( shim_to_adapter_addr  ), // From shim
-       .shim_wdata_i ( shim_to_adapter_wdata ), // From shim
-       .shim_be_i    ( shim_to_adapter_be    ), // From shim
-       .shim_gnt_o   ( adapter_to_shim_gnt   ), // To shim
-       .shim_rdata_o ( adapter_to_shim_rdata ), // To shim
-       // Interface towards ram32
-       .ram_req_o    ( adapter_to_ram_req    ), // To RAM
-       .ram_we_o     ( adapter_to_ram_we     ), // To RAM
-       .ram_addr_o   ( adapter_to_ram_addr   ), // To RAM
-       .ram_wdata_o  ( adapter_to_ram_wdata  ), // To RAM
-       .ram_be_o     ( adapter_to_ram_be     ), // To RAM
-       .ram_rvalid_i ( ram_to_adapter_rvalid ), // From RAM
-       .ram_rdata_i  ( ram_to_adapter_rdata  )  // From RAM
+       .obi_req_i  ( adapter_obi_req ), // From axi_to_obi
+       .obi_rsp_o  ( adapter_obi_rsp ), // To axi_to_obi
+       // Simple RAM Master Interface (Connected DIRECTLY to ram32)
+       .req_o      ( mem_req         ), // To RAM req_i
+       .we_o       ( mem_we          ), // To RAM we_i
+       .addr_o     ( mem_addr        ), // To RAM addr_i
+       .wdata_o    ( mem_wdata       ), // To RAM wdata_i
+       .be_o       ( mem_be          ), // To RAM be_i
+       // Inputs FROM ram32 / Forced Values
+       .gnt_i      ( 1'b1            ), // <<< FORCE GRANT HIGH
+       .rdata_i    ( mem_rdata       )  // <<< Connect RAM's rdata_o here
    );
 
    logic [31:0] main_mem_rdata;
