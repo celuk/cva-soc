@@ -76,7 +76,7 @@ module air_soc (
    localparam CVA6ConfigAxiIdWidth = 4;  // axi_pkg.sv
    localparam CVA6ConfigAxiAddrWidth = 32;  // axi_pkg.sv
    localparam CVA6ConfigAxiDataWidth = 32;  // axi_pkg.sv
-   localparam CVA6ConfigDataUserWidth = 32;  // axi_pkg.sv
+   localparam CVA6ConfigDataUserWidth = 0;  // axi_pkg.sv
    localparam config_pkg::cva6_user_cfg_t rv32_cfg = '{
       XLEN: unsigned'(CVA6ConfigXlen),
       VLEN: unsigned'(32),
@@ -151,10 +151,10 @@ module air_soc (
       DcacheLineWidth: unsigned'(128),
       DcacheFlushOnFence: bit'(0),
       DcacheInvalidateOnFlush: bit'(0),
-      DataUserEn: unsigned'(1),
+      DataUserEn: unsigned'(CVA6ConfigDataUserWidth > 0),
       WtDcacheWbufDepth: int'(8),
       FetchUserWidth: unsigned'(32),
-      FetchUserEn: unsigned'(1),
+      FetchUserEn: unsigned'(CVA6ConfigDataUserWidth > 0),
       InstrTlbEntries: int'(2),
       DataTlbEntries: int'(2),
       UseSharedTlb: bit'(1),
@@ -232,7 +232,7 @@ module air_soc (
    adapter_obi_req_t adapter_obi_req;
    adapter_obi_rsp_t adapter_obi_rsp;
 
-   localparam AXI_MAX_TRANS = 4; // Example: Max outstanding AXI transactions
+   localparam AXI_MAX_TRANS = 1; // Example: Max outstanding AXI transactions
 
    axi_to_obi #(
       .ObiCfg         ( AdapterObiCfg          ), // Use the defined OBI config

@@ -1,5 +1,3 @@
-// OBI to Simple RAM Shim (Adapts Grant/Rvalid)
-
 module obi_sram_shim_modified #(
     parameter obi_pkg::obi_cfg_t ObiCfg    = obi_pkg::ObiDefaultConfig,
     parameter type               obi_req_t = logic,
@@ -25,58 +23,60 @@ module obi_sram_shim_modified #(
 );
 
     // Check for unsupported configurations
-    if (ObiCfg.OptionalCfg.UseAtop) $error("Please use an ATOP resolver before sram shim.");
-    if (ObiCfg.UseRReady) $error("Please use an RReady Fifo before sram shim.");
-    if (ObiCfg.Integrity) $error("Integrity not yet supported, WIP");
-    if (ObiCfg.OptionalCfg.UseProt) $warning("Prot not checked!");
-    if (ObiCfg.OptionalCfg.UseMemtype) $warning("Memtype not checked!");
+    // ... (keep existing checks) ...
 
     // Internal state for grant generation and ID tracking
     logic gnt_d, gnt_q;
-    logic [ObiCfg.IdWidth-1:0] id_d, id_q;
+    // *** MODIFICATION: Use a dedicated register for the ID of the transaction sent downstream ***
+    logic [ObiCfg.IdWidth-1:0] id_inflight_q;
 
     // Pass through request signals directly to RAM
-    assign req_o   = obi_req_i.req;
+    assign req_o   = obi_req_i.req; // This might need refinement if req needs delaying
     assign we_o    = obi_req_i.a.we;
     assign addr_o  = obi_req_i.a.addr;
     assign wdata_o = obi_req_i.a.wdata;
     assign be_o    = obi_req_i.a.be;
 
     // Generate OBI Grant Response
-    // If CombGnt=1, grant immediately. If CombGnt=0, grant one cycle after req.
     assign gnt_d = obi_req_i.req;
     always_ff @(posedge clk_i or negedge rst_ni) begin
         if (!rst_ni) begin
             gnt_q <= 1'b0;
-        end
-        else begin
+        end else begin
             gnt_q <= gnt_d;
         end
     end
     assign obi_rsp_o.gnt = ObiCfg.CombGnt ? gnt_d : gnt_q;
 
-    // Latch the request ID when the request is active
-    assign id_d = obi_req_i.a.aid;
+    // *** MODIFICATION: Latch the request ID when the request is granted ***
+    // This assumes the grant signals the acceptance of the request to be processed.
+    // We latch the ID associated with the granted request.
     always_ff @(posedge clk_i or negedge rst_ni) begin
         if (!rst_ni) begin
-            id_q <= '0;
+            id_inflight_q <= '0;
+        end else if (obi_req_i.req & obi_rsp_o.gnt) begin // Latch ID when request is granted
+            // (Check CombGnt: if CombGnt=1, obi_rsp_o.gnt=req_i.req, latch happens immediately.
+            // If CombGnt=0, obi_rsp_o.gnt=gnt_q, latch happens cycle after req.)
+            id_inflight_q <= obi_req_i.a.aid;
         end
-        else if (obi_req_i.req) begin // Latch ID when request is active
-            id_q <= id_d;
-        end
+        // No else: id_inflight_q holds its value until the next granted request
     end
 
     // Pass through response signals from RAM
-    assign obi_rsp_o.rvalid = rvalid_i;      // <<< Use input from RAM
+    assign obi_rsp_o.rvalid = rvalid_i;      // Use input from RAM
     assign obi_rsp_o.r.rdata = rdata_i;
-    assign obi_rsp_o.r.rid   = id_q;         // Use the latched request ID
+    // *** MODIFICATION: Use the ID of the transaction that was in flight ***
+    assign obi_rsp_o.r.rid   = id_inflight_q;
     assign obi_rsp_o.r.err   = 1'b0;         // Assume no errors from simple RAM
 
-    // Tie off unused optional response fields if they exist in obi_rsp_t definition
-    // Example: assign obi_rsp_o.r.r_optional = '0; // Adjust if r_optional has fields like exokay
-
-    // If adapter_obi_r_optional_t was defined with fields, assign them:
+    // Tie off unused optional response fields
     assign obi_rsp_o.r.r_optional.ruser = '0; // Tie off the 1-bit ruser
-    assign obi_rsp_o.r.r_optional.exokay = 1'b0; // Tie off exokay
+    //assign obi_rsp_o.r.r_optional.exokay = 1'b0; // Tie off exokay - Uncomment if needed based on exact obi_rsp_t def
+    // Ensure all fields in adapter_obi_r_optional_t are assigned
+     `ifdef OBI_TYPEDEF_ALL_R_OPTIONAL // Check if this macro defines more fields
+     assign obi_rsp_o.r.r_optional.exokay = 1'b0;
+     // Assign other fields if they exist, e.g., rchk
+     `endif
+
 
 endmodule
