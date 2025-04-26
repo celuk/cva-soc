@@ -282,7 +282,7 @@ module air_soc (
        .addr_o     ( mem_addr        ),
        .wdata_o    ( mem_wdata       ),
        .be_o       ( mem_be          ),
-       .rvalid_i   ( mem_rvalid      ), // From ram32
+       .gnt_i      ( 1'b1            ),
        .rdata_i    ( mem_rdata       )  // From ram32
    );
 
