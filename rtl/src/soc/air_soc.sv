@@ -208,15 +208,24 @@ module air_soc (
            UseDbg:     1'b0,
            AUserWidth: 0,
            WUserWidth: 0,
-           RUserWidth: 0    // No extra user signals on OBI R channel needed
+           RUserWidth: 1,
+           MidWidth:   0,
+           AChkWidth:  0,
+           RChkWidth:  0
        }
    };
    // Define OBI types based on the configuration
    `OBI_TYPEDEF_MINIMAL_A_OPTIONAL(adapter_obi_a_optional_t)
-   `OBI_TYPEDEF_MINIMAL_R_OPTIONAL(adapter_obi_r_optional_t)
 
-   `OBI_TYPEDEF_A_CHAN_T(adapter_obi_a_chan_t, AdapterObiCfg.AddrWidth, AdapterObiCfg.DataWidth, AdapterObiCfg.IdWidth, adapter_obi_a_optional_t) // Use the type defined above
-   `OBI_TYPEDEF_R_CHAN_T(adapter_obi_r_chan_t, AdapterObiCfg.DataWidth, AdapterObiCfg.IdWidth, adapter_obi_r_optional_t) // Use the type defined above
+   // Manually define the R optional struct to match safety_island_top's definition
+   // This ensures it contains the 1-bit 'ruser' field expected by axi_to_obi when RUserWidth=1
+   typedef struct packed {
+       logic [0:0] ruser; // Matches RUserWidth=1
+       logic       exokay;
+   } adapter_obi_r_optional_t;
+
+   `OBI_TYPEDEF_A_CHAN_T(adapter_obi_a_chan_t, AdapterObiCfg.AddrWidth, AdapterObiCfg.DataWidth, AdapterObiCfg.IdWidth, adapter_obi_a_optional_t)
+   `OBI_TYPEDEF_R_CHAN_T(adapter_obi_r_chan_t, AdapterObiCfg.DataWidth, AdapterObiCfg.IdWidth, adapter_obi_r_optional_t) // Use manually defined R optional type
 
    `OBI_TYPEDEF_DEFAULT_REQ_T(adapter_obi_req_t, adapter_obi_a_chan_t)
    `OBI_TYPEDEF_RSP_T(adapter_obi_rsp_t, adapter_obi_r_chan_t)
