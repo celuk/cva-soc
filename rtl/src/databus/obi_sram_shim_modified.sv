@@ -19,6 +19,7 @@ module obi_sram_shim_modified #(
     output logic [  ObiCfg.DataWidth-1:0] wdata_o,
     output logic [ObiCfg.DataWidth/8-1:0] be_o,
 
+    input  logic                          gnt_i,
     // Inputs from RAM (ram32)
     input  logic                          rvalid_i, // <<< Input from RAM rvalid_o
     input  logic [  ObiCfg.DataWidth-1:0] rdata_i   // Data FROM RAM
@@ -42,19 +43,6 @@ module obi_sram_shim_modified #(
     assign wdata_o = obi_req_i.a.wdata;
     assign be_o    = obi_req_i.a.be;
 
-    // Generate OBI Grant Response
-    // If CombGnt=1, grant immediately. If CombGnt=0, grant one cycle after req.
-    assign gnt_d = obi_req_i.req;
-    always_ff @(posedge clk_i or negedge rst_ni) begin
-        if (!rst_ni) begin
-            gnt_q <= 1'b0;
-        end
-        else begin
-            gnt_q <= gnt_d;
-        end
-    end
-    assign obi_rsp_o.gnt = ObiCfg.CombGnt ? gnt_d : gnt_q;
-
     // Latch the request ID when the request is active
     assign id_d = obi_req_i.a.aid;
     always_ff @(posedge clk_i or negedge rst_ni) begin
@@ -66,6 +54,7 @@ module obi_sram_shim_modified #(
         end
     end
 
+    assign obi_rsp_o.gnt     = gnt_i;
     // Pass through response signals from RAM
     assign obi_rsp_o.rvalid = rvalid_i;      // <<< Use input from RAM
     assign obi_rsp_o.r.rdata = rdata_i;

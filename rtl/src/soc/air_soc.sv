@@ -285,7 +285,7 @@ module air_soc (
    logic                          ram_to_adapter_rvalid;
    logic [CVA6ConfigAxiDataWidth-1:0] ram_to_adapter_rdata;
 
-   obi_sram_shim #(
+   obi_sram_shim_modified #(
        .ObiCfg    ( AdapterObiCfg     ),
        .obi_req_t ( adapter_obi_req_t ),
        .obi_rsp_t ( adapter_obi_rsp_t )
@@ -303,6 +303,7 @@ module air_soc (
        .be_o       ( shim_to_adapter_be    ), // To adapter
        // Inputs from ram32_obi_adapter
        .gnt_i      ( adapter_to_shim_gnt   ), // <<< From adapter
+       .rvalid_i   ( ram_to_adapter_rvalid ), // <<< From adapter
        .rdata_i    ( adapter_to_shim_rdata )  // <<< From adapter
    );
 
