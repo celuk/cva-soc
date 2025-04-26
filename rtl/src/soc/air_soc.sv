@@ -74,8 +74,8 @@ module air_soc (
    //};
    localparam CVA6ConfigXlen = 32;
    localparam CVA6ConfigAxiIdWidth = 4;  // axi_pkg.sv
-   localparam CVA6ConfigAxiAddrWidth = 64;  // axi_pkg.sv
-   localparam CVA6ConfigAxiDataWidth = 64;  // axi_pkg.sv
+   localparam CVA6ConfigAxiAddrWidth = 32;  // axi_pkg.sv
+   localparam CVA6ConfigAxiDataWidth = 32;  // axi_pkg.sv
    localparam CVA6ConfigDataUserWidth = 32;  // axi_pkg.sv
    localparam config_pkg::cva6_user_cfg_t rv32_cfg = '{
       XLEN: unsigned'(CVA6ConfigXlen),
@@ -83,7 +83,7 @@ module air_soc (
       FpgaEn: bit'(0),
       FpgaAlteraEn: bit'(0),
       TechnoCut: bit'(1),
-      SuperscalarEn: bit'(1),
+      SuperscalarEn: bit'(0),
       NrCommitPorts: unsigned'(1),
       AxiAddrWidth: unsigned'(CVA6ConfigAxiAddrWidth),
       AxiDataWidth: unsigned'(CVA6ConfigAxiDataWidth),
@@ -116,8 +116,8 @@ module air_soc (
       RVS: bit'(0),
       RVU: bit'(0),
       SoftwareInterruptEn: bit'(0),
-      HaltAddress: 64'h800,
-      ExceptionAddress: 64'h808,
+      HaltAddress: 64'h000,
+      ExceptionAddress: 64'h000,
       RASDepth: unsigned'(2),
       BTBEntries: unsigned'(0),
       BHTEntries: unsigned'(32),
@@ -134,11 +134,11 @@ module air_soc (
       NonIdempotentAddrBase: 1024'({64'b0, 64'b0}),
       NonIdempotentLength: 1024'({64'b0, 64'b0}),
       NrExecuteRegionRules: unsigned'(0),
-      ExecuteRegionAddrBase: 1024'({64'h8000_0000, 64'h1_0000, 64'h0}),
-      ExecuteRegionLength: 1024'({64'h40000000, 64'h10000, 64'h1000}),
+      ExecuteRegionAddrBase: 1024'({64'h0000_0000, 64'h0_0000, 64'h0}),
+      ExecuteRegionLength: 1024'({64'h0F00_0000}),
       NrCachedRegionRules: unsigned'(1),
-      CachedRegionAddrBase: 1024'({64'h8000_0000}),
-      CachedRegionLength: 1024'({64'h40000000}),
+      CachedRegionAddrBase: 1024'({64'h0000_0000}),
+      CachedRegionLength: 1024'({64'h0F00_0000}),
       MaxOutstandingStores: unsigned'(7),
       DebugEn: bit'(0),
       AxiBurstWriteEn: bit'(0),
@@ -232,7 +232,7 @@ module air_soc (
    adapter_obi_req_t adapter_obi_req;
    adapter_obi_rsp_t adapter_obi_rsp;
 
-   localparam AXI_MAX_TRANS = 2; // Example: Max outstanding AXI transactions
+   localparam AXI_MAX_TRANS = 4; // Example: Max outstanding AXI transactions
 
    axi_to_obi #(
       .ObiCfg         ( AdapterObiCfg          ), // Use the defined OBI config
@@ -272,29 +272,26 @@ module air_soc (
       .rsp_read_ruser_o      (), .rsp_r_user_i          ('0)
    );
 
-   obi_sram_shim_modified #(
-       .ObiCfg    ( AdapterObiCfg     ),
-       .obi_req_t ( adapter_obi_req_t ),
+   obi_sram_shim #(
+       .ObiCfg    ( AdapterObiCfg     ), // Use the same OBI config
+       .obi_req_t ( adapter_obi_req_t ), // Pass OBI type definitions
        .obi_rsp_t ( adapter_obi_rsp_t )
    ) i_obi_sram_shim (
        .clk_i      ( clkwiz_o        ),
        .rst_ni     ( rst_n           ),
 
        // OBI Slave Interface (Connected to Adapter)
-       .obi_req_i  ( adapter_obi_req ), // From axi_to_obi
-       .obi_rsp_o  ( adapter_obi_rsp ), // To axi_to_obi
+       .obi_req_i  ( adapter_obi_req ),
+       .obi_rsp_o  ( adapter_obi_rsp ),
 
        // Simple RAM Master Interface (Connected to ram32)
-       .req_o      ( mem_req         ), // To RAM req_i
-       .we_o       ( mem_we          ), // To RAM we_i
-       .addr_o     ( mem_addr        ), // To RAM addr_i
-       .wdata_o    ( mem_wdata       ), // To RAM wdata_i
-       .be_o       ( mem_be          ), // To RAM be_i
-
-       // Inputs FROM ram32
-       .rvalid_i   ( mem_rvalid      ), // <<< Connect RAM's rvalid_o here
-       .rdata_i    ( mem_rdata       )  // <<< Connect RAM's rdata_o here
-       // No .gnt_i port on the modified shim
+       .req_o      ( mem_req         ),
+       .we_o       ( mem_we          ),
+       .addr_o     ( mem_addr        ),
+       .wdata_o    ( mem_wdata       ),
+       .be_o       ( mem_be          ),
+       .gnt_i      ( 1'b1            ),
+       .rdata_i    ( mem_rdata       )  // From ram32
    );
 
    logic [31:0] main_mem_rdata;
