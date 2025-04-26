@@ -5,6 +5,8 @@
 
 `default_nettype none
 
+`include "obi/typedef.svh"
+
 module air_soc (
    input wire clk_i,
 
@@ -185,14 +187,21 @@ module air_soc (
       .noc_resp_i           ( cva6_axi_resp                )
    );
 
+   import axi_pkg::*;
+   import obi_pkg::*;
+
    // --- OBI Interface (Adapter <-> Shim) ---
    // Define the OBI configuration between adapter and shim
    localparam obi_pkg::obi_cfg_t AdapterObiCfg = '{
        AddrWidth: CVA6ConfigAxiAddrWidth,
        DataWidth: CVA6ConfigAxiDataWidth,
        IdWidth:   CVA6ConfigAxiIdWidth,   // Pass AXI ID through OBI
+       // --- Settings in the main obi_cfg_t struct ---
+       UseRReady: 1'b0, // Keep default unless needed
+       CombGnt:   1'b0, // Use standard registered grant timing (GNT cycle after REQ)
+       Integrity: 1'b0, // Keep default
+       BeFull:    1'b1, // Keep default
        OptionalCfg: '{
-           UseGrant:   1'b1, // Enable Grant (Shim will handle it)
            UseAtop:    1'b0, // Disable unused features
            UseProt:    1'b0,
            UseMemtype: 1'b0,
@@ -203,9 +212,13 @@ module air_soc (
        }
    };
    // Define OBI types based on the configuration
-   `OBI_TYPEDEF_A_CHAN_T(adapter_obi_a_chan_t, AdapterObiCfg.AddrWidth, AdapterObiCfg.DataWidth, AdapterObiCfg.IdWidth, obi_pkg::obi_a_minimal_optional_t) // Use minimal optional struct if sufficient
+   `OBI_TYPEDEF_MINIMAL_A_OPTIONAL(adapter_obi_a_optional_t)
+   `OBI_TYPEDEF_MINIMAL_R_OPTIONAL(adapter_obi_r_optional_t)
+
+   `OBI_TYPEDEF_A_CHAN_T(adapter_obi_a_chan_t, AdapterObiCfg.AddrWidth, AdapterObiCfg.DataWidth, AdapterObiCfg.IdWidth, adapter_obi_a_optional_t) // Use the type defined above
+   `OBI_TYPEDEF_R_CHAN_T(adapter_obi_r_chan_t, AdapterObiCfg.DataWidth, AdapterObiCfg.IdWidth, adapter_obi_r_optional_t) // Use the type defined above
+
    `OBI_TYPEDEF_DEFAULT_REQ_T(adapter_obi_req_t, adapter_obi_a_chan_t)
-   `OBI_TYPEDEF_R_CHAN_T(adapter_obi_r_chan_t, AdapterObiCfg.DataWidth, AdapterObiCfg.IdWidth, obi_pkg::obi_r_minimal_optional_t) // Use minimal optional struct
    `OBI_TYPEDEF_RSP_T(adapter_obi_rsp_t, adapter_obi_r_chan_t)
    // OBI signals between adapter and shim
    adapter_obi_req_t adapter_obi_req;

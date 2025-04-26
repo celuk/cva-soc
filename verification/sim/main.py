@@ -24,7 +24,10 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
         Path(SCRIPT_DIR / "../../cva6/common"),
         Path(SCRIPT_DIR / "../../cva6/corev_apu"),
         Path(SCRIPT_DIR / "../../axi"),
-        Path(SCRIPT_DIR / "../../obi")
+        Path(SCRIPT_DIR / "../../obi"),
+        Path(SCRIPT_DIR / "../../common_cells/src"),
+        Path(SCRIPT_DIR / "../../common_cells/include/common_cells"),
+        Path(SCRIPT_DIR / "../../safety_island/future/axi_obi")
     ]
     
     # Gather all relevant files from all submodule directories
@@ -68,6 +71,7 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
         and not str(path).rsplit('/', 1)[-1].endswith("obi_atop_resolver.sv")
         and not str(path).rsplit('/', 1)[-1].endswith("axi_lite_lfsr.sv")
         and not str(path).rsplit('/', 1)[-1].endswith("axi_zero_mem.sv")
+        and not str(path).rsplit('/', 1)[-1].endswith("axi_id_serialize.sv")
     ]
     #and "hpdcache" not in str(path)
 
