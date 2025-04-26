@@ -66,6 +66,7 @@ module air_soc (
    logic                qspi_rvalid;
    logic [`MEM_W  -1:0] qspi_rdata;
 
+   /*
    import config_pkg::*;
    import build_config_pkg::*;
    //localparam cva6_user_cfg_t rv32_cfg = '{
@@ -165,6 +166,13 @@ module air_soc (
    };
 
    localparam cva6_cfg_t CVA6Cfg = build_config(rv32_cfg);
+
+   */
+
+   import config_pkg::*;
+   import build_config_pkg::*;
+   import cva6_config_pkg::*;
+   localparam cva6_cfg_t CVA6Cfg = build_config(cva6_config_pkg::cva6_cfg);
 
    import ariane_axi::*;
    ariane_axi::req_t  cva6_axi_req;
@@ -285,7 +293,7 @@ module air_soc (
    logic                          ram_to_adapter_rvalid;
    logic [CVA6ConfigAxiDataWidth-1:0] ram_to_adapter_rdata;
 
-   obi_sram_shim_modified #(
+   obi_sram_shim #(
        .ObiCfg    ( AdapterObiCfg     ),
        .obi_req_t ( adapter_obi_req_t ),
        .obi_rsp_t ( adapter_obi_rsp_t )
@@ -303,7 +311,6 @@ module air_soc (
        .be_o       ( shim_to_adapter_be    ), // To adapter
        // Inputs from ram32_obi_adapter
        .gnt_i      ( adapter_to_shim_gnt   ), // <<< From adapter
-       .rvalid_i   ( ram_to_adapter_rvalid ), // <<< From adapter
        .rdata_i    ( adapter_to_shim_rdata )  // <<< From adapter
    );
 

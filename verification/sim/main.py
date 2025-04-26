@@ -70,6 +70,7 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
         and not str(path).rsplit('/', 1)[-1].endswith("axi_lite_lfsr.sv")
         and not str(path).rsplit('/', 1)[-1].endswith("axi_zero_mem.sv")
         and not str(path).rsplit('/', 1)[-1].endswith("axi_id_serialize.sv")
+        and not (str(path).rsplit('/', 1)[-1].endswith("_config_pkg.sv") and not str(path).rsplit('/', 1)[-1].endswith("build_config_pkg.sv")) ## fix config conflict by not including all
     ]
     #and "hpdcache" not in str(path)
 
@@ -80,7 +81,7 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
                        or str(path).rsplit('/', 1)[-1].startswith("top_pkg.sv")
                        or str(path).rsplit('/', 1)[-1].startswith("ariane_soc_pkg.sv")
                        or str(path).rsplit('/', 1)[-1].startswith("rand_id_queue.sv")]
-    pre_pkg_sv_paths = [path for path in verilog_sources if str(path).endswith("config_pkg.sv") or str(path).endswith("riscv_pkg.sv") or str(path).endswith("axi_pkg.sv")]
+    pre_pkg_sv_paths = [path for path in verilog_sources if str(path).endswith("config.sv") or str(path).endswith("config_pkg.sv") or str(path).endswith("riscv_pkg.sv") or str(path).endswith("axi_pkg.sv")]
     pkg_sv_paths = [path for path in verilog_sources if str(path).endswith("pkg.sv") and not str(path).endswith("config_pkg.sv") and not str(path).endswith("riscv_pkg.sv") and not str(path).endswith("axi_pkg.sv")]
     other_paths = [path for path in verilog_sources if not str(path).rsplit('/', 1)[-1].startswith("def") and not str(path).endswith("pkg.sv")]
     verilog_sources = list(def_sv_paths) + list(config_pkg_path) + list(pre_pkg_sv_paths) + list([Path(SCRIPT_DIR / "../../cva6/corev_apu/tb/ariane_axi_pkg.sv")]) + list(pkg_sv_paths) + list(other_paths)
