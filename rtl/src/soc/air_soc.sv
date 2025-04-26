@@ -202,7 +202,7 @@ module air_soc (
        IdWidth:   CVA6ConfigAxiIdWidth,   // Pass AXI ID through OBI
        // --- Settings in the main obi_cfg_t struct ---
        UseRReady: 1'b0, // Keep default unless needed
-       CombGnt:   1'b0, // Use standard registered grant timing (GNT cycle after REQ)
+       CombGnt:   1'b1, // Use standard registered grant timing (GNT cycle after REQ)
        Integrity: 1'b0, // Keep default
        BeFull:    1'b1, // Keep default
        OptionalCfg: '{
