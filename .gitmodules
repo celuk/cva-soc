@@ -1,3 +1,9 @@
 [submodule "cva6"]
 	path = cva6
 	url = https://github.com/openhwgroup/cva6
+[submodule "axi"]
+	path = axi
+	url = https://github.com/pulp-platform/axi
+[submodule "obi"]
+	path = obi
+	url = https://github.com/pulp-platform/obi
