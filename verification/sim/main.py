@@ -72,6 +72,7 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
         and not str(path).rsplit('/', 1)[-1].endswith("axi_id_serialize.sv")
         and not (str(path).rsplit('/', 1)[-1].endswith("_config_pkg.sv") and not str(path).rsplit('/', 1)[-1].endswith("build_config_pkg.sv")) ## fix config conflict by not including all
     ]
+    #and not str(path).rsplit('/', 1)[-1].endswith("custom_config.sv")
     #and "hpdcache" not in str(path)
 
     ## sort the sources to make sure that the def and pkg.sv files are at the beginning

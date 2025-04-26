@@ -66,7 +66,6 @@ module air_soc (
    logic                qspi_rvalid;
    logic [`MEM_W  -1:0] qspi_rdata;
 
-   /*
    import config_pkg::*;
    import build_config_pkg::*;
    //localparam cva6_user_cfg_t rv32_cfg = '{
@@ -167,21 +166,14 @@ module air_soc (
 
    localparam cva6_cfg_t CVA6Cfg = build_config(rv32_cfg);
 
-   */
-
-   import config_pkg::*;
-   import build_config_pkg::*;
-   import cva6_config_pkg::*;
-   localparam cva6_cfg_t CVA6Cfg = build_config(cva6_config_pkg::cva6_cfg);
-
    import ariane_axi::*;
    ariane_axi::req_t  cva6_axi_req;
    ariane_axi::resp_t cva6_axi_resp;
 
    cva6 #(
       .CVA6Cfg ( CVA6Cfg )
-      //,.noc_req_t      ( axi_cva6_req_t )
-      //,.noc_resp_t     ( axi_cva6_rsp_t )
+      ,.noc_req_t      ( ariane_axi::req_t )
+      ,.noc_resp_t     ( ariane_axi::resp_t )
    ) i_cva6 (
       .clk_i                ( clkwiz_o                     ),
       .rst_ni               ( rst_n                        ),
