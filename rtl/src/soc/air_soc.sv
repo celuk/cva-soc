@@ -146,7 +146,7 @@ module air_soc (
       IcacheSetAssoc: unsigned'(2),
       IcacheLineWidth: unsigned'(128),
       DCacheType: config_pkg::WB,
-      DcacheByteSize: unsigned'(2028),
+      DcacheByteSize: unsigned'(2048),
       DcacheSetAssoc: unsigned'(2),
       DcacheLineWidth: unsigned'(128),
       DcacheFlushOnFence: bit'(0),
@@ -272,25 +272,29 @@ module air_soc (
       .rsp_read_ruser_o      (), .rsp_r_user_i          ('0)
    );
 
-   obi_sram_shim #(
+   obi_sram_shim_modified #(
        .ObiCfg    ( AdapterObiCfg     ),
        .obi_req_t ( adapter_obi_req_t ),
        .obi_rsp_t ( adapter_obi_rsp_t )
    ) i_obi_sram_shim (
        .clk_i      ( clkwiz_o        ),
        .rst_ni     ( rst_n           ),
+
        // OBI Slave Interface (Connected to Adapter)
        .obi_req_i  ( adapter_obi_req ), // From axi_to_obi
        .obi_rsp_o  ( adapter_obi_rsp ), // To axi_to_obi
-       // Simple RAM Master Interface (Connected DIRECTLY to ram32)
+
+       // Simple RAM Master Interface (Connected to ram32)
        .req_o      ( mem_req         ), // To RAM req_i
        .we_o       ( mem_we          ), // To RAM we_i
        .addr_o     ( mem_addr        ), // To RAM addr_i
        .wdata_o    ( mem_wdata       ), // To RAM wdata_i
        .be_o       ( mem_be          ), // To RAM be_i
-       // Inputs FROM ram32 / Forced Values
-       .gnt_i      ( 1'b1            ), // <<< FORCE GRANT HIGH
+
+       // Inputs FROM ram32
+       .rvalid_i   ( mem_rvalid      ), // <<< Connect RAM's rvalid_o here
        .rdata_i    ( mem_rdata       )  // <<< Connect RAM's rdata_o here
+       // No .gnt_i port on the modified shim
    );
 
    logic [31:0] main_mem_rdata;
