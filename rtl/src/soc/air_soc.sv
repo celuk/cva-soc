@@ -300,7 +300,7 @@ module air_soc (
       if (!rst_n) begin
           gnt_q <= 1'b0;
       end else begin
-          gnt_q <= 1; // Register the grant signal
+          gnt_q <= mem_req; // Register the grant signal
       end
    end
 
