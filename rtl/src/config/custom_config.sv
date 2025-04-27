@@ -4,10 +4,10 @@ package cva6_config_pkg;
 
   localparam CVA6ConfigRvfiTrace = 0;
 
-  localparam CVA6ConfigAxiIdWidth = 4;  // axi_pkg.sv
-  localparam CVA6ConfigAxiAddrWidth = 32;  // axi_pkg.sv
-  localparam CVA6ConfigAxiDataWidth = 32;  // axi_pkg.sv
-  localparam CVA6ConfigDataUserWidth = 32;  // axi_pkg.sv
+  localparam CVA6ConfigAxiIdWidth = 4;
+  localparam CVA6ConfigAxiAddrWidth = 32;
+  localparam CVA6ConfigAxiDataWidth = 32;
+  localparam CVA6ConfigDataUserWidth = 32;
 
   localparam config_pkg::cva6_user_cfg_t cva6_cfg = '{
       XLEN: unsigned'(CVA6ConfigXlen),
@@ -29,20 +29,20 @@ package cva6_config_pkg;
       XF16ALT: bit'(0),
       XF8: bit'(0),
       RVA: bit'(0),
-      RVB: bit'(1),
+      RVB: bit'(0),
       ZKN: bit'(0),
       RVV: bit'(0),
       RVC: bit'(1),
       RVH: bit'(0),
       RVZCMT: bit'(0),
-      RVZCB: bit'(1),
+      RVZCB: bit'(0),
       RVZCMP: bit'(0),
       XFVec: bit'(0),
-      CvxifEn: bit'(1),
+      CvxifEn: bit'(0),
       RVZiCond: bit'(0),
       RVZicntr: bit'(0),
       RVZihpm: bit'(0),
-      NrScoreboardEntries: unsigned'(8),
+      NrScoreboardEntries: unsigned'(4),
       PerfCounterEn: bit'(0),
       MmuPresent: bit'(0),
       RVS: bit'(0),
@@ -66,12 +66,12 @@ package cva6_config_pkg;
       NonIdempotentAddrBase: 1024'({64'b0, 64'b0}),
       NonIdempotentLength: 1024'({64'b0, 64'b0}),
       NrExecuteRegionRules: unsigned'(0),
-      ExecuteRegionAddrBase: 1024'({64'h8000_0000, 64'h1_0000, 64'h0}),
-      ExecuteRegionLength: 1024'({64'h40000000, 64'h10000, 64'h1000}),
+      ExecuteRegionAddrBase: 1024'({64'h0000_0000}),
+      ExecuteRegionLength: 1024'({64'h0F00_0000}),
       NrCachedRegionRules: unsigned'(1),
       CachedRegionAddrBase: 1024'({64'h8000_0000}),
-      CachedRegionLength: 1024'({64'h40000000}),
-      MaxOutstandingStores: unsigned'(7),
+      CachedRegionLength: 1024'({64'h0F00_0000}),
+      MaxOutstandingStores: unsigned'(1),
       DebugEn: bit'(0),
       AxiBurstWriteEn: bit'(0),
       IcacheByteSize: unsigned'(2048),
@@ -84,16 +84,16 @@ package cva6_config_pkg;
       DcacheFlushOnFence: bit'(0),
       DcacheInvalidateOnFlush: bit'(0),
       DataUserEn: unsigned'(0),
-      WtDcacheWbufDepth: int'(8),
+      WtDcacheWbufDepth: int'(2),
       FetchUserWidth: unsigned'(32),
       FetchUserEn: unsigned'(0),
       InstrTlbEntries: int'(2),
       DataTlbEntries: int'(2),
       UseSharedTlb: bit'(1),
-      SharedTlbDepth: int'(64),
+      SharedTlbDepth: int'(32),
       NrLoadPipeRegs: int'(0),
       NrStorePipeRegs: int'(0),
       DcacheIdWidth: int'(1)
-  };
+   };
 
 endpackage

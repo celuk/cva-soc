@@ -68,107 +68,11 @@ module air_soc (
 
    import config_pkg::*;
    import build_config_pkg::*;
-   //localparam cva6_user_cfg_t rv32_cfg = '{
-   //   XLEN: 32,
-   //   VLEN: 32
-   //};
-   localparam CVA6ConfigXlen = 32;
-   localparam CVA6ConfigAxiIdWidth = 4;  // axi_pkg.sv
-   localparam CVA6ConfigAxiAddrWidth = 32;  // axi_pkg.sv
-   localparam CVA6ConfigAxiDataWidth = 32;  // axi_pkg.sv
-   localparam CVA6ConfigDataUserWidth = 32;  // axi_pkg.sv
-   localparam config_pkg::cva6_user_cfg_t rv32_cfg = '{
-      XLEN: unsigned'(CVA6ConfigXlen),
-      VLEN: unsigned'(32),
-      FpgaEn: bit'(0),
-      FpgaAlteraEn: bit'(0),
-      TechnoCut: bit'(0),
-      SuperscalarEn: bit'(0),
-      NrCommitPorts: unsigned'(1),
-      AxiAddrWidth: unsigned'(CVA6ConfigAxiAddrWidth),
-      AxiDataWidth: unsigned'(CVA6ConfigAxiDataWidth),
-      AxiIdWidth: unsigned'(CVA6ConfigAxiIdWidth),
-      AxiUserWidth: unsigned'(CVA6ConfigDataUserWidth),
-      MemTidWidth: unsigned'(CVA6ConfigAxiIdWidth),
-      NrLoadBufEntries: unsigned'(1),
-      RVF: bit'(0),
-      RVD: bit'(0),
-      XF16: bit'(0),
-      XF16ALT: bit'(0),
-      XF8: bit'(0),
-      RVA: bit'(0),
-      RVB: bit'(0),
-      ZKN: bit'(0),
-      RVV: bit'(0),
-      RVC: bit'(1),
-      RVH: bit'(0),
-      RVZCMT: bit'(0),
-      RVZCB: bit'(0),
-      RVZCMP: bit'(0),
-      XFVec: bit'(0),
-      CvxifEn: bit'(0),
-      RVZiCond: bit'(0),
-      RVZicntr: bit'(0),
-      RVZihpm: bit'(0),
-      NrScoreboardEntries: unsigned'(1),
-      PerfCounterEn: bit'(0),
-      MmuPresent: bit'(0),
-      RVS: bit'(0),
-      RVU: bit'(0),
-      SoftwareInterruptEn: bit'(0),
-      HaltAddress: 64'h000,
-      ExceptionAddress: 64'h000,
-      RASDepth: unsigned'(2),
-      BTBEntries: unsigned'(0),
-      BHTEntries: unsigned'(32),
-      DmBaseAddress: 64'h0,
-      TvalEn: bit'(0),
-      DirectVecOnly: bit'(0),
-      NrPMPEntries: unsigned'(0),
-      PMPCfgRstVal: {64{64'h0}},
-      PMPAddrRstVal: {64{64'h0}},
-      PMPEntryReadOnly: 64'd0,
-      PMPNapotEn: bit'(0),
-      NOCType: config_pkg::NOC_TYPE_AXI4_ATOP,
-      NrNonIdempotentRules: unsigned'(0),
-      NonIdempotentAddrBase: 1024'({64'b0, 64'b0}),
-      NonIdempotentLength: 1024'({64'b0, 64'b0}),
-      NrExecuteRegionRules: unsigned'(0),
-      ExecuteRegionAddrBase: 1024'({64'h0000_0000}),
-      ExecuteRegionLength: 1024'({64'h0F00_0000}),
-      NrCachedRegionRules: unsigned'(1),
-      CachedRegionAddrBase: 1024'({64'h0000_0000}),
-      CachedRegionLength: 1024'({64'h0F00_0000}),
-      MaxOutstandingStores: unsigned'(1),
-      DebugEn: bit'(0),
-      AxiBurstWriteEn: bit'(0),
-      IcacheByteSize: unsigned'(2048),
-      IcacheSetAssoc: unsigned'(2),
-      IcacheLineWidth: unsigned'(128),
-      DCacheType: config_pkg::WB,
-      DcacheByteSize: unsigned'(2048),
-      DcacheSetAssoc: unsigned'(2),
-      DcacheLineWidth: unsigned'(128),
-      DcacheFlushOnFence: bit'(0),
-      DcacheInvalidateOnFlush: bit'(0),
-      DataUserEn: unsigned'(0),
-      WtDcacheWbufDepth: int'(2),
-      FetchUserWidth: unsigned'(32),
-      FetchUserEn: unsigned'(0),
-      InstrTlbEntries: int'(2),
-      DataTlbEntries: int'(2),
-      UseSharedTlb: bit'(1),
-      SharedTlbDepth: int'(32),
-      NrLoadPipeRegs: int'(0),
-      NrStorePipeRegs: int'(0),
-      NrLoadPipeRegs: int'(1),
-      NrStorePipeRegs: int'(0),
-      DcacheIdWidth: int'(1)
-   };
-
-   localparam cva6_cfg_t CVA6Cfg = build_config(rv32_cfg);
-
+   import cva6_config_pkg::*;
    import ariane_axi::*;
+
+   localparam cva6_cfg_t CVA6Cfg = build_config_pkg::build_config(cva6_config_pkg::cva6_cfg);
+
    ariane_axi::req_t  cva6_axi_req;
    ariane_axi::resp_t cva6_axi_resp;
 
@@ -199,9 +103,9 @@ module air_soc (
    // --- OBI Interface (Adapter <-> Shim) ---
    // Define the OBI configuration between adapter and shim
    localparam obi_pkg::obi_cfg_t AdapterObiCfg = '{
-       AddrWidth: CVA6ConfigAxiAddrWidth,
-       DataWidth: CVA6ConfigAxiDataWidth,
-       IdWidth:   CVA6ConfigAxiIdWidth,   // Pass AXI ID through OBI
+       AddrWidth: cva6_config_pkg::CVA6ConfigAxiAddrWidth,
+       DataWidth: cva6_config_pkg::CVA6ConfigAxiDataWidth,
+       IdWidth:   cva6_config_pkg::CVA6ConfigAxiIdWidth,   // Pass AXI ID through OBI
        // --- Settings in the main obi_cfg_t struct ---
        UseRReady: 1'b0, // Keep default unless needed
        CombGnt:   1'b0, // Use standard registered grant timing (GNT cycle after REQ)
@@ -242,10 +146,10 @@ module air_soc (
       .obi_rsp_t      ( adapter_obi_rsp_t      ),
       .obi_a_chan_t   ( adapter_obi_a_chan_t   ), // Pass OBI type definitions
       .obi_r_chan_t   ( adapter_obi_r_chan_t   ), // Pass OBI type definitions
-      .AxiAddrWidth   ( CVA6ConfigAxiAddrWidth ),
-      .AxiDataWidth   ( CVA6ConfigAxiDataWidth ),
-      .AxiIdWidth     ( CVA6ConfigAxiIdWidth   ),
-      .AxiUserWidth   ( CVA6ConfigDataUserWidth), // Match CVA6 User Width
+      .AxiAddrWidth   ( cva6_config_pkg::CVA6ConfigAxiAddrWidth ),
+      .AxiDataWidth   ( cva6_config_pkg::CVA6ConfigAxiDataWidth ),
+      .AxiIdWidth     ( cva6_config_pkg::CVA6ConfigAxiIdWidth   ),
+      .AxiUserWidth   ( cva6_config_pkg::CVA6ConfigDataUserWidth), // Match CVA6 User Width
       .MaxTrans       ( AXI_MAX_TRANS          ),
       .axi_req_t      ( ariane_axi::req_t      ), // Pass AXI type definitions
       .axi_rsp_t      ( ariane_axi::resp_t     )
