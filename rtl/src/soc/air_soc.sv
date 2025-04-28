@@ -47,10 +47,10 @@ module air_soc (
    `endif
 
    logic               mem_req;
-   logic [       63:0] mem_addr;
+   logic [       31:0] mem_addr;
    logic               mem_we;
-   logic [        7:0] mem_be;
-   logic [       63:0] mem_wdata;
+   logic [        3:0] mem_be;
+   logic [       31:0] mem_wdata;
    logic               mem_rvalid;
    logic [       31:0] mem_rdata;
 
@@ -199,7 +199,7 @@ module air_soc (
        .wdata_o    ( mem_wdata       ),
        .be_o       ( mem_be          ),
        .gnt_i      ( gnt_q            ),
-       .rdata_i    ( {32'h0, mem_rdata}       )  // From ram32
+       .rdata_i    ( mem_rdata       )  // From ram32
    );
 
    always_ff @(posedge clkwiz_o or negedge rst_n) begin
@@ -226,9 +226,9 @@ module air_soc (
       .rst_ni  (rst_ni `ifdef BASYS3 & clkwiz_locked `endif),
       .req_i   (mem_req & (((`MEM_BASE_ADDR  + `MEM_RANGE)  > mem_addr )   && (mem_addr >= `MEM_BASE_ADDR))),
       .we_i    (mem_req & mem_we),
-      .be_i    (mem_be[3:0]),
-      .addr_i  (mem_addr[31:0]),
-      .wdata_i (mem_wdata[31:0]),
+      .be_i    (mem_be),
+      .addr_i  (mem_addr),
+      .wdata_i (mem_wdata),
       .rvalid_o(main_mem_rvalid),
       .rdata_o (main_mem_rdata)
 
