@@ -5,8 +5,8 @@ package cva6_config_pkg;
   localparam CVA6ConfigRvfiTrace = 0;
 
   localparam CVA6ConfigAxiIdWidth = 4;
-  localparam CVA6ConfigAxiAddrWidth = 64;
-  localparam CVA6ConfigAxiDataWidth = 64;
+  localparam CVA6ConfigAxiAddrWidth = 32;
+  localparam CVA6ConfigAxiDataWidth = 32;
   localparam CVA6ConfigDataUserWidth = 32;
 
   localparam config_pkg::cva6_user_cfg_t cva6_cfg = '{
@@ -90,7 +90,7 @@ package cva6_config_pkg;
       InstrTlbEntries: int'(2),
       DataTlbEntries: int'(2),
       UseSharedTlb: bit'(1),
-      SharedTlbDepth: int'(64),
+      SharedTlbDepth: int'(32),
       NrLoadPipeRegs: int'(0),
       NrStorePipeRegs: int'(0),
       DcacheIdWidth: int'(1)
