@@ -47,12 +47,12 @@ module air_soc (
    `endif
 
    logic               mem_req;
-   logic [       31:0] mem_addr;
+   logic [       63:0] mem_addr;
    logic               mem_we;
-   logic [        3:0] mem_be;
-   logic [       31:0] mem_wdata;
+   logic [        7:0] mem_be;
+   logic [       63:0] mem_wdata;
    logic               mem_rvalid;
-   logic [       31:0] mem_rdata;
+   logic [       63:0] mem_rdata;
 
    logic                uart_gnt;
    logic                uart_rvalid;
@@ -98,7 +98,7 @@ module air_soc (
       .noc_resp_i           ( cva6_axi_resp                )
    );
 
-   logic [31:0] main_mem_rdata;
+   logic [63:0] main_mem_rdata;
    logic main_mem_rvalid;
 
    AXI_BUS #(
@@ -160,7 +160,7 @@ module air_soc (
                        timer_rvalid    ? timer_rdata    :
                        qspi_rvalid     ? qspi_rdata     : main_mem_rdata;
 
-   ram32 #(
+   ram64 #(
       .SIZE     (`RAM_SIZE / 4),
       .INIT_FILE(`RAM_FPATH)
    ) main_memory (
