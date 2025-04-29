@@ -76,6 +76,23 @@ module air_soc (
    ariane_axi::req_t  cva6_axi_req;
    ariane_axi::resp_t cva6_axi_resp;
 
+   // add this if missing in ariane_pkg.sv
+   /*
+   typedef struct packed {
+      logic        req;        // this request is valid
+      amo_t        amo_op;     // atomic memory operation to perform
+      logic [1:0]  size;       // 2'b10 --> word operation, 2'b11 --> double word operation
+      logic [63:0] operand_a;  // address
+      logic [63:0] operand_b;  // data as layouted in the register
+    } amo_req_t;
+  
+    // AMO response coming from cache.
+    typedef struct packed {
+      logic        ack;     // response is valid
+      logic [63:0] result;  // sign-extended, result
+    } amo_resp_t;
+    */
+
    cva6 #(
       .CVA6Cfg ( CVA6Cfg )
       ,.axi_ar_chan_t ( ariane_axi::ar_chan_t )
