@@ -16,3 +16,6 @@
 [submodule "cva5"]
 	path = cva5
 	url = https://github.com/openhwgroup/cva5
+[submodule "cva6-softcore-contest"]
+	path = cva6-softcore-contest
+	url = https://github.com/ThalesGroup/cva6-softcore-contest
