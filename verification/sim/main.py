@@ -24,6 +24,7 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
         Path(SCRIPT_DIR / "../../cva6-softcore-contest/common"),
         Path(SCRIPT_DIR / "../../cva6-softcore-contest/corev_apu"),
         Path(SCRIPT_DIR / "../../cva6-softcore-contest/verif/tb/core/tb_components"),
+        Path(SCRIPT_DIR / "../../axi"),
         Path(SCRIPT_DIR / "../../obi"),
         Path(SCRIPT_DIR / "../../safety_island/future/axi_obi")
     ]
