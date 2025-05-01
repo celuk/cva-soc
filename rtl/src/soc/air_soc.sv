@@ -91,7 +91,7 @@ module air_soc (
    logic                qspi_rvalid;
    logic [`MEM_W  -1:0] qspi_rdata;
 
-   localparam config_pkg::cva6_cfg_t CVA6Cfg = build_config_pkg::build_config(cva6_config_pkg::cva6_cfg);
+   localparam config_pkg::cva6_cfg_t CVA6Cfg = cva6_config_pkg::cva6_cfg;
 
    ariane_axi::req_t  cva6_axi_req;
    ariane_axi::resp_t cva6_axi_resp;
