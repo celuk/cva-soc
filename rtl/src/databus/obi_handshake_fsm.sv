@@ -38,8 +38,8 @@ always_comb
       end
       ACK: begin
         rvalid_o = 1;
-        if (req_i) begin
-          gnt_o = 1;
+        if (req_i && gnt_o) begin
+          gnt_o = 0;
           next_state = ACK;
         end else begin
           gnt_o = 1;
