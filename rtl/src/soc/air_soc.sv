@@ -124,64 +124,12 @@ module air_soc (
       .AXI_USER_WIDTH ( cva6_config_pkg::CVA6ConfigDataUserWidth )
    ) mem_axi_bus();
 
-/*
    axi_master_connect #(
    ) i_axi_master_connect_cva6_to_mem (
       .axi_req_i  ( cva6_axi_req ),   // Input: CVA6 request struct
       .dis_mem    ( 1'b0         ),   // Input: Disable signal (tie low to always enable)
       .master     ( mem_axi_bus  )    // Output: Connects to the AXI bus interface (drives AW, W, AR valid/payload)
    );
-*/
-
-   assign mem_axi_bus.aw_id      = cva6_axi_req.aw.id;
-   assign mem_axi_bus.aw_addr    = cva6_axi_req.aw.addr;
-   assign mem_axi_bus.aw_len     = cva6_axi_req.aw.len;
-   assign mem_axi_bus.aw_size    = cva6_axi_req.aw.size;
-   assign mem_axi_bus.aw_burst   = cva6_axi_req.aw.burst;
-   assign mem_axi_bus.aw_lock    = cva6_axi_req.aw.lock;
-   assign mem_axi_bus.aw_cache   = cva6_axi_req.aw.cache;
-   assign mem_axi_bus.aw_prot    = cva6_axi_req.aw.prot;
-   assign mem_axi_bus.aw_qos     = cva6_axi_req.aw.qos;
-   assign mem_axi_bus.aw_region  = cva6_axi_req.aw.region;
-   assign mem_axi_bus.aw_atop    = cva6_axi_req.aw.atop;
-   assign mem_axi_bus.aw_user    = cva6_axi_req.aw.user;
-   assign mem_axi_bus.aw_valid   = cva6_axi_req.aw_valid;
-   assign cva6_axi_resp.aw_ready     = mem_axi_bus.aw_ready;
-
-   assign mem_axi_bus.w_data     = cva6_axi_req.w.data;
-   assign mem_axi_bus.w_strb     = cva6_axi_req.w.strb;
-   assign mem_axi_bus.w_last     = cva6_axi_req.w.last;
-   assign mem_axi_bus.w_user     = cva6_axi_req.w.user;
-   assign mem_axi_bus.w_valid    = cva6_axi_req.w_valid;
-   assign cva6_axi_resp.w_ready      = mem_axi_bus.w_ready;
-
-   assign mem_axi_bus.ar_id      = cva6_axi_req.ar.id;
-   assign mem_axi_bus.ar_addr    = cva6_axi_req.ar.addr;
-   assign mem_axi_bus.ar_len     = cva6_axi_req.ar.len;
-   assign mem_axi_bus.ar_size    = cva6_axi_req.ar.size;
-   assign mem_axi_bus.ar_burst   = cva6_axi_req.ar.burst;
-   assign mem_axi_bus.ar_lock    = cva6_axi_req.ar.lock;
-   assign mem_axi_bus.ar_cache   = cva6_axi_req.ar.cache;
-   assign mem_axi_bus.ar_prot    = cva6_axi_req.ar.prot;
-   assign mem_axi_bus.ar_qos     = cva6_axi_req.ar.qos;
-   assign mem_axi_bus.ar_region  = cva6_axi_req.ar.region;
-   assign mem_axi_bus.ar_user    = cva6_axi_req.ar.user;
-   assign mem_axi_bus.ar_valid   = cva6_axi_req.ar_valid;
-   assign cva6_axi_resp.ar_ready     = mem_axi_bus.ar_ready;
-
-   assign cva6_axi_resp.b.id        = mem_axi_bus.b_id;
-   assign cva6_axi_resp.b.resp      = mem_axi_bus.b_resp;
-   assign cva6_axi_resp.b.user      = mem_axi_bus.b_user;
-   assign cva6_axi_resp.b_valid     = mem_axi_bus.b_valid;
-   assign mem_axi_bus.b_ready    = cva6_axi_req.b_ready;
-
-   assign cva6_axi_resp.r.id        = mem_axi_bus.r_id;
-   assign cva6_axi_resp.r.data      = mem_axi_bus.r_data;
-   assign cva6_axi_resp.r.resp      = mem_axi_bus.r_resp;
-   assign cva6_axi_resp.r.last      = mem_axi_bus.r_last;
-   assign cva6_axi_resp.r.user      = mem_axi_bus.r_user;
-   assign cva6_axi_resp.r_valid     = mem_axi_bus.r_valid;
-   assign mem_axi_bus.r_ready    = cva6_axi_req.r_ready;
 
    axi2mem #(
       .AXI_ADDR_WIDTH ( cva6_config_pkg::CVA6ConfigAxiAddrWidth ),
@@ -206,6 +154,22 @@ module air_soc (
       .data_i ( mem_rdata ),
       .user_i ( '0 )
    );
+
+   assign cva6_axi_resp.aw_ready = mem_axi_bus.aw_ready;
+   assign cva6_axi_resp.ar_ready = mem_axi_bus.ar_ready;
+   assign cva6_axi_resp.w_ready  = mem_axi_bus.w_ready;
+   assign cva6_axi_resp.b_valid  = mem_axi_bus.b_valid;
+   assign cva6_axi_resp.r_valid  = mem_axi_bus.r_valid;
+   
+   assign cva6_axi_resp.b.id   = mem_axi_bus.b_id;
+   assign cva6_axi_resp.b.resp = mem_axi_bus.b_resp;
+   assign cva6_axi_resp.b.user = mem_axi_bus.b_user;
+
+   assign cva6_axi_resp.r.id   = mem_axi_bus.r_id;
+   assign cva6_axi_resp.r.data = mem_axi_bus.r_data;
+   assign cva6_axi_resp.r.resp = mem_axi_bus.r_resp;
+   assign cva6_axi_resp.r.last = mem_axi_bus.r_last;
+   assign cva6_axi_resp.r.user = mem_axi_bus.r_user;
 
    logic gnt_q;
    logic gnt_w;
