@@ -158,7 +158,7 @@ module air_soc (
    adapter_obi_req_t adapter_obi_req;
    adapter_obi_rsp_t adapter_obi_rsp;
 
-   localparam AXI_MAX_TRANS = 1; // Example: Max outstanding AXI transactions
+   localparam AXI_MAX_TRANS = 4; // Example: Max outstanding AXI transactions
 
    axi_to_obi #(
       .ObiCfg         ( AdapterObiCfg          ), // Use the defined OBI config

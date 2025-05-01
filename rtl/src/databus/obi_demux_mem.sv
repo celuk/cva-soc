@@ -112,7 +112,7 @@ module obi_demux_mem (
                          (`QSPI_BASE_ADDR+`QSPI_RANGE   >= data_addr) && (data_addr >= `QSPI_BASE_ADDR ) ? qspi_rvalid_i  :
                                                                                                            1'h0           ;
 
-   assign periph_gnt   = (`MEM_BASE_ADDR+`MEM_RANGE     > data_addr) && (data_addr >= `MEM_BASE_ADDR  ) ? main_mem_gnt_i    :
+   assign periph_gnt   = (`MEM_BASE_ADDR+`MEM_RANGE     > data_addr) && (data_addr >= `MEM_BASE_ADDR  ) ? data_req    :
                          (`UART_BASE_ADDR+`UART_RANGE   > data_addr) && (data_addr >= `UART_BASE_ADDR ) ? uart_gnt_i  :
                          (`TIMER_BASE_ADDR+`TIMER_RANGE > data_addr) && (data_addr >= `TIMER_BASE_ADDR) ? timer_gnt_i :
                          (`QSPI_BASE_ADDR+`QSPI_RANGE   > data_addr) && (data_addr >= `QSPI_BASE_ADDR ) ? qspi_gnt_i  :

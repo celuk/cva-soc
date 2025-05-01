@@ -27,22 +27,21 @@ always_ff @(posedge(clk_i) or negedge(rst_ni))
 always_comb
   begin : handshake_fsm
     next_state = IDLE;
-    gnt_o    = 1;
+    gnt_o    = 0;
     rvalid_o = 0;
     case (curr_state)
       IDLE: begin
-        if(req_i && gnt_o) begin
-          gnt_o  = 0;
+        if(req_i) begin
+          gnt_o  = 1;
           next_state = ACK;
         end
       end
       ACK: begin
         rvalid_o = 1;
-        if (req_i && gnt_o) begin
-          gnt_o = 0;
+        if (req_i) begin
+          gnt_o = 1;
           next_state = ACK;
         end else begin
-          gnt_o = 1;
           next_state = IDLE;
         end
       end
