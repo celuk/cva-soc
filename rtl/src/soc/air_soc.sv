@@ -46,6 +46,7 @@ module air_soc (
    wire rst_n = rst_ni & system_reset_o;
    `endif
 
+   logic               mem_gnt;
    logic               mem_req;
    logic [       31:0] mem_addr;
    logic               mem_we;
@@ -117,77 +118,114 @@ module air_soc (
       .noc_resp_i           ( cva6_axi_resp                )
    );
 
-   AXI_BUS #(
-      .AXI_ADDR_WIDTH ( cva6_config_pkg::CVA6ConfigAxiAddrWidth ),
-      .AXI_DATA_WIDTH ( cva6_config_pkg::CVA6ConfigAxiDataWidth ),
-      .AXI_ID_WIDTH   ( cva6_config_pkg::CVA6ConfigAxiIdWidth   ), // Use CVA6 ID width
-      .AXI_USER_WIDTH ( cva6_config_pkg::CVA6ConfigDataUserWidth )
-   ) mem_axi_bus();
+   import obi_pkg::*;
 
-   axi_master_connect #(
-   ) i_axi_master_connect_cva6_to_mem (
-      .axi_req_i  ( cva6_axi_req ),   // Input: CVA6 request struct
-      .dis_mem    ( 1'b0         ),   // Input: Disable signal (tie low to always enable)
-      .master     ( mem_axi_bus  )    // Output: Connects to the AXI bus interface (drives AW, W, AR valid/payload)
+   // --- OBI Interface (Adapter <-> Shim) ---
+   // Define the OBI configuration between adapter and shim
+   localparam obi_pkg::obi_cfg_t AdapterObiCfg = '{
+       AddrWidth: cva6_config_pkg::CVA6ConfigAxiAddrWidth,
+       DataWidth: cva6_config_pkg::CVA6ConfigAxiDataWidth,
+       IdWidth:   cva6_config_pkg::CVA6ConfigAxiIdWidth,   // Pass AXI ID through OBI
+       // --- Settings in the main obi_cfg_t struct ---
+       UseRReady: 1'b0, // Keep default unless needed
+       CombGnt:   1'b0, // Use standard registered grant timing (GNT cycle after REQ)
+       Integrity: 1'b0, // Keep default
+       BeFull:    1'b1, // Keep default
+       OptionalCfg: '{
+           UseAtop:    1'b0, // Disable unused features
+           UseProt:    1'b0,
+           UseMemtype: 1'b0,
+           UseDbg:     1'b0,
+           AUserWidth: 0,
+           WUserWidth: 0,
+           RUserWidth: 1,
+           MidWidth:   0,
+           AChkWidth:  0,
+           RChkWidth:  0
+       }
+   };
+   // Define OBI types based on the configuration
+   `OBI_TYPEDEF_MINIMAL_A_OPTIONAL(adapter_obi_a_optional_t)
+   `OBI_TYPEDEF_ALL_R_OPTIONAL(adapter_obi_r_optional_t, AdapterObiCfg.OptionalCfg.RUserWidth, AdapterObiCfg.OptionalCfg.RChkWidth)
+
+   `OBI_TYPEDEF_A_CHAN_T(adapter_obi_a_chan_t, AdapterObiCfg.AddrWidth, AdapterObiCfg.DataWidth, AdapterObiCfg.IdWidth, adapter_obi_a_optional_t)
+   `OBI_TYPEDEF_R_CHAN_T(adapter_obi_r_chan_t, AdapterObiCfg.DataWidth, AdapterObiCfg.IdWidth, adapter_obi_r_optional_t) // Use type defined by _ALL_ macro
+
+   `OBI_TYPEDEF_DEFAULT_REQ_T(adapter_obi_req_t, adapter_obi_a_chan_t)
+   `OBI_TYPEDEF_RSP_T(adapter_obi_rsp_t, adapter_obi_r_chan_t)
+
+   // OBI signals between adapter and shim
+   adapter_obi_req_t adapter_obi_req;
+   adapter_obi_rsp_t adapter_obi_rsp;
+
+   localparam AXI_MAX_TRANS = 1; // Example: Max outstanding AXI transactions
+
+   axi_to_obi #(
+      .ObiCfg         ( AdapterObiCfg          ), // Use the defined OBI config
+      .obi_req_t      ( adapter_obi_req_t      ), // Pass OBI type definitions
+      .obi_rsp_t      ( adapter_obi_rsp_t      ),
+      .obi_a_chan_t   ( adapter_obi_a_chan_t   ), // Pass OBI type definitions
+      .obi_r_chan_t   ( adapter_obi_r_chan_t   ), // Pass OBI type definitions
+      .AxiAddrWidth   ( cva6_config_pkg::CVA6ConfigAxiAddrWidth ),
+      .AxiDataWidth   ( cva6_config_pkg::CVA6ConfigAxiDataWidth ),
+      .AxiIdWidth     ( cva6_config_pkg::CVA6ConfigAxiIdWidth   ),
+      .AxiUserWidth   ( cva6_config_pkg::CVA6ConfigDataUserWidth), // Match CVA6 User Width
+      .MaxTrans       ( AXI_MAX_TRANS          ),
+      .axi_req_t      ( ariane_axi::req_t      ), // Pass AXI type definitions
+      .axi_rsp_t      ( ariane_axi::resp_t     )
+   ) i_axi_to_obi_bridge (
+      .clk_i        ( clkwiz_o        ),
+      .rst_ni       ( rst_n           ),
+      .testmode_i   ( 1'b0            ),
+
+      // AXI Slave Interface (Connected to CVA6)
+      .axi_req_i    ( cva6_axi_req    ),
+      .axi_rsp_o    ( cva6_axi_resp   ),
+
+      // OBI Master Interface (Connected to OBI SRAM Shim)
+      .obi_req_o    ( adapter_obi_req ),
+      .obi_rsp_i    ( adapter_obi_rsp ),
+
+      // Tie off unused combinatorial user signals if not needed by adapter
+      .req_aw_id_o           (), .req_aw_user_o         (), .req_w_user_o          (),
+      .req_write_aid_i       ('0),.req_write_auser_i     ('0),.req_write_wuser_i     ('0),
+      .req_ar_id_o           (), .req_ar_user_o         (),
+      .req_read_aid_i        ('0),.req_read_auser_i      ('0),
+      .rsp_write_aw_user_o   (), .rsp_write_w_user_o    (), .rsp_write_bank_strb_o (),
+      .rsp_write_rid_o       (), .rsp_write_ruser_o     (), .rsp_write_last_o      (),
+      .rsp_write_hs_o        (), .rsp_b_user_i          ('0),
+      .rsp_read_ar_user_o    (), .rsp_read_size_enable_o(), .rsp_read_rid_o        (),
+      .rsp_read_ruser_o      (), .rsp_r_user_i          ('0)
    );
 
-   axi2mem #(
-      .AXI_ADDR_WIDTH ( cva6_config_pkg::CVA6ConfigAxiAddrWidth ),
-      .AXI_DATA_WIDTH ( cva6_config_pkg::CVA6ConfigAxiDataWidth ),
-      .AXI_ID_WIDTH   ( cva6_config_pkg::CVA6ConfigAxiIdWidth   ), // Use CVA6 ID width
-      .AXI_USER_WIDTH ( cva6_config_pkg::CVA6ConfigDataUserWidth )
-   ) i_axi2mem (
-      .clk_i  ( clkwiz_o ),
-      .rst_ni ( rst_n    ),
+   obi_sram_shim #(
+       .ObiCfg    ( AdapterObiCfg     ), // Use the same OBI config
+       .obi_req_t ( adapter_obi_req_t ), // Pass OBI type definitions
+       .obi_rsp_t ( adapter_obi_rsp_t )
+   ) i_obi_sram_shim (
+       .clk_i      ( clkwiz_o        ),
+       .rst_ni     ( rst_n           ),
 
-      // AXI Slave Interface (Connect to the bus driven by axi_master_connect)
-      .slave  ( mem_axi_bus ), // Reads AW, W, AR; Drives AWREADY, WREADY, B, ARREADY, R
+       // OBI Slave Interface (Connected to Adapter)
+       .obi_req_i  ( adapter_obi_req ),
+       .obi_rsp_o  ( adapter_obi_rsp ),
 
-      // Memory Master Interface (Outputs towards SRAM)
-      .req_o  ( mem_req       ), // Request to memory
-      .we_o   ( mem_we        ), // Write enable to memory
-      .addr_o ( mem_addr  ), // Outputs full AXI Address Width
-      .be_o   ( mem_be    ), // Outputs AXI Data Width Byte Enables
-      .data_o ( mem_wdata ), // Outputs AXI Data Width Write Data
-      .user_o ( /* mem_user_axi */ ), // Output user signal (if used)
-
-      .data_i ( mem_rdata ),
-      .user_i ( '0 )
+       // Simple RAM Master Interface (Connected to ram32)
+       .req_o      ( mem_req         ),
+       .we_o       ( mem_we          ),
+       .addr_o     ( mem_addr        ),
+       .wdata_o    ( mem_wdata       ),
+       .be_o       ( mem_be          ),
+       .gnt_i      ( mem_gnt         ),
+       .rdata_i    ( mem_rdata       )
    );
-
-   assign cva6_axi_resp.aw_ready = mem_axi_bus.aw_ready;
-   assign cva6_axi_resp.ar_ready = mem_axi_bus.ar_ready;
-   assign cva6_axi_resp.w_ready  = mem_axi_bus.w_ready;
-   assign cva6_axi_resp.b_valid  = mem_axi_bus.b_valid;
-   assign cva6_axi_resp.r_valid  = mem_axi_bus.r_valid;
-   
-   assign cva6_axi_resp.b.id   = mem_axi_bus.b_id;
-   assign cva6_axi_resp.b.resp = mem_axi_bus.b_resp;
-   assign cva6_axi_resp.b.user = mem_axi_bus.b_user;
-
-   assign cva6_axi_resp.r.id   = mem_axi_bus.r_id;
-   assign cva6_axi_resp.r.data = mem_axi_bus.r_data;
-   assign cva6_axi_resp.r.resp = mem_axi_bus.r_resp;
-   assign cva6_axi_resp.r.last = mem_axi_bus.r_last;
-   assign cva6_axi_resp.r.user = mem_axi_bus.r_user;
-
-   logic gnt_q;
-   logic gnt_w;
-
-   always_ff @(posedge clkwiz_o or negedge rst_n) begin
-      if (!rst_n) begin
-          gnt_q <= 1'b0;
-      end else begin
-          gnt_q <= mem_req & (((`MEM_BASE_ADDR  + `MEM_RANGE)  > mem_addr )   && (mem_addr >= `MEM_BASE_ADDR)); // Register the grant signal
-      end
-   end
 
    obi_demux_mem obi_demux_mem_dut (
       .clk_i (clkwiz_o),
       .rst_ni(rst_n),
 
       .data_req_i   (mem_req),
-      .data_gnt_o   (gnt_w),
+      .data_gnt_o   (mem_gnt),
       .data_rvalid_o(mem_rvalid),
       .data_we_i    (mem_we),
       .data_be_i    (mem_be),
@@ -200,7 +238,7 @@ module air_soc (
       .main_mem_we_o    (main_mem_we),
       .main_mem_be_o    (main_mem_be),
       .main_mem_wdata_o (main_mem_wdata),
-      .main_mem_gnt_i   (gnt_q),
+      .main_mem_gnt_i   (main_mem_gnt),
       .main_mem_rvalid_i(main_mem_rvalid),
       .main_mem_rdata_i (main_mem_rdata),
 
@@ -232,18 +270,7 @@ module air_soc (
       ,.qspi_rdata_i (qspi_rdata)
    );
 
-   /*
-   
-   
-   assign gnt_w = gnt_q | uart_gnt | timer_gnt | qspi_gnt;
-
-   assign mem_rvalid = main_mem_rvalid | uart_rvalid | timer_rvalid | qspi_rvalid;
-   assign mem_rdata  = uart_rvalid     ? uart_rdata     :
-                       timer_rvalid    ? timer_rdata    :
-                       qspi_rvalid     ? qspi_rdata     : main_mem_rdata;
-   */
-
-   ram32 #(
+   ram32_obi #(
       .SIZE     (`RAM_SIZE / 4),
       .INIT_FILE(`RAM_FPATH)
    ) main_memory (
@@ -256,6 +283,8 @@ module air_soc (
       .wdata_i (main_mem_wdata),
       .rvalid_o(main_mem_rvalid),
       .rdata_o (main_mem_rdata)
+
+      ,.gnt_o  (main_mem_gnt)
 
       ,.program_rx_i(program_rx_i)
       ,.system_reset_o(system_reset_o)
