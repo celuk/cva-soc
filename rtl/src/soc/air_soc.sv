@@ -54,14 +54,38 @@ module air_soc (
    logic               mem_rvalid;
    logic [       31:0] mem_rdata;
 
+   logic               main_mem_gnt;
+   logic               main_mem_req;
+   logic [       31:0] main_mem_addr;
+   logic               main_mem_we;
+   logic [        3:0] main_mem_be;
+   logic [       31:0] main_mem_wdata;
+   logic               main_mem_rvalid;
+   logic [       31:0] main_mem_rdata;
+
+   logic                uart_req;
+   logic [       31:0]  uart_addr;
+   logic                uart_we;
+   logic [`MEM_W/8-1:0] uart_be;
+   logic [`MEM_W  -1:0] uart_wdata;
    logic                uart_gnt;
    logic                uart_rvalid;
    logic [`MEM_W  -1:0] uart_rdata;
 
+   logic                timer_req;
+   logic [       31:0]  timer_addr;
+   logic                timer_we;
+   logic [`MEM_W/8-1:0] timer_be;
+   logic [`MEM_W  -1:0] timer_wdata;
    logic                timer_gnt;
    logic                timer_rvalid;
    logic [`MEM_W  -1:0] timer_rdata;
 
+   logic                qspi_req;
+   logic [       31:0]  qspi_addr;
+   logic                qspi_we;
+   logic [`MEM_W/8-1:0] qspi_be;
+   logic [`MEM_W  -1:0] qspi_wdata;
    logic                qspi_gnt;
    logic                qspi_rvalid;
    logic [`MEM_W  -1:0] qspi_rdata;
@@ -92,9 +116,6 @@ module air_soc (
       .noc_req_o            ( cva6_axi_req                 ),
       .noc_resp_i           ( cva6_axi_resp                )
    );
-
-   logic [31:0] main_mem_rdata;
-   logic main_mem_rvalid;
 
    import obi_pkg::*;
 
@@ -198,7 +219,7 @@ module air_soc (
        .wdata_o    ( mem_wdata       ),
        .be_o       ( mem_be          ),
        .gnt_i      ( gnt_w            ),
-       .rdata_i    ( mem_rdata      )  // From ram32
+       .rdata_i    ( mem_rdata      )
    );
 
    always_ff @(posedge clkwiz_o or negedge rst_n) begin
@@ -209,12 +230,66 @@ module air_soc (
       end
    end
 
+   obi_demux_mem obi_demux_mem_dut (
+      .clk_i (clkwiz_o),
+      .rst_ni(rst_n),
+
+      .data_req_i   (mem_req),
+      .data_gnt_o   (gnt_w),
+      .data_rvalid_o(),
+      .data_we_i    (mem_we),
+      .data_be_i    (mem_be),
+      .data_addr_i  (mem_addr),
+      .data_wdata_i (mem_wdata),
+      .data_rdata_o (mem_rdata),
+
+      .main_mem_req_o   (main_mem_req),
+      .main_mem_addr_o  (main_mem_addr),
+      .main_mem_we_o    (main_mem_we),
+      .main_mem_be_o    (main_mem_be),
+      .main_mem_wdata_o (main_mem_wdata),
+      .main_mem_gnt_i   (gnt_q),
+      .main_mem_rvalid_i(main_mem_rvalid),
+      .main_mem_rdata_i (main_mem_rdata),
+
+      .uart_req_o   (uart_req),
+      .uart_addr_o  (uart_addr),
+      .uart_we_o    (uart_we),
+      .uart_be_o    (uart_be),
+      .uart_wdata_o (uart_wdata),
+      .uart_gnt_i   (uart_gnt),
+      .uart_rvalid_i(uart_rvalid),
+      .uart_rdata_i (uart_rdata),
+
+      .timer_req_o   (timer_req),
+      .timer_addr_o  (timer_addr),
+      .timer_we_o    (timer_we),
+      .timer_be_o    (timer_be),
+      .timer_wdata_o (timer_wdata),
+      .timer_gnt_i   (timer_gnt),
+      .timer_rvalid_i(timer_rvalid),
+      .timer_rdata_i (timer_rdata)
+
+      ,.qspi_req_o   (qspi_req)
+      ,.qspi_addr_o  (qspi_addr)
+      ,.qspi_we_o    (qspi_we)
+      ,.qspi_be_o    (qspi_be)
+      ,.qspi_wdata_o (qspi_wdata)
+      ,.qspi_gnt_i   (qspi_gnt)
+      ,.qspi_rvalid_i(qspi_rvalid)
+      ,.qspi_rdata_i (qspi_rdata)
+   );
+
+   /*
+   
+   
    assign gnt_w = gnt_q | uart_gnt | timer_gnt | qspi_gnt;
 
    assign mem_rvalid = main_mem_rvalid | uart_rvalid | timer_rvalid | qspi_rvalid;
    assign mem_rdata  = uart_rvalid     ? uart_rdata     :
                        timer_rvalid    ? timer_rdata    :
                        qspi_rvalid     ? qspi_rdata     : main_mem_rdata;
+   */
 
    ram32 #(
       .SIZE     (`RAM_SIZE / 4),
@@ -222,11 +297,11 @@ module air_soc (
    ) main_memory (
       .clk_i   (clkwiz_o),
       .rst_ni  (rst_ni `ifdef BASYS3 & clkwiz_locked `endif),
-      .req_i   (mem_req & (((`MEM_BASE_ADDR  + `MEM_RANGE)  > mem_addr )   && (mem_addr >= `MEM_BASE_ADDR))),
-      .we_i    (mem_req & mem_we),
-      .be_i    (mem_be),
-      .addr_i  (mem_addr),
-      .wdata_i (mem_wdata),
+      .req_i   (main_mem_req),
+      .we_i    (main_mem_we),
+      .be_i    (main_mem_be),
+      .addr_i  (main_mem_addr),
+      .wdata_i (main_mem_wdata),
       .rvalid_o(main_mem_rvalid),
       .rdata_o (main_mem_rdata)
 
@@ -238,11 +313,11 @@ module air_soc (
    uart_controller_obi uart_dut (
       .clk_i   (clkwiz_o),
       .rst_ni  (rst_n),
-      .req_i   (mem_req & (((`UART_BASE_ADDR  + `UART_RANGE)  > mem_addr )   && (mem_addr >= `UART_BASE_ADDR))),
-      .we_i    (mem_req & mem_we),
-      .be_i    (mem_be),
-      .addr_i  (mem_addr),
-      .wdata_i (mem_wdata),
+      .req_i   (uart_req),
+      .we_i    (uart_we),
+      .be_i    (uart_be),
+      .addr_i  (uart_addr),
+      .wdata_i (uart_wdata),
       .gnt_o   (uart_gnt),
       .rvalid_o(uart_rvalid),
       .rdata_o (uart_rdata),
@@ -253,11 +328,11 @@ module air_soc (
    timer_controller_obi timer_dut (
       .clk_i   (clkwiz_o),
       .rst_ni  (rst_n),
-      .req_i   (mem_req & (((`TIMER_BASE_ADDR  + `TIMER_RANGE)  > mem_addr )   && (mem_addr >= `TIMER_BASE_ADDR))),
-      .we_i    (mem_req & mem_we),
-      .be_i    (mem_be),
-      .addr_i  (mem_addr),
-      .wdata_i (mem_wdata),
+      .req_i   (timer_req),
+      .we_i    (timer_we),
+      .be_i    (timer_be),
+      .addr_i  (timer_addr),
+      .wdata_i (timer_wdata),
       .gnt_o   (timer_gnt),
       .rvalid_o(timer_rvalid),
       .rdata_o (timer_rdata)
@@ -363,11 +438,11 @@ module air_soc (
    qspi_controller_obi qspi (
       .clk_i         (clkwiz_o),
       .rst_ni        (rst_n),
-      .req_i         (mem_req & (((`QSPI_BASE_ADDR  + `QSPI_RANGE)  > mem_addr )   && (mem_addr >= `QSPI_BASE_ADDR))),
-      .we_i          (mem_req & mem_we),
-      .be_i          (mem_be),
-      .addr_i        (mem_addr),
-      .wdata_i       (mem_wdata),
+      .req_i         (qspi_req),
+      .we_i          (qspi_we),
+      .be_i          (qspi_be),
+      .addr_i        (qspi_addr),
+      .wdata_i       (qspi_wdata),
       .gnt_o         (qspi_gnt),
       .rvalid_o      (qspi_rvalid),
       .rdata_o       (qspi_rdata),
