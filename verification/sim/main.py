@@ -19,11 +19,11 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
 
     # List of submodule directories to search
     submodule_dirs = [
-        Path(SCRIPT_DIR / "../../cva6-softcore-contest/core"),
-        Path(SCRIPT_DIR / "../../cva6-softcore-contest/vendor"),
-        Path(SCRIPT_DIR / "../../cva6-softcore-contest/common"),
-        Path(SCRIPT_DIR / "../../cva6-softcore-contest/corev_apu"),
-        Path(SCRIPT_DIR / "../../cva6-softcore-contest/verif/tb/core/tb_components"),
+        Path(SCRIPT_DIR / "../../cva6/core"),
+        Path(SCRIPT_DIR / "../../cva6/vendor"),
+        Path(SCRIPT_DIR / "../../cva6/common"),
+        Path(SCRIPT_DIR / "../../cva6/corev_apu"),
+        Path(SCRIPT_DIR / "../../cva6/verif/tb/core/tb_components"),
         Path(SCRIPT_DIR / "../../axi"),
         Path(SCRIPT_DIR / "../../obi"),
         Path(SCRIPT_DIR / "../../safety_island/future/axi_obi")
@@ -63,12 +63,11 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
              and not str(path).rsplit('/', 1)[-1].endswith("SyncDpRam.sv")
              and not str(path).rsplit('/', 1)[-1].endswith("AsyncThreePortRam.sv"))
         and "openpiton" not in str(path)
-        and "tb_cva6-softcore-contest" not in str(path)
+        and "tb_cva6" not in str(path)
         and not str(path).rsplit('/', 1)[-1].endswith("spike.sv")
         and not str(path).rsplit('/', 1)[-1].startswith("Sim")
         and not str(path).rsplit('/', 1)[-1].endswith("riscv.sv")
         and "deprecated" not in str(path)
-        and "hpdcache" not in str(path)
         and not str(path).rsplit('/', 1)[-1].startswith("hpdcache_wrapper.sv")
         and "hpdcache_to_l15" not in str(path)
         and "wt_l15_adapter" not in str(path)
@@ -107,12 +106,12 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
         + list(riscv_pkg_path)
         + list(params_pkg_paths)
         + list(pre_pkg_sv_paths)
-        + list([Path(SCRIPT_DIR / "../../cva6-softcore-contest/corev_apu/tb/ariane_axi_pkg.sv")])
-        + list([Path(SCRIPT_DIR / "../../cva6-softcore-contest/vendor/pulp-platform/fpga-support/rtl/SyncSpRam.sv")])
-        + list([Path(SCRIPT_DIR / "../../cva6-softcore-contest/vendor/pulp-platform/fpga-support/rtl/SyncSpRamBeNx64.sv")])
-        + list([Path(SCRIPT_DIR / "../../cva6-softcore-contest/vendor/pulp-platform/fpga-support/rtl/AsyncDpRam.sv")])
-        + list([Path(SCRIPT_DIR / "../../cva6-softcore-contest/vendor/pulp-platform/fpga-support/rtl/SyncDpRam.sv")])
-        + list([Path(SCRIPT_DIR / "../../cva6-softcore-contest/vendor/pulp-platform/fpga-support/rtl/AsyncThreePortRam.sv")])
+        + list([Path(SCRIPT_DIR / "../../cva6/corev_apu/tb/ariane_axi_pkg.sv")])
+        + list([Path(SCRIPT_DIR / "../../cva6/vendor/pulp-platform/fpga-support/rtl/SyncSpRam.sv")])
+        + list([Path(SCRIPT_DIR / "../../cva6/vendor/pulp-platform/fpga-support/rtl/SyncSpRamBeNx64.sv")])
+        + list([Path(SCRIPT_DIR / "../../cva6/vendor/pulp-platform/fpga-support/rtl/AsyncDpRam.sv")])
+        + list([Path(SCRIPT_DIR / "../../cva6/vendor/pulp-platform/fpga-support/rtl/SyncDpRam.sv")])
+        + list([Path(SCRIPT_DIR / "../../cva6/vendor/pulp-platform/fpga-support/rtl/AsyncThreePortRam.sv")])
         + list(pkg_sv_paths)
         + list(other_paths)
     )
@@ -124,7 +123,7 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
         + list(submodule_verilog_headers)
         + list(submodule_system_verilog_headers)
 
-        + list([Path(SCRIPT_DIR / "../../cva6-softcore-contest/corev_apu/tb")])
+        + list([Path(SCRIPT_DIR / "../../cva6/corev_apu/tb")])
     ]
     # + list(pre_pkg_sv_paths)
 
