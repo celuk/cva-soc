@@ -48,21 +48,21 @@ module air_soc (
 
    logic               mem_gnt;
    logic               mem_req;
-   logic [       31:0] mem_addr;
+   logic [       63:0] mem_addr;
    logic               mem_we;
-   logic [        3:0] mem_be;
-   logic [       31:0] mem_wdata;
+   logic [        7:0] mem_be;
+   logic [       63:0] mem_wdata;
    logic               mem_rvalid;
-   logic [       31:0] mem_rdata;
+   logic [       63:0] mem_rdata;
 
    logic               main_mem_gnt;
    logic               main_mem_req;
-   logic [       31:0] main_mem_addr;
+   logic [       63:0] main_mem_addr;
    logic               main_mem_we;
-   logic [        3:0] main_mem_be;
-   logic [       31:0] main_mem_wdata;
+   logic [        7:0] main_mem_be;
+   logic [       63:0] main_mem_wdata;
    logic               main_mem_rvalid;
-   logic [       31:0] main_mem_rdata;
+   logic [       63:0] main_mem_rdata;
 
    logic                uart_req;
    logic [       31:0]  uart_addr;
@@ -270,7 +270,8 @@ module air_soc (
       ,.qspi_rdata_i (qspi_rdata)
    );
 
-   ram32_obi #(
+   assign main_mem_gnt = 1;
+   ram64 #(
       .SIZE     (`RAM_SIZE / 4),
       .INIT_FILE(`RAM_FPATH)
    ) main_memory (
@@ -283,8 +284,6 @@ module air_soc (
       .wdata_i (main_mem_wdata),
       .rvalid_o(main_mem_rvalid),
       .rdata_o (main_mem_rdata)
-
-      ,.gnt_o  (main_mem_gnt)
 
       ,.program_rx_i(program_rx_i)
       ,.system_reset_o(system_reset_o)

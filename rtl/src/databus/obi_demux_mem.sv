@@ -12,20 +12,20 @@ module obi_demux_mem (
    output wire        data_gnt_o,
    output wire        data_rvalid_o,
    input  wire        data_we_i,
-   input  wire [ 3:0] data_be_i,
-   input  wire [31:0] data_addr_i,
-   input  wire [31:0] data_wdata_i,
-   output wire [31:0] data_rdata_o,
+   input  wire [ 7:0] data_be_i,
+   input  wire [63:0] data_addr_i,
+   input  wire [63:0] data_wdata_i,
+   output wire [63:0] data_rdata_o,
 
    // DCache interface
    output wire        main_mem_req_o,
-   output wire [31:0] main_mem_addr_o,
+   output wire [63:0] main_mem_addr_o,
    output wire        main_mem_we_o,
-   output wire [ 3:0] main_mem_be_o,
-   output wire [31:0] main_mem_wdata_o,
+   output wire [ 7:0] main_mem_be_o,
+   output wire [63:0] main_mem_wdata_o,
    input  wire        main_mem_gnt_i,
    input  wire        main_mem_rvalid_i,
-   input  wire [31:0] main_mem_rdata_i,
+   input  wire [63:0] main_mem_rdata_i,
 
    // UART interface
    output wire        uart_req_o,
@@ -104,7 +104,7 @@ module obi_demux_mem (
                          (`UART_BASE_ADDR+`UART_RANGE   > data_addr) && (data_addr >= `UART_BASE_ADDR ) ? uart_rdata_i  :
                          (`TIMER_BASE_ADDR+`TIMER_RANGE > data_addr) && (data_addr >= `TIMER_BASE_ADDR) ? timer_rdata_i :
                          (`QSPI_BASE_ADDR+`QSPI_RANGE   > data_addr) && (data_addr >= `QSPI_BASE_ADDR ) ? qspi_rdata_i  :
-                                                                                                          32'h0         ;
+                                                                                                          'h0         ;
 
    assign data_rvalid_o= (`MEM_BASE_ADDR+`MEM_RANGE     >= data_addr) && (data_addr >= `MEM_BASE_ADDR  ) ? main_mem_rvalid_i :
                          (`UART_BASE_ADDR+`UART_RANGE   >= data_addr) && (data_addr >= `UART_BASE_ADDR ) ? uart_rvalid_i  :
