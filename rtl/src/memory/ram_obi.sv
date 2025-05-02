@@ -290,7 +290,7 @@ module ram32_obi #(
       end
    end
 
-   /*
+   
    always_ff @(posedge clk_i or negedge rst_n) begin
       if (!rst_n) begin
          rvalid_o <= 0;
@@ -298,14 +298,14 @@ module ram32_obi #(
          rvalid_o <= req_i;
       end
    end
-   */
+   
 
    obi_handshake_fsm obi_handshake_fsm_dut(
       .clk_i(clk_i),
       .rst_ni(rst_n),
       .req_i(req_i),
       .gnt_o(gnt_o),
-      .rvalid_o(rvalid_o)
+      .rvalid_o()
    );
 
 endmodule
