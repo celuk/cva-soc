@@ -5,8 +5,8 @@ package cva6_config_pkg;
   localparam CVA6ConfigRvfiTrace = 0;
 
   localparam CVA6ConfigAxiIdWidth = 4;
-  localparam CVA6ConfigAxiAddrWidth = 64;
-  localparam CVA6ConfigAxiDataWidth = 64;
+  localparam CVA6ConfigAxiAddrWidth = 32;
+  localparam CVA6ConfigAxiDataWidth = 32;
   localparam CVA6ConfigDataUserWidth = 32;
 
   localparam config_pkg::cva6_user_cfg_t cva6_cfg = '{
@@ -75,11 +75,11 @@ package cva6_config_pkg;
       DebugEn: bit'(0),
       AxiBurstWriteEn: bit'(0),
       IcacheByteSize: unsigned'(2048),
-      IcacheSetAssoc: unsigned'(2),
+      IcacheSetAssoc: unsigned'(4),
       IcacheLineWidth: unsigned'(128),
-      DCacheType: config_pkg::HPDCACHE_WT,
+      DCacheType: config_pkg::WT,
       DcacheByteSize: unsigned'(2048),
-      DcacheSetAssoc: unsigned'(2),
+      DcacheSetAssoc: unsigned'(4),
       DcacheLineWidth: unsigned'(128),
       DcacheFlushOnFence: bit'(0),
       DcacheInvalidateOnFlush: bit'(0),
