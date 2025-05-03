@@ -299,7 +299,7 @@ module air_soc (
        .addr_o     ( ram_addr_i        ),
        .wdata_o    ( ram_wdata_i       ),
        .be_o       ( ram_be_i          ),
-       .gnt_i      ( ram_gnt_o         ),
+       .gnt_i      ( 1         ),
        .rdata_i    ( ram_rdata_o       )
    );
 
