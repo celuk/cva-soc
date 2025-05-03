@@ -198,30 +198,48 @@ module air_soc (
       .rsp_read_ruser_o      (), .rsp_r_user_i          ('0)
    );
 
-   // --- OBI Crossbar (XBAR) ---
    localparam int unsigned NUM_SLAVES = 4;
    localparam int unsigned SLAVE_RAM_IDX  = 0;
    localparam int unsigned SLAVE_UART_IDX = 1;
    localparam int unsigned SLAVE_TIMR_IDX = 2;
    localparam int unsigned SLAVE_QSPI_IDX = 3;
 
-   logic [$clog2(NUM_SLAVES)-1:0] demux_select; // Select signal for obi_demux
+   typedef struct packed {
+      logic [$clog2(NUM_SLAVES)-1:0]        idx;        // Output index
+      logic [AdapterObiCfg.AddrWidth-1:0] start_addr; // Inclusive start address
+      logic [AdapterObiCfg.AddrWidth-1:0] end_addr;   // Exclusive end address
+   } addr_decode_rule_t;
 
-   // Combinational address decode based on incoming request address
-   always_comb begin
-      demux_select = {$clog2(NUM_SLAVES){1'b0}}; // Default (can be error index if needed)
-      // Decode based on address ranges defined in header.vh
-      if ((adapter_obi_req.a.addr >= `MEM_BASE_ADDR) && (adapter_obi_req.a.addr < (`MEM_BASE_ADDR + `MEM_RANGE))) begin
-         demux_select = SLAVE_RAM_IDX;
-      end else if ((adapter_obi_req.a.addr >= `UART_BASE_ADDR) && (adapter_obi_req.a.addr < (`UART_BASE_ADDR + `UART_RANGE))) begin
-         demux_select = SLAVE_UART_IDX;
-      end else if ((adapter_obi_req.a.addr >= `TIMER_BASE_ADDR) && (adapter_obi_req.a.addr < (`TIMER_BASE_ADDR + `TIMER_RANGE))) begin
-         demux_select = SLAVE_TIMR_IDX;
-      end else if ((adapter_obi_req.a.addr >= `QSPI_BASE_ADDR) && (adapter_obi_req.a.addr < (`QSPI_BASE_ADDR + `QSPI_RANGE))) begin
-         demux_select = SLAVE_QSPI_IDX;
-      end
-      // Add default case or error handling if address is out of range
-   end
+   localparam addr_decode_rule_t [NUM_SLAVES-1:0] ADDR_MAP = '{
+      // Rule 0: RAM
+      '{ idx: SLAVE_RAM_IDX,  start_addr: `MEM_BASE_ADDR,  end_addr: `MEM_BASE_ADDR  + `MEM_RANGE  },
+      // Rule 1: UART
+      '{ idx: SLAVE_UART_IDX, start_addr: `UART_BASE_ADDR, end_addr: `UART_BASE_ADDR + `UART_RANGE },
+      // Rule 2: Timer
+      '{ idx: SLAVE_TIMR_IDX, start_addr: `TIMER_BASE_ADDR,end_addr: `TIMER_BASE_ADDR+ `TIMER_RANGE},
+      // Rule 3: QSPI
+      '{ idx: SLAVE_QSPI_IDX, start_addr: `QSPI_BASE_ADDR, end_addr: `QSPI_BASE_ADDR+ `QSPI_RANGE}
+   };
+
+   logic [$clog2(NUM_SLAVES)-1:0] demux_select;
+   logic dec_valid, dec_error;
+
+   addr_decode #(
+      .NoIndices ( NUM_SLAVES                         ), // Number of slaves/outputs
+      .NoRules   ( NUM_SLAVES                         ), // Number of rules defined
+      .addr_t    ( logic [AdapterObiCfg.AddrWidth-1:0] ), // Address type
+      .rule_t    ( addr_decode_rule_t                 ) // Pass the defined rule struct type
+      //.Napot     ( 0                                  )  // Use start/end range decoding
+      // .IdxWidth and .idx_t are inferred by the tool
+   ) i_addr_decode (
+      .addr_i           ( adapter_obi_req.a.addr ), // Input address from OBI req
+      .addr_map_i       ( ADDR_MAP              ), // The array of rules
+      .idx_o            ( demux_select          ), // Output index signal
+      .dec_valid_o      ( dec_valid             ), // Connect status output
+      .dec_error_o      ( dec_error             ), // Connect status output
+      .en_default_idx_i ( 1'b0                  ), // Disable default mapping
+      .default_idx_i    ( '0                    )  // Default index (unused)
+   );
 
    // --- OBI Demultiplexer (DEMUX) ---
    adapter_obi_req_t [NUM_SLAVES-1:0] peripheral_req; // From Demux to Slaves
