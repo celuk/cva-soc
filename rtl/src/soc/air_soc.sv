@@ -313,18 +313,25 @@ module air_soc (
    logic [AdapterObiCfg.DataWidth-1:0] uart_rdata_o;
    logic        uart_gnt_o;
 
-   assign uart_req_i   = peripheral_req[SLAVE_UART_IDX].req;
-   assign uart_we_i    = peripheral_req[SLAVE_UART_IDX].a.we;
-   assign uart_addr_i  = peripheral_req[SLAVE_UART_IDX].a.addr;
-   assign uart_wdata_i = peripheral_req[SLAVE_UART_IDX].a.wdata;
-   assign uart_be_i    = peripheral_req[SLAVE_UART_IDX].a.be;
+   obi_sram_shim #(
+       .ObiCfg    ( AdapterObiCfg     ),
+       .obi_req_t ( adapter_obi_req_t ),
+       .obi_rsp_t ( adapter_obi_rsp_t )
+   ) i_obi_sram_shim_uart (
+       .clk_i      ( clkwiz_o        ),
+       .rst_ni     ( rst_n           ),
 
-   assign peripheral_rsp[SLAVE_UART_IDX].gnt    = uart_gnt_o;
-   assign peripheral_rsp[SLAVE_UART_IDX].rvalid = uart_rvalid_o;
-   assign peripheral_rsp[SLAVE_UART_IDX].r.rdata = uart_rdata_o;
-   assign peripheral_rsp[SLAVE_UART_IDX].r.rid   = peripheral_req[SLAVE_UART_IDX].a.aid;
-   assign peripheral_rsp[SLAVE_UART_IDX].r.err  = 1'b0;
-   assign peripheral_rsp[SLAVE_UART_IDX].r.r_optional.ruser = '0;
+       .obi_req_i  ( peripheral_req[SLAVE_UART_IDX] ),
+       .obi_rsp_o  ( peripheral_rsp[SLAVE_UART_IDX] ),
+
+       .req_o      ( uart_req_i         ),
+       .we_o       ( uart_we_i          ),
+       .addr_o     ( uart_addr_i        ),
+       .wdata_o    ( uart_wdata_i       ),
+       .be_o       ( uart_be_i          ),
+       .gnt_i      ( uart_gnt_o         ),
+       .rdata_i    ( uart_rdata_o       )
+   );
 
    // Timer (Slave Index 2)
    logic        timer_req_i;
