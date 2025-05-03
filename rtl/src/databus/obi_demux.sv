@@ -3,7 +3,7 @@
 
 `include "header.vh"
 
-module obi_demux (
+module obi_demux_custom (
    input wire clk_i,
    input wire rst_ni,
 

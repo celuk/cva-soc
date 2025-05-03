@@ -205,64 +205,47 @@ module air_soc (
    localparam int unsigned SLAVE_TIMR_IDX = 2;
    localparam int unsigned SLAVE_QSPI_IDX = 3;
 
-   // Define the address map rule structure based on AddrWidth
-   typedef struct packed {
-      logic [AdapterObiCfg.AddrWidth-1:0] addr_base;
-      logic [AdapterObiCfg.AddrWidth-1:0] addr_mask;
-   } addr_map_rule_t;
+   logic [$clog2(NUM_SLAVES)-1:0] demux_select; // Select signal for obi_demux
 
-   // Define the address map rules
-   // Mask = ~(Range - 1) assuming range is power of 2
-   // Be careful with mask calculation if range is not power of 2
-   localparam bit [AdapterObiCfg.AddrWidth-1:0] MASK_RAM  = ~(`MEM_RANGE  - 1);
-   localparam bit [AdapterObiCfg.AddrWidth-1:0] MASK_UART = ~(`UART_RANGE - 1);
-   localparam bit [AdapterObiCfg.AddrWidth-1:0] MASK_TIMR = ~(`TIMER_RANGE- 1);
-   localparam bit [AdapterObiCfg.AddrWidth-1:0] MASK_QSPI = ~(`QSPI_RANGE- 1);
+   // Combinational address decode based on incoming request address
+   always_comb begin
+      demux_select = {$clog2(NUM_SLAVES){1'b0}}; // Default (can be error index if needed)
+      // Decode based on address ranges defined in header.vh
+      if ((adapter_obi_req.a.addr >= `MEM_BASE_ADDR) && (adapter_obi_req.a.addr < (`MEM_BASE_ADDR + `MEM_RANGE))) begin
+         demux_select = SLAVE_RAM_IDX;
+      end else if ((adapter_obi_req.a.addr >= `UART_BASE_ADDR) && (adapter_obi_req.a.addr < (`UART_BASE_ADDR + `UART_RANGE))) begin
+         demux_select = SLAVE_UART_IDX;
+      end else if ((adapter_obi_req.a.addr >= `TIMER_BASE_ADDR) && (adapter_obi_req.a.addr < (`TIMER_BASE_ADDR + `TIMER_RANGE))) begin
+         demux_select = SLAVE_TIMR_IDX;
+      end else if ((adapter_obi_req.a.addr >= `QSPI_BASE_ADDR) && (adapter_obi_req.a.addr < (`QSPI_BASE_ADDR + `QSPI_RANGE))) begin
+         demux_select = SLAVE_QSPI_IDX;
+      end
+      // Add default case or error handling if address is out of range
+   end
 
-   localparam addr_map_rule_t ADDR_MAP [NUM_SLAVES-1:0] = '{
-      '{ addr_base: `MEM_BASE_ADDR,  addr_mask: MASK_RAM  }, // Rule 0 -> RAM
-      '{ addr_base: `UART_BASE_ADDR, addr_mask: MASK_UART }, // Rule 1 -> UART
-      '{ addr_base: `TIMER_BASE_ADDR,addr_mask: MASK_TIMR }, // Rule 2 -> Timer
-      '{ addr_base: `QSPI_BASE_ADDR, addr_mask: MASK_QSPI }  // Rule 3 -> QSPI
-   };
+   // --- OBI Demultiplexer (DEMUX) ---
+   adapter_obi_req_t [NUM_SLAVES-1:0] peripheral_req; // From Demux to Slaves
+   adapter_obi_rsp_t [NUM_SLAVES-1:0] peripheral_rsp; // From Slaves to Demux
 
-   // OBI signals between Xbar and Peripherals
-   adapter_obi_req_t peripheral_req [NUM_SLAVES-1:0]; // From Xbar to Slaves
-   adapter_obi_rsp_t peripheral_rsp [NUM_SLAVES-1:0]; // From Slaves to Xbar
+   obi_demux #(
+      .ObiCfg      ( AdapterObiCfg         ),
+      .obi_req_t   ( adapter_obi_req_t     ), // Type for master request (input)
+      .obi_rsp_t   ( adapter_obi_rsp_t     ), // Type for master response (output)
+      .NumMgrPorts ( NUM_SLAVES            ), // Number of slave ports (outputs)
+      .NumMaxTrans ( AXI_MAX_TRANS         ), // Max outstanding transactions
+      .select_t    ( logic [$clog2(NUM_SLAVES)-1:0] ) // Type of select signal
+   ) i_obi_demux (
+      .clk_i        ( clkwiz_o        ),
+      .rst_ni            ( rst_n           ),
 
-   obi_xbar #(
-      .SbrPortObiCfg      ( AdapterObiCfg         ), // Config for master port (input)
-      .MgrPortObiCfg      ( AdapterObiCfg         ), // Config for slave ports (output)
-      .sbr_port_obi_req_t ( adapter_obi_req_t     ), // Type for master request
-      .sbr_port_a_chan_t  ( adapter_obi_a_chan_t  ), // Needed internally by mux
-      .sbr_port_obi_rsp_t ( adapter_obi_rsp_t     ), // Type for master response
-      .sbr_port_r_chan_t  ( adapter_obi_r_chan_t  ), // Needed internally by mux
-      .mgr_port_obi_req_t ( adapter_obi_req_t     ), // Type for slave request
-      .mgr_port_obi_rsp_t ( adapter_obi_rsp_t     ), // Type for slave response
-      .NumSbrPorts        ( 1                     ), // One master (AXI->OBI bridge)
-      .NumMgrPorts        ( NUM_SLAVES            ), // Number of peripherals
-      .NumMaxTrans        ( AXI_MAX_TRANS         ), // Max outstanding transactions
-      .NumAddrRules       ( NUM_SLAVES            ), // One rule per slave
-      .addr_map_rule_t    ( addr_map_rule_t       ), // Pass the type definition
-      .UseIdForRouting    ( 1'b0                  ), // Only 1 master, no ID routing needed
-      .Connectivity       ( '1                    )  // Default: master can access all slaves
-   ) i_obi_xbar (
-      .clk_i,
-      .rst_ni       ( rst_n                 ),
-      .testmode_i   ( 1'b0                  ),
-
-      // Subordinate Port 0 (Master Input from AXI->OBI bridge)
-      .sbr_ports_req_i  ( {adapter_obi_req}   ), // Input request array (size 1)
-      .sbr_ports_rsp_o  ( {adapter_obi_rsp}   ), // Output response array (size 1)
+      // Subordinate Port (Master Input from AXI->OBI bridge)
+      .sbr_port_select_i ( demux_select    ), // Input select signal from address decoder
+      .sbr_port_req_i    ( adapter_obi_req  ), // Input request from bridge
+      .sbr_port_rsp_o    ( adapter_obi_rsp  ), // Output response to bridge
 
       // Manager Ports (Slave Outputs to Peripherals)
-      .mgr_ports_req_o  ( peripheral_req      ), // Output request array [NUM_SLAVES-1:0]
-      .mgr_ports_rsp_i  ( peripheral_rsp      ), // Input response array [NUM_SLAVES-1:0]
-
-      // Address Decoding Inputs
-      .addr_map_i       ( ADDR_MAP            ), // The address map rules
-      .en_default_idx_i ( {1{1'b0}}           ), // No default routing for master 0
-      .default_idx_i    ( {{$clog2(NUM_SLAVES){1'b0}}} ) // Default index (unused)
+      .mgr_ports_req_o   ( peripheral_req  ), // Output request array [NUM_SLAVES-1:0]
+      .mgr_ports_rsp_i   ( peripheral_rsp  )  // Input response array [NUM_SLAVES-1:0]
    );
 
    // --- Peripheral Instantiation and Connections ---
@@ -286,7 +269,7 @@ module air_soc (
    assign ram_wdata_i = peripheral_req[SLAVE_RAM_IDX].a.wdata;
    assign ram_be_i    = peripheral_req[SLAVE_RAM_IDX].a.be;
 
-   assign peripheral_rsp[SLAVE_RAM_IDX].gnt    = ram_gnt_o;
+   assign peripheral_rsp[SLAVE_RAM_IDX].gnt    = 1;
    assign peripheral_rsp[SLAVE_RAM_IDX].rvalid = ram_rvalid_o;
    assign peripheral_rsp[SLAVE_RAM_IDX].r.rdata = ram_rdata_o;
    assign peripheral_rsp[SLAVE_RAM_IDX].r.rid   = peripheral_req[SLAVE_RAM_IDX].a.aid;
@@ -305,7 +288,6 @@ module air_soc (
 
    assign uart_req_i   = peripheral_req[SLAVE_UART_IDX].req;
    assign uart_we_i    = peripheral_req[SLAVE_UART_IDX].a.we;
-   // UART likely only uses lower address bits and data bytes
    assign uart_addr_i  = peripheral_req[SLAVE_UART_IDX].a.addr;
    assign uart_wdata_i = peripheral_req[SLAVE_UART_IDX].a.wdata;
    assign uart_be_i    = peripheral_req[SLAVE_UART_IDX].a.be;
