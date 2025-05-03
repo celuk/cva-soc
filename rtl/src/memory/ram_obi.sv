@@ -294,8 +294,15 @@ module ram32_obi #(
    always_ff @(posedge clk_i or negedge rst_n) begin
       if (!rst_n) begin
          rvalid_o <= 0;
+         gnt_o    <= 1;
       end else begin
          rvalid_o <= req_i;
+
+         if (req_i && gnt_o) begin
+            gnt_o <= 0;
+         end else begin
+            gnt_o <= 1;
+         end
       end
    end
    
@@ -304,7 +311,7 @@ module ram32_obi #(
       .clk_i(clk_i),
       .rst_ni(rst_n),
       .req_i(req_i),
-      .gnt_o(gnt_o),
+      .gnt_o(),
       .rvalid_o()
    );
 

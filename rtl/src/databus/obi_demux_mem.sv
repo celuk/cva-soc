@@ -140,8 +140,9 @@ module obi_demux_mem (
             // --- IDLE State: Check for new request ---
             if (data_req_i) begin
                // Check if the selected peripheral can grant
-               if (main_mem_sel_next) begin
+               if (main_mem_sel_next && main_mem_gnt_i) begin
                   // Memory: Grant will be asserted NEXT cycle. Set pending flag.
+                  data_gnt_o         <= 1'b1;
                   mem_access_pending <= 1'b1;
                   // Latch details immediately, grant comes next cycle
                   req_in_progress    <= 1'b1;
@@ -179,11 +180,13 @@ module obi_demux_mem (
          end else begin
             // --- ACTIVE State: Request is in progress ---
 
+            /*
             // Check if this was a memory access waiting for its delayed grant
             if (mem_access_pending) begin
                data_gnt_o <= 1'b1; // Assert the registered grant for memory
                mem_access_pending <= 1'b0; // Clear the flag, grant has been sent
             end
+            */
 
             // Check for transaction completion (read or write)
             // IMPORTANT: Assumes peripherals assert rvalid for writes too!
