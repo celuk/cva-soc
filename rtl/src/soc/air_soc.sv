@@ -82,14 +82,14 @@ module air_soc (
    logic                timer_rvalid;
    logic [`MEM_W  -1:0] timer_rdata;
 
-   logic                qspi_req;
-   logic [       31:0]  qspi_addr;
-   logic                qspi_we;
-   logic [`MEM_W/8-1:0] qspi_be;
-   logic [`MEM_W  -1:0] qspi_wdata;
-   logic                qspi_gnt;
-   logic                qspi_rvalid;
-   logic [`MEM_W  -1:0] qspi_rdata;
+   //logic                qspi_req;
+   //logic [       31:0]  qspi_addr;
+   //logic                qspi_we;
+   //logic [`MEM_W/8-1:0] qspi_be;
+   //logic [`MEM_W  -1:0] qspi_wdata;
+   //logic                qspi_gnt;
+   //logic                qspi_rvalid;
+   //logic [`MEM_W  -1:0] qspi_rdata;
 
    localparam config_pkg::cva6_cfg_t CVA6Cfg = build_config_pkg::build_config(cva6_config_pkg::cva6_cfg);
 
@@ -198,77 +198,170 @@ module air_soc (
       .rsp_read_ruser_o      (), .rsp_r_user_i          ('0)
    );
 
-   obi_sram_shim #(
-       .ObiCfg    ( AdapterObiCfg     ), // Use the same OBI config
-       .obi_req_t ( adapter_obi_req_t ), // Pass OBI type definitions
-       .obi_rsp_t ( adapter_obi_rsp_t )
-   ) i_obi_sram_shim (
-       .clk_i      ( clkwiz_o        ),
-       .rst_ni     ( rst_n           ),
+   // --- OBI Crossbar (XBAR) ---
+   localparam int unsigned NUM_SLAVES = 4;
+   localparam int unsigned SLAVE_RAM_IDX  = 0;
+   localparam int unsigned SLAVE_UART_IDX = 1;
+   localparam int unsigned SLAVE_TIMR_IDX = 2;
+   localparam int unsigned SLAVE_QSPI_IDX = 3;
 
-       // OBI Slave Interface (Connected to Adapter)
-       .obi_req_i  ( adapter_obi_req ),
-       .obi_rsp_o  ( adapter_obi_rsp ),
+   // Define the address map rule structure based on AddrWidth
+   typedef struct packed {
+      logic [AdapterObiCfg.AddrWidth-1:0] addr_base;
+      logic [AdapterObiCfg.AddrWidth-1:0] addr_mask;
+   } addr_map_rule_t;
 
-       // Simple RAM Master Interface (Connected to ram32)
-       .req_o      ( mem_req         ),
-       .we_o       ( mem_we          ),
-       .addr_o     ( mem_addr        ),
-       .wdata_o    ( mem_wdata       ),
-       .be_o       ( mem_be          ),
-       .gnt_i      ( mem_gnt         ),
-       .rdata_i    ( mem_rdata       )
+   // Define the address map rules
+   // Mask = ~(Range - 1) assuming range is power of 2
+   // Be careful with mask calculation if range is not power of 2
+   localparam bit [AdapterObiCfg.AddrWidth-1:0] MASK_RAM  = ~(`MEM_RANGE  - 1);
+   localparam bit [AdapterObiCfg.AddrWidth-1:0] MASK_UART = ~(`UART_RANGE - 1);
+   localparam bit [AdapterObiCfg.AddrWidth-1:0] MASK_TIMR = ~(`TIMER_RANGE- 1);
+   localparam bit [AdapterObiCfg.AddrWidth-1:0] MASK_QSPI = ~(`QSPI_RANGE- 1);
+
+   localparam addr_map_rule_t ADDR_MAP [NUM_SLAVES-1:0] = '{
+      '{ addr_base: `MEM_BASE_ADDR,  addr_mask: MASK_RAM  }, // Rule 0 -> RAM
+      '{ addr_base: `UART_BASE_ADDR, addr_mask: MASK_UART }, // Rule 1 -> UART
+      '{ addr_base: `TIMER_BASE_ADDR,addr_mask: MASK_TIMR }, // Rule 2 -> Timer
+      '{ addr_base: `QSPI_BASE_ADDR, addr_mask: MASK_QSPI }  // Rule 3 -> QSPI
+   };
+
+   // OBI signals between Xbar and Peripherals
+   adapter_obi_req_t peripheral_req [NUM_SLAVES-1:0]; // From Xbar to Slaves
+   adapter_obi_rsp_t peripheral_rsp [NUM_SLAVES-1:0]; // From Slaves to Xbar
+
+   obi_xbar #(
+      .SbrPortObiCfg      ( AdapterObiCfg         ), // Config for master port (input)
+      .MgrPortObiCfg      ( AdapterObiCfg         ), // Config for slave ports (output)
+      .sbr_port_obi_req_t ( adapter_obi_req_t     ), // Type for master request
+      .sbr_port_a_chan_t  ( adapter_obi_a_chan_t  ), // Needed internally by mux
+      .sbr_port_obi_rsp_t ( adapter_obi_rsp_t     ), // Type for master response
+      .sbr_port_r_chan_t  ( adapter_obi_r_chan_t  ), // Needed internally by mux
+      .mgr_port_obi_req_t ( adapter_obi_req_t     ), // Type for slave request
+      .mgr_port_obi_rsp_t ( adapter_obi_rsp_t     ), // Type for slave response
+      .NumSbrPorts        ( 1                     ), // One master (AXI->OBI bridge)
+      .NumMgrPorts        ( NUM_SLAVES            ), // Number of peripherals
+      .NumMaxTrans        ( AXI_MAX_TRANS         ), // Max outstanding transactions
+      .NumAddrRules       ( NUM_SLAVES            ), // One rule per slave
+      .addr_map_rule_t    ( addr_map_rule_t       ), // Pass the type definition
+      .UseIdForRouting    ( 1'b0                  ), // Only 1 master, no ID routing needed
+      .Connectivity       ( '1                    )  // Default: master can access all slaves
+   ) i_obi_xbar (
+      .clk_i,
+      .rst_ni       ( rst_n                 ),
+      .testmode_i   ( 1'b0                  ),
+
+      // Subordinate Port 0 (Master Input from AXI->OBI bridge)
+      .sbr_ports_req_i  ( {adapter_obi_req}   ), // Input request array (size 1)
+      .sbr_ports_rsp_o  ( {adapter_obi_rsp}   ), // Output response array (size 1)
+
+      // Manager Ports (Slave Outputs to Peripherals)
+      .mgr_ports_req_o  ( peripheral_req      ), // Output request array [NUM_SLAVES-1:0]
+      .mgr_ports_rsp_i  ( peripheral_rsp      ), // Input response array [NUM_SLAVES-1:0]
+
+      // Address Decoding Inputs
+      .addr_map_i       ( ADDR_MAP            ), // The address map rules
+      .en_default_idx_i ( {1{1'b0}}           ), // No default routing for master 0
+      .default_idx_i    ( {{$clog2(NUM_SLAVES){1'b0}}} ) // Default index (unused)
    );
 
-   obi_demux_mem obi_demux_mem_dut (
-      .clk_i (clkwiz_o),
-      .rst_ni(rst_n),
+   // --- Peripheral Instantiation and Connections ---
 
-      .data_req_i   (mem_req),
-      .data_gnt_o   (mem_gnt),
-      .data_rvalid_o(mem_rvalid),
-      .data_we_i    (mem_we),
-      .data_be_i    (mem_be),
-      .data_addr_i  (mem_addr),
-      .data_wdata_i (mem_wdata),
-      .data_rdata_o (mem_rdata),
+   // Unpack requests from Xbar to peripherals, Pack responses from peripherals to Xbar
+   // Note: Assumes peripherals use scalar signals matching the simple OBI subset
 
-      .main_mem_req_o   (main_mem_req),
-      .main_mem_addr_o  (main_mem_addr),
-      .main_mem_we_o    (main_mem_we),
-      .main_mem_be_o    (main_mem_be),
-      .main_mem_wdata_o (main_mem_wdata),
-      .main_mem_gnt_i   (main_mem_gnt),
-      .main_mem_rvalid_i(main_mem_rvalid),
-      .main_mem_rdata_i (main_mem_rdata),
+   // RAM (Slave Index 0)
+   logic        ram_req_i;
+   logic        ram_we_i;
+   logic [AdapterObiCfg.DataWidth/8-1:0] ram_be_i; // Use correct BE width
+   logic [AdapterObiCfg.AddrWidth-1:0] ram_addr_i;
+   logic [AdapterObiCfg.DataWidth-1:0] ram_wdata_i;
+   logic        ram_rvalid_o;
+   logic [AdapterObiCfg.DataWidth-1:0] ram_rdata_o;
+   logic        ram_gnt_o;
 
-      .uart_req_o   (uart_req),
-      .uart_addr_o  (uart_addr),
-      .uart_we_o    (uart_we),
-      .uart_be_o    (uart_be),
-      .uart_wdata_o (uart_wdata),
-      .uart_gnt_i   (uart_gnt),
-      .uart_rvalid_i(uart_rvalid),
-      .uart_rdata_i (uart_rdata),
+   assign ram_req_i   = peripheral_req[SLAVE_RAM_IDX].req;
+   assign ram_we_i    = peripheral_req[SLAVE_RAM_IDX].a.we;
+   assign ram_addr_i  = peripheral_req[SLAVE_RAM_IDX].a.addr;
+   assign ram_wdata_i = peripheral_req[SLAVE_RAM_IDX].a.wdata;
+   assign ram_be_i    = peripheral_req[SLAVE_RAM_IDX].a.be;
 
-      .timer_req_o   (timer_req),
-      .timer_addr_o  (timer_addr),
-      .timer_we_o    (timer_we),
-      .timer_be_o    (timer_be),
-      .timer_wdata_o (timer_wdata),
-      .timer_gnt_i   (timer_gnt),
-      .timer_rvalid_i(timer_rvalid),
-      .timer_rdata_i (timer_rdata)
+   assign peripheral_rsp[SLAVE_RAM_IDX].gnt    = ram_gnt_o;
+   assign peripheral_rsp[SLAVE_RAM_IDX].rvalid = ram_rvalid_o;
+   assign peripheral_rsp[SLAVE_RAM_IDX].r.rdata = ram_rdata_o;
+   assign peripheral_rsp[SLAVE_RAM_IDX].r.rid   = peripheral_req[SLAVE_RAM_IDX].a.aid;
+   assign peripheral_rsp[SLAVE_RAM_IDX].r.err  = 1'b0;
+   assign peripheral_rsp[SLAVE_RAM_IDX].r.r_optional.ruser = '0;
 
-      ,.qspi_req_o   (qspi_req)
-      ,.qspi_addr_o  (qspi_addr)
-      ,.qspi_we_o    (qspi_we)
-      ,.qspi_be_o    (qspi_be)
-      ,.qspi_wdata_o (qspi_wdata)
-      ,.qspi_gnt_i   (qspi_gnt)
-      ,.qspi_rvalid_i(qspi_rvalid)
-      ,.qspi_rdata_i (qspi_rdata)
-   );
+   // UART (Slave Index 1)
+   logic        uart_req_i;
+   logic        uart_we_i;
+   logic [AdapterObiCfg.DataWidth/8-1:0] uart_be_i;
+   logic [AdapterObiCfg.AddrWidth-1:0] uart_addr_i;
+   logic [AdapterObiCfg.DataWidth-1:0] uart_wdata_i;
+   logic        uart_rvalid_o;
+   logic [AdapterObiCfg.DataWidth-1:0] uart_rdata_o;
+   logic        uart_gnt_o;
+
+   assign uart_req_i   = peripheral_req[SLAVE_UART_IDX].req;
+   assign uart_we_i    = peripheral_req[SLAVE_UART_IDX].a.we;
+   // UART likely only uses lower address bits and data bytes
+   assign uart_addr_i  = peripheral_req[SLAVE_UART_IDX].a.addr;
+   assign uart_wdata_i = peripheral_req[SLAVE_UART_IDX].a.wdata;
+   assign uart_be_i    = peripheral_req[SLAVE_UART_IDX].a.be;
+
+   assign peripheral_rsp[SLAVE_UART_IDX].gnt    = uart_gnt_o;
+   assign peripheral_rsp[SLAVE_UART_IDX].rvalid = uart_rvalid_o;
+   assign peripheral_rsp[SLAVE_UART_IDX].r.rdata = uart_rdata_o;
+   assign peripheral_rsp[SLAVE_UART_IDX].r.rid   = peripheral_req[SLAVE_UART_IDX].a.aid;
+   assign peripheral_rsp[SLAVE_UART_IDX].r.err  = 1'b0;
+   assign peripheral_rsp[SLAVE_UART_IDX].r.r_optional.ruser = '0;
+
+   // Timer (Slave Index 2)
+   logic        timer_req_i;
+   logic        timer_we_i;
+   logic [AdapterObiCfg.DataWidth/8-1:0] timer_be_i;
+   logic [AdapterObiCfg.AddrWidth-1:0] timer_addr_i;
+   logic [AdapterObiCfg.DataWidth-1:0] timer_wdata_i;
+   logic        timer_rvalid_o;
+   logic [AdapterObiCfg.DataWidth-1:0] timer_rdata_o;
+   logic        timer_gnt_o;
+
+   assign timer_req_i   = peripheral_req[SLAVE_TIMR_IDX].req;
+   assign timer_we_i    = peripheral_req[SLAVE_TIMR_IDX].a.we;
+   assign timer_addr_i  = peripheral_req[SLAVE_TIMR_IDX].a.addr;
+   assign timer_wdata_i = peripheral_req[SLAVE_TIMR_IDX].a.wdata;
+   assign timer_be_i    = peripheral_req[SLAVE_TIMR_IDX].a.be;
+
+   assign peripheral_rsp[SLAVE_TIMR_IDX].gnt    = timer_gnt_o;
+   assign peripheral_rsp[SLAVE_TIMR_IDX].rvalid = timer_rvalid_o;
+   assign peripheral_rsp[SLAVE_TIMR_IDX].r.rdata = timer_rdata_o;
+   assign peripheral_rsp[SLAVE_TIMR_IDX].r.rid   = peripheral_req[SLAVE_TIMR_IDX].a.aid;
+   assign peripheral_rsp[SLAVE_TIMR_IDX].r.err  = 1'b0;
+   assign peripheral_rsp[SLAVE_TIMR_IDX].r.r_optional.ruser = '0;
+
+   // QSPI Flash Controller (Slave Index 3)
+   logic        qspi_req;
+   logic        qspi_we;
+   logic [AdapterObiCfg.DataWidth/8-1:0] qspi_be;
+   logic [AdapterObiCfg.AddrWidth-1:0] qspi_addr;
+   logic [AdapterObiCfg.DataWidth-1:0] qspi_wdata;
+   logic        qspi_rvalid;
+   logic [AdapterObiCfg.DataWidth-1:0] qspi_rdata;
+   logic        qspi_gnt;
+
+   assign qspi_req   = peripheral_req[SLAVE_QSPI_IDX].req;
+   assign qspi_we    = peripheral_req[SLAVE_QSPI_IDX].a.we;
+   assign qspi_addr  = peripheral_req[SLAVE_QSPI_IDX].a.addr;
+   assign qspi_wdata = peripheral_req[SLAVE_QSPI_IDX].a.wdata;
+   assign qspi_be    = peripheral_req[SLAVE_QSPI_IDX].a.be;
+
+   assign peripheral_rsp[SLAVE_QSPI_IDX].gnt    = qspi_gnt;
+   assign peripheral_rsp[SLAVE_QSPI_IDX].rvalid = qspi_rvalid;
+   assign peripheral_rsp[SLAVE_QSPI_IDX].r.rdata = qspi_rdata;
+   assign peripheral_rsp[SLAVE_QSPI_IDX].r.rid   = peripheral_req[SLAVE_QSPI_IDX].a.aid;
+   assign peripheral_rsp[SLAVE_QSPI_IDX].r.err  = 1'b0;
+   assign peripheral_rsp[SLAVE_QSPI_IDX].r.r_optional.ruser = '0;
 
    ram32_obi #(
       .SIZE     (`RAM_SIZE / 4),
@@ -276,47 +369,47 @@ module air_soc (
    ) main_memory (
       .clk_i   (clkwiz_o),
       .rst_ni  (rst_ni `ifdef BASYS3 & clkwiz_locked `endif),
-      .req_i   (main_mem_req),
-      .we_i    (main_mem_we),
-      .be_i    (main_mem_be),
-      .addr_i  (main_mem_addr),
-      .wdata_i (main_mem_wdata),
-      .rvalid_o(main_mem_rvalid),
-      .rdata_o (main_mem_rdata)
+      .req_i   ( ram_req_i      ),
+      .we_i    ( ram_we_i       ),
+      .be_i    ( ram_be_i       ),
+      .addr_i  ( ram_addr_i     ),
+      .wdata_i ( ram_wdata_i    ),
+      .rvalid_o( ram_rvalid_o   ),
+      .rdata_o ( ram_rdata_o    )
+      
+      ,.gnt_o   ( ram_gnt_o      )
 
-      ,.gnt_o  (main_mem_gnt)
-
-      ,.program_rx_i(program_rx_i)
-      ,.system_reset_o(system_reset_o)
-      ,.prog_mode_led_o(prog_mode_led_o)
+      ,.program_rx_i   ( program_rx_i   )
+      ,.system_reset_o ( system_reset_o )
+      ,.prog_mode_led_o( prog_mode_led_o)
    );
 
    uart_controller_obi uart_dut (
-      .clk_i   (clkwiz_o),
-      .rst_ni  (rst_n),
-      .req_i   (uart_req),
-      .we_i    (uart_we),
-      .be_i    (uart_be),
-      .addr_i  (uart_addr),
-      .wdata_i (uart_wdata),
-      .gnt_o   (uart_gnt),
-      .rvalid_o(uart_rvalid),
-      .rdata_o (uart_rdata),
-      .rx_i    (uart_rx_i),
-      .tx_o    (uart_tx_o)
+      .clk_i   ( clkwiz_o      ),
+      .rst_ni  ( rst_n         ),
+      .req_i   ( uart_req_i    ),
+      .we_i    ( uart_we_i     ),
+      .be_i    ( uart_be_i[3:0]),
+      .addr_i  ( uart_addr_i   ),
+      .wdata_i ( uart_wdata_i  ),
+      .gnt_o   ( uart_gnt_o    ),
+      .rvalid_o( uart_rvalid_o ),
+      .rdata_o ( uart_rdata_o  ),
+      .rx_i    ( uart_rx_i     ),
+      .tx_o    ( uart_tx_o     )
    );
 
    timer_controller_obi timer_dut (
       .clk_i   (clkwiz_o),
       .rst_ni  (rst_n),
-      .req_i   (timer_req),
-      .we_i    (timer_we),
-      .be_i    (timer_be),
-      .addr_i  (timer_addr),
-      .wdata_i (timer_wdata),
-      .gnt_o   (timer_gnt),
-      .rvalid_o(timer_rvalid),
-      .rdata_o (timer_rdata)
+      .req_i   ( timer_req_i   ),
+      .we_i    ( timer_we_i    ),
+      .be_i    ( timer_be_i[3:0]),
+      .addr_i  ( timer_addr_i  ),
+      .wdata_i ( timer_wdata_i ),
+      .gnt_o   ( timer_gnt_o   ),
+      .rvalid_o( timer_rvalid_o),
+      .rdata_o ( timer_rdata_o )
    );
 
    `ifdef QSPI_SIM
