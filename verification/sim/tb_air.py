@@ -40,7 +40,7 @@ async def read_instructions():
 #@cocotb.coroutine async
 def load_verilog_hex_file():
     for test in tests:
-        with open(tests[test]["TEST_FILE"], "r") as file:
+        with open(tests[test]["TEST_FILE"].replace(".hex", ".vmem"), "r") as file:
             lines = file.readlines()
 
         memory = {}
@@ -64,14 +64,19 @@ async def anabellek(dut):
     dut.rst_ni.value = 0
     await RisingEdge(dut.clk_i)
     
-    """
     memory = load_verilog_hex_file()
     for address, value in memory.items():
-        dut.u_ram.mem[address].value = value
+        if address % 4 == 0:
+            word = (
+                memory.get(address + 3, 0) << 24 |
+                memory.get(address + 2, 0) << 16 |
+                memory.get(address + 1, 0) << 8  |
+                memory.get(address, 0)
+            )
+            dut.main_memory.ram[address >> 2].value = word
     
     await RisingEdge(dut.clk_i)
     dut.rst_ni.value = 1
-    #dut.fetch_enable_i.value = 1
 
     timeout = 0
     while True:
@@ -79,9 +84,8 @@ async def anabellek(dut):
         if timeout > TIMEOUT:
             break
         timeout += 1
-    """
-        
     
+    """
     for test in tests:
         dut.rst_ni.value = 0
         await RisingEdge(dut.clk_i)
@@ -104,7 +108,7 @@ async def anabellek(dut):
             if timeout > TIMEOUT:
                 break
             timeout += 1
-    
+    """
 
 @cocotb.test()
 async def tair(dut):
