@@ -4,21 +4,25 @@
 #ifndef USE_COREMARK_UTILS
 int uart_txfull()
 {
+    __asm__ volatile("fence" ::: "memory");
     while ((UART_CFG & 0x4) == 0) { }
+    __asm__ volatile("fence" ::: "memory");
 }
 
 void zputchar(char c)
 {
     uart_txfull();
 
+    __asm__ volatile("fence" ::: "memory");
     // TX complete bitini temizle
     UART_CFG &= ~0x4;
-
+    __asm__ volatile("fence" ::: "memory");
     // Veriyi gönder
     UART_TDR = c;
-
+    __asm__ volatile("fence" ::: "memory");
     // TX enable bitini set et
     UART_CFG = UART_CFG | 0x1;
+    __asm__ volatile("fence" ::: "memory");
 
     // TX tamamlanana kadar bekle
     uart_txfull();
@@ -164,6 +168,7 @@ void tekno_printf(const char* fmt, ...)
 
 int uart_rxempty()
 {
+    __asm__ volatile("fence" ::: "memory");
     return (UART_CFG & 0x2) == 0; // RX complete biti kontrol ediliyor
 }
 
@@ -173,11 +178,13 @@ char zgetchar()
     while (uart_rxempty()) {
         // Bekle
     }
-
+    __asm__ volatile("fence" ::: "memory");
     char c = (char)UART_RDR;
 
     // RX complete bitini temizle
+    __asm__ volatile("fence" ::: "memory");
     UART_CFG &= ~0x2;
+    __asm__ volatile("fence" ::: "memory");
 
     return c;
 }
@@ -245,7 +252,12 @@ void init_uart()
     uart_cpb uart_cpb;
     uart_cpb.fields.data = CPU_CLK / BAUD_RATE;
     // TX enable bitini set et
+
+    __asm__ volatile("fence" ::: "memory");
     UART_CFG = UART_CFG | 0x7;
+    __asm__ volatile("fence" ::: "memory");
     UART_CPB = uart_cpb.bits;
+    __asm__ volatile("fence" ::: "memory");
     UART_STP = UART_STP | 0x1;
+    __asm__ volatile("fence" ::: "memory");
 }
