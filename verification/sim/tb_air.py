@@ -110,7 +110,7 @@ async def anabellek(dut):
 async def tair(dut):
     await read_instructions()
 
-    await cocotb.start(Clock(dut.clk_i, 10, "ns").start(start_high=False))
+    await cocotb.start(Clock(dut.clk_i, 40, "ns").start(start_high=False))
     dut.rst_ni.value = 0
     await RisingEdge(dut.clk_i)
     await RisingEdge(dut.clk_i)

@@ -71,7 +71,7 @@ package cva6_config_pkg;
       NrCachedRegionRules: unsigned'(1),
       CachedRegionAddrBase: 1024'({64'h0000_0000}),
       CachedRegionLength: 1024'({64'h0F00_0000}),
-      MaxOutstandingStores: unsigned'(1),
+      MaxOutstandingStores: unsigned'(0),
       DebugEn: bit'(0),
       AxiBurstWriteEn: bit'(0),
       IcacheByteSize: unsigned'(2048),
