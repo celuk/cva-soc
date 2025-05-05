@@ -33,7 +33,7 @@ print:
     fence
 
     # wait until UART_CFG & 0x4 != 0
-    #jal  x1, uart_tx_full
+    jal  x1, uart_tx_full
 
     # prepare ASCII digit ('0' + x5)
     andi x11, x5, 0xFF
@@ -45,7 +45,7 @@ print:
     fence
 
     # wait again until TX not full
-    #jal  x1, uart_tx_full
+    jal  x1, uart_tx_full
 
     # finally enable transmitter: UART_CFG |= 0x1
     lw   x10, 0(x6)
@@ -61,6 +61,7 @@ hang:
 # Poll UART_CFG bit-2 until it becomes 1:
 uart_tx_full:
     lw   x10, 0(x6)       # read UART_CFG
-    andi x10, x10, 4      # mask bit-2
+    andi x10, x10, 3      # mask bit-2
+    fence
     beq  x10, x0, uart_tx_full
     ret
