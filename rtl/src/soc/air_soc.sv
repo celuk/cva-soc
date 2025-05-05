@@ -114,9 +114,53 @@ module air_soc (
       .ipi_i                ( 1'b0                         ),
       .time_irq_i           ( 1'b0                         ),
       .debug_req_i          ( 1'b0                         ),
+      .rvfi_probes_o        (                              ),
+      .cvxif_req_o          (                              ),
+      .cvxif_resp_i         ( '0                           ),
       .noc_req_o            ( cva6_axi_req                 ),
       .noc_resp_i           ( cva6_axi_resp                )
    );
+
+   parameter time          ClkPeriodSys      = 40ns;
+   parameter real          TAppl             = 0.1;
+   parameter real          TTest             = 0.9;
+
+   axi_sim_mem #(
+      .AddrWidth          ( cva6_config_pkg::CVA6ConfigAxiAddrWidth    ),
+      .DataWidth          ( cva6_config_pkg::CVA6ConfigAxiDataWidth ),
+      .IdWidth            ( cva6_config_pkg::CVA6ConfigAxiIdWidth ),
+      .UserWidth          ( cva6_config_pkg::CVA6ConfigDataUserWidth ),
+      .axi_req_t          ( ariane_axi::req_t ),
+      .axi_rsp_t          ( ariane_axi::resp_t ),
+      .WarnUninitialized  ( 1 ),
+      .ClearErrOnAccess   ( 1 ),
+      .ApplDelay          ( /* ClkPeriodSys */ 0 ),
+      .AcqDelay           ( /* ClkPeriodSys * TTest */ 0 )
+      ,.UninitializedData ("zeros")
+    ) i_sim_mem (
+      .clk_i              ( clkwiz_o   ),
+      .rst_ni             ( rst_n ),
+      .axi_req_i          ( cva6_axi_req ),
+      .axi_rsp_o          ( cva6_axi_resp ),
+      .mon_w_valid_o      ( ),
+      .mon_w_addr_o       ( ),
+      .mon_w_data_o       ( ),
+      .mon_w_id_o         ( ),
+      .mon_w_user_o       ( ),
+      .mon_w_beat_count_o ( ),
+      .mon_w_last_o       ( ),
+      .mon_r_valid_o      ( ),
+      .mon_r_addr_o       ( ),
+      .mon_r_data_o       ( ),
+      .mon_r_id_o         ( ),
+      .mon_r_user_o       ( ),
+      .mon_r_beat_count_o ( ),
+      .mon_r_last_o       ( )
+    );
+
+   initial begin
+      $readmemh("../../../tests/demo/demo.vmem", i_sim_mem.mem);
+   end
 
    import obi_pkg::*;
 
@@ -179,8 +223,8 @@ module air_soc (
       .testmode_i   ( 1'b0            ),
 
       // AXI Slave Interface (Connected to CVA6)
-      .axi_req_i    ( cva6_axi_req    ),
-      .axi_rsp_o    ( cva6_axi_resp   ),
+      .axi_req_i    (     ),
+      .axi_rsp_o    (    ),
 
       // OBI Master Interface (Connected to OBI SRAM Shim)
       .obi_req_o    ( adapter_obi_req ),
