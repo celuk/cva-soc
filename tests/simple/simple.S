@@ -17,20 +17,20 @@ print:
     ori  x10, x10, 7
     sw   x10, 0(x6)
 
-    fence
+    #fence
 
     # UART_CPB = 217
     li   x10, 217
     sw   x10, 0(x7)
 
-    fence
+    #fence
 
     # UART_STP |= 0x1
     lw   x10, 0(x8)
     ori  x10, x10, 1
     sw   x10, 0(x8)
 
-    fence
+    #fence
 
     # wait until UART_CFG & 0x4 != 0
     jal  x1, uart_tx_full
@@ -42,7 +42,7 @@ print:
     # write character
     sw   x11, 0(x9)
 
-    fence
+    #fence
 
     # wait again until TX not full
     jal  x1, uart_tx_full
@@ -52,7 +52,7 @@ print:
     ori  x10, x10, 1
     sw   x10, 0(x6)
 
-    fence
+    #fence
 
 hang:
     j    hang            # infinite loop
@@ -62,6 +62,6 @@ hang:
 uart_tx_full:
     lw   x10, 0(x6)       # read UART_CFG
     andi x10, x10, 3      # mask bit-2
-    fence
+    #fence
     beq  x10, x0, uart_tx_full
     ret
