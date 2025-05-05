@@ -325,27 +325,18 @@ module air_soc (
    logic [AdapterObiCfg.DataWidth-1:0] ram_rdata_o;
    logic        ram_gnt_o;
 
-   obi_sram_shim #(
-       .ObiCfg    ( AdapterObiCfg     ), // Use the same OBI config
-       .obi_req_t ( adapter_obi_req_t ), // Pass OBI type definitions
-       .obi_rsp_t ( adapter_obi_rsp_t )
-   ) i_obi_sram_shim (
-       .clk_i      ( clkwiz_o        ),
-       .rst_ni     ( rst_n           ),
+   assign ram_req_i   = peripheral_req[SLAVE_RAM_IDX].req;
+   assign ram_we_i    = peripheral_req[SLAVE_RAM_IDX].a.we;
+   assign ram_addr_i  = peripheral_req[SLAVE_RAM_IDX].a.addr;
+   assign ram_wdata_i = peripheral_req[SLAVE_RAM_IDX].a.wdata;
+   assign ram_be_i    = peripheral_req[SLAVE_RAM_IDX].a.be;
 
-       // OBI Slave Interface (Connected to Adapter)
-       .obi_req_i  ( peripheral_req[SLAVE_RAM_IDX] ),
-       .obi_rsp_o  ( peripheral_rsp[SLAVE_RAM_IDX] ),
-
-       // Simple RAM Master Interface (Connected to ram32)
-       .req_o      ( ram_req_i         ),
-       .we_o       ( ram_we_i          ),
-       .addr_o     ( ram_addr_i        ),
-       .wdata_o    ( ram_wdata_i       ),
-       .be_o       ( ram_be_i          ),
-       .gnt_i      ( 1         ),
-       .rdata_i    ( ram_rdata_o       )
-   );
+   assign peripheral_rsp[SLAVE_RAM_IDX].gnt    = 1;
+   assign peripheral_rsp[SLAVE_RAM_IDX].rvalid = ram_rvalid_o;
+   assign peripheral_rsp[SLAVE_RAM_IDX].r.rdata = ram_rdata_o;
+   assign peripheral_rsp[SLAVE_RAM_IDX].r.rid   = peripheral_req[SLAVE_RAM_IDX].a.aid;
+   assign peripheral_rsp[SLAVE_RAM_IDX].r.err  = 1'b0;
+   assign peripheral_rsp[SLAVE_RAM_IDX].r.r_optional.ruser = '0;
 
    // UART (Slave Index 1)
    logic        uart_req_i;
@@ -357,25 +348,18 @@ module air_soc (
    logic [AdapterObiCfg.DataWidth-1:0] uart_rdata_o;
    logic        uart_gnt_o;
 
-   obi_sram_shim #(
-       .ObiCfg    ( AdapterObiCfg     ),
-       .obi_req_t ( adapter_obi_req_t ),
-       .obi_rsp_t ( adapter_obi_rsp_t )
-   ) i_obi_sram_shim_uart (
-       .clk_i      ( clkwiz_o        ),
-       .rst_ni     ( rst_n           ),
+   assign uart_req_i   = peripheral_req[SLAVE_UART_IDX].req;
+   assign uart_we_i    = peripheral_req[SLAVE_UART_IDX].a.we;
+   assign uart_addr_i  = peripheral_req[SLAVE_UART_IDX].a.addr;
+   assign uart_wdata_i = peripheral_req[SLAVE_UART_IDX].a.wdata;
+   assign uart_be_i    = peripheral_req[SLAVE_UART_IDX].a.be;
 
-       .obi_req_i  ( peripheral_req[SLAVE_UART_IDX] ),
-       .obi_rsp_o  ( peripheral_rsp[SLAVE_UART_IDX] ),
-
-       .req_o      ( uart_req_i         ),
-       .we_o       ( uart_we_i          ),
-       .addr_o     ( uart_addr_i        ),
-       .wdata_o    ( uart_wdata_i       ),
-       .be_o       ( uart_be_i          ),
-       .gnt_i      ( uart_gnt_o         ),
-       .rdata_i    ( uart_rdata_o       )
-   );
+   assign peripheral_rsp[SLAVE_UART_IDX].gnt    = uart_gnt_o;
+   assign peripheral_rsp[SLAVE_UART_IDX].rvalid = uart_rvalid_o;
+   assign peripheral_rsp[SLAVE_UART_IDX].r.rdata = uart_rdata_o;
+   assign peripheral_rsp[SLAVE_UART_IDX].r.rid   = peripheral_req[SLAVE_UART_IDX].a.aid;
+   assign peripheral_rsp[SLAVE_UART_IDX].r.err  = 1'b0;
+   assign peripheral_rsp[SLAVE_UART_IDX].r.r_optional.ruser = '0;
 
    // Timer (Slave Index 2)
    logic        timer_req_i;
