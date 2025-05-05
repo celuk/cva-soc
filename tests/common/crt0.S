@@ -30,7 +30,7 @@ _start:
     la t1, _bss_start
     la t2, _bss_end
 
-    j main
+    jal main
     1: j 1b
     #bge t1, t2, bss_clear_end
 
