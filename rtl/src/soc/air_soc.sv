@@ -140,8 +140,8 @@ module air_soc (
     ) i_sim_mem (
       .clk_i              ( clkwiz_o   ),
       .rst_ni             ( rst_n ),
-      .axi_req_i          ( cva6_axi_req ),
-      .axi_rsp_o          ( cva6_axi_resp ),
+      .axi_req_i          (  ),
+      .axi_rsp_o          (  ),
       .mon_w_valid_o      ( ),
       .mon_w_addr_o       ( ),
       .mon_w_data_o       ( ),
@@ -223,8 +223,8 @@ module air_soc (
       .testmode_i   ( 1'b0            ),
 
       // AXI Slave Interface (Connected to CVA6)
-      .axi_req_i    (     ),
-      .axi_rsp_o    (    ),
+      .axi_req_i    ( cva6_axi_req    ),
+      .axi_rsp_o    ( cva6_axi_resp   ),
 
       // OBI Master Interface (Connected to OBI SRAM Shim)
       .obi_req_o    ( adapter_obi_req ),

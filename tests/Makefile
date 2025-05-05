@@ -1,6 +1,8 @@
 RISCVTYPE ?= riscv32-unknown-elf
 CC = $(RISCVTYPE)-gcc
 
+ASM = 0
+
 # use BOOT=1 while making if you will load the program from bootloader
 # e.g.
 # make compile bootloader
@@ -9,21 +11,34 @@ BOOT ?= 0
 
 WITHBOOTLOADER ?=
 
+USE_COREMARK ?= 0
+
 ifeq ($(BOOT), 1)
     WITHBOOTLOADER := withbootloader
 endif
 
 COMMON_PATH ?= common
 
-LINKER_SCRIPT ?= coremark/riscv32-baremetal/link.ld
-#$(COMMON_PATH)/link$(WITHBOOTLOADER).ld
-START_ASM ?= coremark/riscv32-baremetal/crt0.S
-#$(COMMON_PATH)/crt0$(WITHBOOTLOADER).S
+LINKER_SCRIPT ?= $(COMMON_PATH)/link$(WITHBOOTLOADER).ld
+#coremark/riscv32-baremetal/link.ld
+
+START_ASM ?= $(COMMON_PATH)/crt0$(WITHBOOTLOADER).S
+#coremark/riscv32-baremetal/crt0.S
 
 DRIVERS_PATH ?= $(COMMON_PATH)/drivers
-DRIVERS ?= coremark/riscv32-baremetal/syscalls.c coremark/riscv32-baremetal/ee_printf.c $(DRIVERS_PATH)/uart.c $(DRIVERS_PATH)/timer.c $(DRIVERS_PATH)/qspi.c
+DRIVERS ?= $(DRIVERS_PATH)/uart.c $(DRIVERS_PATH)/timer.c $(DRIVERS_PATH)/qspi.c
 
-CFLAGS ?= -O2 -mcmodel=medany -static -std=gnu99 -fno-common -fno-unroll-loops -nostdlib -nostartfiles -fno-builtin -ffunction-sections -lm -lgcc -T $(LINKER_SCRIPT) -march=rv32im -mabi=ilp32 -I$(COMMON_PATH) -I$(DRIVERS_PATH) -Icoremark -Icoremark/riscv32-baremetal -DITERATIONS=2000 -DUSE_COREMARK_UTILS
+ifeq ($(USE_COREMARK), 1)
+	LINKER_SCRIPT := coremark/riscv32-baremetal/link.ld
+	START_ASM := coremark/riscv32-baremetal/crt0.S
+	DRIVERS += coremark/riscv32-baremetal/syscalls.c coremark/riscv32-baremetal/ee_printf.c
+endif
+
+CFLAGS ?= -O2 -mcmodel=medany -static -std=gnu99 -fno-common -fno-unroll-loops -nostdlib -nostartfiles -fno-builtin -ffunction-sections -lm -lgcc -T $(LINKER_SCRIPT) -march=rv32im -mabi=ilp32 -I$(COMMON_PATH) -I$(DRIVERS_PATH)
+
+ifeq ($(USE_COREMARK), 1)
+	CFLAGS += -Icoremark -Icoremark/riscv32-baremetal -DITERATIONS=2000 -DUSE_COREMARK_UTILS
+endif
 
 CFILE ?= demo
 CPATH ?= $(CFILE)/$(CFILE)
@@ -31,6 +46,11 @@ CPATH ?= $(CFILE)/$(CFILE)
 SRCS ?= $(CPATH).c $(DRIVERS) $(START_ASM)
 
 OUTNAME ?= $(CPATH).riscv
+
+ifeq ($(ASM), 1)
+	SRCS := $(CPATH).S
+	CFLAGS := -nostartfiles -nostdlib -march=rv32im -mabi=ilp32 -T $(COMMON_PATH)/link_asm.ld
+endif
 
 .PHONY: all
 all:

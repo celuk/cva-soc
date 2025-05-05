@@ -1,15 +1,11 @@
+#include "uart.h"
 #include "defines.h"
+//#include "core_portme.h"
 
 int main()
 {
-    int a, b, c;
-    a = 1;
-    b = 12;
-    c = a + b;
-    while (c > a)
-    {
-        c--;
-    }
+    init_uart();
     
-    return c;
+    print("Hello\n");
+    return 0;
 }

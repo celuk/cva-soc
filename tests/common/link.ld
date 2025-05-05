@@ -11,11 +11,11 @@ __DYNAMIC = 0;
 
 MEMORY
 {
-    boot : ORIGIN = 0x00000000, LENGTH = 0x00002000 /*   8 kB */
-    ram  : ORIGIN = 0x00000100, LENGTH = 0x00f01000 /* 248 kB */
+    boot : ORIGIN = 0x00000000, LENGTH = 0x00000100 /*   8 kB */
+    ram  : ORIGIN = 0x00000100, LENGTH = 0x0003F000 /* 248 kB */
 }
 
-STACK_LEN = 0x100; /* 16 kB */
+STACK_LEN = 0x4000; /* 16 kB */
 
 SECTIONS
 {
