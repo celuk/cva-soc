@@ -74,24 +74,6 @@ module air_soc (
    logic                uart_rvalid;
    logic [`MEM_W  -1:0] uart_rdata;
 
-   logic                timer_req;
-   logic [       31:0]  timer_addr;
-   logic                timer_we;
-   logic [`MEM_W/8-1:0] timer_be;
-   logic [`MEM_W  -1:0] timer_wdata;
-   logic                timer_gnt;
-   logic                timer_rvalid;
-   logic [`MEM_W  -1:0] timer_rdata;
-
-   //logic                qspi_req;
-   //logic [       31:0]  qspi_addr;
-   //logic                qspi_we;
-   //logic [`MEM_W/8-1:0] qspi_be;
-   //logic [`MEM_W  -1:0] qspi_wdata;
-   //logic                qspi_gnt;
-   //logic                qspi_rvalid;
-   //logic [`MEM_W  -1:0] qspi_rdata;
-
    localparam config_pkg::cva6_cfg_t CVA6Cfg = build_config_pkg::build_config(cva6_config_pkg::cva6_cfg);
 
    ariane_axi::req_t  cva6_axi_req;
@@ -124,11 +106,9 @@ module air_soc (
 
    // --- AXI Crossbar (XBAR) ---
    localparam int unsigned NUM_SLAVES_XBAR = 1; // CVA6
-   localparam int unsigned NUM_MASTERS_XBAR = 4; // RAM, UART, Timer, QSPI
+   localparam int unsigned NUM_MASTERS_XBAR = 2; // RAM, UART
    localparam int unsigned MASTER_RAM_IDX  = 0;
    localparam int unsigned MASTER_UART_IDX = 1;
-   localparam int unsigned MASTER_TIMR_IDX = 2;
-   localparam int unsigned MASTER_QSPI_IDX = 3;
 
    // Define AXI XBAR configuration
    localparam axi_pkg::xbar_cfg_t XbarCfg = '{
@@ -183,11 +163,7 @@ module air_soc (
       // Rule 0 -> Master Port 0 (RAM)
       '{ start_addr: `MEM_BASE_ADDR,   end_addr: `MEM_BASE_ADDR  + `MEM_RANGE,   idx: MASTER_RAM_IDX  },
       // Rule 1 -> Master Port 1 (UART)
-      '{ start_addr: `UART_BASE_ADDR,  end_addr: `UART_BASE_ADDR + `UART_RANGE,  idx: MASTER_UART_IDX },
-      // Rule 2 -> Master Port 2 (Timer)
-      '{ start_addr: `TIMER_BASE_ADDR, end_addr: `TIMER_BASE_ADDR+ `TIMER_RANGE, idx: MASTER_TIMR_IDX },
-      // Rule 3 -> Master Port 3 (QSPI)
-      '{ start_addr: `QSPI_BASE_ADDR,  end_addr: `QSPI_BASE_ADDR + `QSPI_RANGE,  idx: MASTER_QSPI_IDX }
+      '{ start_addr: `UART_BASE_ADDR,  end_addr: `UART_BASE_ADDR + `UART_RANGE,  idx: MASTER_UART_IDX }
    };
 
    // Instantiate AXI XBAR
@@ -318,34 +294,6 @@ module air_soc (
       /* Tie-offs */ .req_aw_id_o(), .req_aw_user_o(), .req_w_user_o(), .req_write_aid_i('0), .req_write_auser_i('0), .req_write_wuser_i('0), .req_ar_id_o(), .req_ar_user_o(), .req_read_aid_i('0), .req_read_auser_i('0), .rsp_write_aw_user_o(), .rsp_write_w_user_o(), .rsp_write_bank_strb_o(), .rsp_write_rid_o(), .rsp_write_ruser_o(), .rsp_write_last_o(), .rsp_write_hs_o(), .rsp_b_user_i('0), .rsp_read_ar_user_o(), .rsp_read_size_enable_o(), .rsp_read_rid_o(), .rsp_read_ruser_o(), .rsp_r_user_i('0)
    );
 
-    // Instantiate Bridge for Timer (Master Port 2)
-   axi_to_obi #(
-      .ObiCfg(AdapterObiCfg), .obi_req_t(adapter_obi_req_t), .obi_rsp_t(adapter_obi_rsp_t),
-      .obi_a_chan_t(adapter_obi_a_chan_t), .obi_r_chan_t(adapter_obi_r_chan_t),
-      .AxiAddrWidth(XbarCfg.AxiAddrWidth), .AxiDataWidth(XbarCfg.AxiDataWidth),
-      .AxiIdWidth(AXI_ID_WIDTH_XBAR_MST), .AxiUserWidth(cva6_config_pkg::CVA6ConfigDataUserWidth),
-      .MaxTrans(AXI_MAX_TRANS), .axi_req_t(xbar_mst_req_t), .axi_rsp_t(xbar_mst_resp_t)
-   ) i_axi_to_obi_timer (
-      .clk_i(clkwiz_o), .rst_ni(rst_n), .testmode_i(1'b0),
-      .axi_req_i(xbar_mst_ports_req[MASTER_TIMR_IDX]), .axi_rsp_o(xbar_mst_ports_resp[MASTER_TIMR_IDX]),
-      .obi_req_o(timer_obi_req), .obi_rsp_i(timer_obi_rsp),
-      /* Tie-offs */ .req_aw_id_o(), .req_aw_user_o(), .req_w_user_o(), .req_write_aid_i('0), .req_write_auser_i('0), .req_write_wuser_i('0), .req_ar_id_o(), .req_ar_user_o(), .req_read_aid_i('0), .req_read_auser_i('0), .rsp_write_aw_user_o(), .rsp_write_w_user_o(), .rsp_write_bank_strb_o(), .rsp_write_rid_o(), .rsp_write_ruser_o(), .rsp_write_last_o(), .rsp_write_hs_o(), .rsp_b_user_i('0), .rsp_read_ar_user_o(), .rsp_read_size_enable_o(), .rsp_read_rid_o(), .rsp_read_ruser_o(), .rsp_r_user_i('0)
-   );
-
-    // Instantiate Bridge for QSPI (Master Port 3)
-   axi_to_obi #(
-      .ObiCfg(AdapterObiCfg), .obi_req_t(adapter_obi_req_t), .obi_rsp_t(adapter_obi_rsp_t),
-      .obi_a_chan_t(adapter_obi_a_chan_t), .obi_r_chan_t(adapter_obi_r_chan_t),
-      .AxiAddrWidth(XbarCfg.AxiAddrWidth), .AxiDataWidth(XbarCfg.AxiDataWidth),
-      .AxiIdWidth(AXI_ID_WIDTH_XBAR_MST), .AxiUserWidth(cva6_config_pkg::CVA6ConfigDataUserWidth),
-      .MaxTrans(AXI_MAX_TRANS), .axi_req_t(xbar_mst_req_t), .axi_rsp_t(xbar_mst_resp_t)
-   ) i_axi_to_obi_qspi (
-      .clk_i(clkwiz_o), .rst_ni(rst_n), .testmode_i(1'b0),
-      .axi_req_i(xbar_mst_ports_req[MASTER_QSPI_IDX]), .axi_rsp_o(xbar_mst_ports_resp[MASTER_QSPI_IDX]),
-      .obi_req_o(qspi_obi_req), .obi_rsp_i(qspi_obi_rsp),
-      /* Tie-offs */ .req_aw_id_o(), .req_aw_user_o(), .req_w_user_o(), .req_write_aid_i('0), .req_write_auser_i('0), .req_write_wuser_i('0), .req_ar_id_o(), .req_ar_user_o(), .req_read_aid_i('0), .req_read_auser_i('0), .rsp_write_aw_user_o(), .rsp_write_w_user_o(), .rsp_write_bank_strb_o(), .rsp_write_rid_o(), .rsp_write_ruser_o(), .rsp_write_last_o(), .rsp_write_hs_o(), .rsp_b_user_i('0), .rsp_read_ar_user_o(), .rsp_read_size_enable_o(), .rsp_read_rid_o(), .rsp_read_ruser_o(), .rsp_r_user_i('0)
-   );
-
    // --- Peripheral Instantiation and Connections ---
 
    // Unpack OBI requests from bridges to peripherals, Pack OBI responses from peripherals to bridges
@@ -437,179 +385,6 @@ module air_soc (
       .rdata_o ( uart_rdata_o  ),
       .rx_i    ( uart_rx_i     ),
       .tx_o    ( uart_tx_o     )
-   );
-
-   // Timer (Connects to timer_obi_req/timer_obi_rsp)
-   logic        timer_req_i;
-   logic        timer_we_i;
-   logic [AdapterObiCfg.DataWidth/8-1:0] timer_be_i;
-   logic [AdapterObiCfg.AddrWidth-1:0] timer_addr_i;
-   logic [AdapterObiCfg.DataWidth-1:0] timer_wdata_i;
-   logic        timer_rvalid_o;
-   logic [AdapterObiCfg.DataWidth-1:0] timer_rdata_o;
-   logic        timer_gnt_o;
-
-   assign timer_req_i   = timer_obi_req.req;
-   assign timer_we_i    = timer_obi_req.a.we;
-   assign timer_addr_i  = timer_obi_req.a.addr;
-   assign timer_wdata_i = timer_obi_req.a.wdata;
-   assign timer_be_i    = timer_obi_req.a.be;
-
-   assign timer_obi_rsp.gnt    = timer_gnt_o;
-   assign timer_obi_rsp.rvalid = timer_rvalid_o;
-   assign timer_obi_rsp.r.rdata = timer_rdata_o;
-   assign timer_obi_rsp.r.rid   = timer_obi_req.a.aid;
-   assign timer_obi_rsp.r.err  = 1'b0;
-   // assign timer_obi_rsp.r.r_optional.ruser = '0;
-
-   timer_controller_obi timer_dut (
-      .clk_i   (clkwiz_o),
-      .rst_ni  (rst_n),
-      .req_i   ( timer_req_i   ),
-      .we_i    ( timer_we_i    ),
-      .be_i    ( timer_be_i[3:0]),
-      .addr_i  ( timer_addr_i  ),
-      .wdata_i ( timer_wdata_i ),
-      .gnt_o   ( timer_gnt_o   ),
-      .rvalid_o( timer_rvalid_o),
-      .rdata_o ( timer_rdata_o )
-   );
-
-   logic        qspi_req_i;
-   logic        qspi_we_i;
-   logic [AdapterObiCfg.DataWidth/8-1:0] qspi_be_i;
-   logic [AdapterObiCfg.AddrWidth-1:0] qspi_addr_i;
-   logic [AdapterObiCfg.DataWidth-1:0] qspi_wdata_i;
-   logic        qspi_rvalid_o;
-   logic [AdapterObiCfg.DataWidth-1:0] qspi_rdata_o;
-   logic        qspi_gnt_o;
-
-   assign qspi_req_i   = qspi_obi_req.req;
-   assign qspi_we_i    = qspi_obi_req.a.we;
-   assign qspi_addr_i  = qspi_obi_req.a.addr;
-   assign qspi_wdata_i = qspi_obi_req.a.wdata;
-   assign qspi_be_i    = qspi_obi_req.a.be;
-
-   assign qspi_obi_rsp.gnt    = qspi_gnt_o;
-   assign qspi_obi_rsp.rvalid = qspi_rvalid_o;
-   assign qspi_obi_rsp.r.rdata = qspi_rdata_o;
-   assign qspi_obi_rsp.r.rid   = qspi_obi_req.a.aid;
-   assign qspi_obi_rsp.r.err  = 1'b0; // Assuming no errors from QSPI controller
-   // assign qspi_obi_rsp.r.r_optional.ruser = '0;
-
-   `ifdef QSPI_SIM
-   wire qspi_cs_n_o;
-   wire qspi_sck_o;
-   wire [3:0] qspi_data_io;
-
-   s25fl128s #(
-      .mem_file_name("../../../tests/demo/demo.vmem"),
-      //.mem_file_name("../../../rtl/sim/s25fl128s.mem"),
-      //.mem_file_name("none"),
-      .otp_file_name("none"),
-      .AddrRANGE(24'h00FFFF)
-      
-      //,.TimingModel   ( "S25FS128SAGMFI000_F_30pF" )
-      ,.TimingModel   ( "S25FL128SAGMFI000_F_30pF" )
-      ,.UserPreload   (1)
-   ) flash (
-      // Data Inputs/Outputs
-      .SI(qspi_data_io[0]),
-      .SO(qspi_data_io[1]),
-      // Controls
-      .SCK(qspi_sck_o),
-      .CSNeg(qspi_cs_n_o),
-      //.RSTNeg(1),
-      .WPNeg(qspi_data_io[2]),
-      .HOLDNeg(qspi_data_io[3])
-   );
-   `endif
-
-   wire [3:0] qspi_data_i;
-   wire [3:0] qspi_data_o;
-   wire [1:0] qspi_out_mod_o;
-   `ifdef BASYS3
-   IOBUF
-   io_buf0
-   (
-        .I(qspi_data_o[0])
-       ,.O(qspi_data_i[0])
-       ,.T(~(|qspi_out_mod_o))
-       ,.IO(qspi_data_io[0])
-   );
-      
-   IOBUF
-   io_buf1
-   (
-        .I(qspi_data_o[1])
-       ,.O(qspi_data_i[1])
-       ,.T(~qspi_out_mod_o[1])
-       ,.IO(qspi_data_io[1])
-      );
-      
-   IOBUF
-   io_buf2
-   (
-        .I(qspi_data_o[2])
-       ,.O(qspi_data_i[2])
-       ,.T(~(&qspi_out_mod_o))
-       ,.IO(qspi_data_io[2])
-      );
-      
-   IOBUF
-   io_buf3
-   (
-        .I(qspi_data_o[3])
-       ,.O(qspi_data_i[3])
-       ,.T(~(&qspi_out_mod_o))
-       ,.IO(qspi_data_io[3])
-   );
-
-   `ifndef EXT_FLASH
-   logic qspi_sck_o;
-   STARTUPE2 #(
-		.PROG_USR("FALSE"),
-		.SIM_CCLK_FREQ(0.0)
-	) STARTUPE2_inst (
-	   .CFGCLK(),
-	   .CFGMCLK(),
-	   .EOS(),
-	   .PREQ(),
-	   .CLK(1'b0),
-	   .GSR(1'b0),
-	   .GTS(1'b0),
-	   .KEYCLEARB(1'b0),
-	   .PACK(1'b0),
-	   .USRCCLKO(qspi_sck_o),
-	   .USRCCLKTS(1'b0),
-	   .USRDONEO(1'b1),
-	   .USRDONETS(1'b1)
-	);
-   `endif
-   `else
-   assign qspi_data_io[0] = |qspi_out_mod_o   ? qspi_data_o[0] : 1'bZ;
-   assign qspi_data_io[1] = qspi_out_mod_o[1] ? qspi_data_o[1] : 1'bZ;
-   assign qspi_data_io[2] = &qspi_out_mod_o   ? qspi_data_o[2] : 1'bZ;
-   assign qspi_data_io[3] = &qspi_out_mod_o   ? qspi_data_o[3] : 1'bZ;
-   assign qspi_data_i = qspi_data_io;
-   `endif
-
-   qspi_controller_obi qspi (
-      .clk_i         (clkwiz_o),
-      .rst_ni        (rst_n),
-      .req_i         (qspi_req_i),
-      .we_i          (qspi_we_i),
-      .be_i          (qspi_be_i),
-      .addr_i        (qspi_addr_i),
-      .wdata_i       (qspi_wdata_i),
-      .gnt_o         (qspi_gnt_o),
-      .rvalid_o      (qspi_rvalid_o),
-      .rdata_o       (qspi_rdata_o),
-      .qspi_data_i   (qspi_data_i),
-      .qspi_data_o   (qspi_data_o),
-      .qspi_out_mod_o(qspi_out_mod_o),
-      .qspi_cs_n_o   (qspi_cs_n_o),
-      .qspi_sck_o    (qspi_sck_o)
    );
 
 endmodule
