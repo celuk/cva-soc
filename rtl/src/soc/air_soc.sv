@@ -194,83 +194,62 @@ module air_soc (
    assign xbar_slv_port0_req = cva6_axi_req;
    assign cva6_axi_resp      = xbar_slv_port0_resp;
 
-   logic                            ram_axi_awvalid; // ... other ram_axi_* signals ...
-   logic                            ram_axi_awready;
-   logic [XbarCfg.AxiAddrWidth-1:0] ram_axi_awaddr;
-   logic [AXI_ID_WIDTH_XBAR_MST-1:0]ram_axi_awid; // <-- Added
-   logic [2:0]                      ram_axi_awprot;
-   logic                            ram_axi_wvalid;
-   logic                            ram_axi_wready;
-   logic [XbarCfg.AxiDataWidth-1:0] ram_axi_wdata;
-   logic [XbarCfg.AxiDataWidth/8-1:0] ram_axi_wstrb;
-   logic                            ram_axi_bvalid;
-   logic                            ram_axi_bready;
-   logic [AXI_ID_WIDTH_XBAR_MST-1:0]ram_axi_bid; // <-- Added
-   logic [1:0]                      ram_axi_bresp;
-   logic                            ram_axi_arvalid;
-   logic                            ram_axi_arready;
-   logic [XbarCfg.AxiAddrWidth-1:0] ram_axi_araddr;
-   logic [AXI_ID_WIDTH_XBAR_MST-1:0]ram_axi_arid; // <-- Added
-   logic [2:0]                      ram_axi_arprot;
-   logic                            ram_axi_rvalid;
-   logic                            ram_axi_rready;
-   logic [AXI_ID_WIDTH_XBAR_MST-1:0]ram_axi_rid; // <-- Added
-   logic [XbarCfg.AxiDataWidth-1:0] ram_axi_rdata;
-   logic [1:0]                      ram_axi_rresp;
+   axi_sim_mem #(
+      .AddrWidth          ( cva6_config_pkg::CVA6ConfigAxiAddrWidth    ),
+      .DataWidth          ( cva6_config_pkg::CVA6ConfigAxiDataWidth ),
+      .IdWidth            ( cva6_config_pkg::CVA6ConfigAxiIdWidth ),
+      .UserWidth          ( cva6_config_pkg::CVA6ConfigDataUserWidth ),
+      .axi_req_t          ( ariane_axi::req_t ),
+      .axi_rsp_t          ( ariane_axi::resp_t ),
+      .WarnUninitialized  ( 1 ),
+      .ClearErrOnAccess   ( 1 ),
+      .ApplDelay          ( /* ClkPeriodSys */ 0 ),
+      .AcqDelay           ( /* ClkPeriodSys * TTest */ 0 )
+      ,.UninitializedData ("zeros")
+    ) i_sim_mem (
+      .clk_i              ( clkwiz_o   ),
+      .rst_ni             ( rst_n ),
+      .axi_req_i          ( xbar_mst_ports_req[MASTER_RAM_IDX] ),
+      .axi_rsp_o          ( xbar_mst_ports_resp[MASTER_RAM_IDX] ),
+      .mon_w_valid_o      ( ),
+      .mon_w_addr_o       ( ),
+      .mon_w_data_o       ( ),
+      .mon_w_id_o         ( ),
+      .mon_w_user_o       ( ),
+      .mon_w_beat_count_o ( ),
+      .mon_w_last_o       ( ),
+      .mon_r_valid_o      ( ),
+      .mon_r_addr_o       ( ),
+      .mon_r_data_o       ( ),
+      .mon_r_id_o         ( ),
+      .mon_r_user_o       ( ),
+      .mon_r_beat_count_o ( ),
+      .mon_r_last_o       ( )
+    );
 
-   // Assign signals from XBAR output request struct to RAM AXI inputs
-   assign ram_axi_awvalid = xbar_mst_ports_req[MASTER_RAM_IDX].aw_valid;
-   assign ram_axi_awaddr  = xbar_mst_ports_req[MASTER_RAM_IDX].aw.addr;
-   assign ram_axi_awid    = xbar_mst_ports_req[MASTER_RAM_IDX].aw.id; // <-- Connect ID
-   assign ram_axi_awprot  = xbar_mst_ports_req[MASTER_RAM_IDX].aw.prot;
-   // ... W channel assignments ...
-   assign ram_axi_wvalid  = xbar_mst_ports_req[MASTER_RAM_IDX].w_valid;
-   assign ram_axi_wdata   = xbar_mst_ports_req[MASTER_RAM_IDX].w.data;
-   assign ram_axi_wstrb   = xbar_mst_ports_req[MASTER_RAM_IDX].w.strb;
-   // ... AR channel assignments ...
-   assign ram_axi_arvalid = xbar_mst_ports_req[MASTER_RAM_IDX].ar_valid;
-   assign ram_axi_araddr  = xbar_mst_ports_req[MASTER_RAM_IDX].ar.addr;
-   assign ram_axi_arid    = xbar_mst_ports_req[MASTER_RAM_IDX].ar.id; // <-- Connect ID
-   assign ram_axi_arprot  = xbar_mst_ports_req[MASTER_RAM_IDX].ar.prot;
-   // ... Ready assignments ...
-   assign ram_axi_bready  = xbar_mst_ports_req[MASTER_RAM_IDX].b_ready;
-   assign ram_axi_rready  = xbar_mst_ports_req[MASTER_RAM_IDX].r_ready;
+   initial begin
+      $readmemh("../../../tests/demo/demo.vmem", i_sim_mem.mem);
+   end
 
-   // Assign signals from RAM AXI outputs to XBAR input response struct
-   assign xbar_mst_ports_resp[MASTER_RAM_IDX].aw_ready = ram_axi_awready;
-   assign xbar_mst_ports_resp[MASTER_RAM_IDX].w_ready  = ram_axi_wready;
-   assign xbar_mst_ports_resp[MASTER_RAM_IDX].ar_ready = ram_axi_arready;
-   assign xbar_mst_ports_resp[MASTER_RAM_IDX].b_valid  = ram_axi_bvalid;
-   assign xbar_mst_ports_resp[MASTER_RAM_IDX].b.id     = ram_axi_bid; // <-- Connect ID
-   assign xbar_mst_ports_resp[MASTER_RAM_IDX].b.resp   = ram_axi_bresp;
-   assign xbar_mst_ports_resp[MASTER_RAM_IDX].r_valid  = ram_axi_rvalid;
-   assign xbar_mst_ports_resp[MASTER_RAM_IDX].r.id     = ram_axi_rid; // <-- Connect ID
-   assign xbar_mst_ports_resp[MASTER_RAM_IDX].r.data   = ram_axi_rdata;
-   assign xbar_mst_ports_resp[MASTER_RAM_IDX].r.resp   = ram_axi_rresp;
-   assign xbar_mst_ports_resp[MASTER_RAM_IDX].r.last   = 1'b1; // AXI-Lite
-
-   // Instantiate the AXI RAM module
-   ram32_axi #(
-       .AXI_ID_WIDTH  (AXI_ID_WIDTH_XBAR_MST), // <-- Pass correct ID width
-       .AXI_ADDR_WIDTH(XbarCfg.AxiAddrWidth),
-       .AXI_DATA_WIDTH(XbarCfg.AxiDataWidth),
-       .RAM_DEPTH     (`RAM_SIZE / (XbarCfg.AxiDataWidth/8)),
-       .INIT_FILE     (`RAM_FPATH)
+   ram32_obi #(
+      .SIZE     (`RAM_SIZE / 4),
+      .INIT_FILE(`RAM_FPATH)
    ) main_memory (
-       .clk_i   ( clkwiz_o ), .rst_ni  ( rst_n ),
-       .s_axi_awvalid(ram_axi_awvalid), .s_axi_awready(ram_axi_awready),
-       .s_axi_awaddr (ram_axi_awaddr),  .s_axi_awid   (ram_axi_awid), // <-- Connect ID
-       .s_axi_awprot (ram_axi_awprot),
-       .s_axi_wvalid (ram_axi_wvalid),  .s_axi_wready (ram_axi_wready),
-       .s_axi_wdata  (ram_axi_wdata),   .s_axi_wstrb  (ram_axi_wstrb),
-       .s_axi_bvalid (ram_axi_bvalid),  .s_axi_bready (ram_axi_bready),
-       .s_axi_bid    (ram_axi_bid),     .s_axi_bresp  (ram_axi_bresp), // <-- Connect ID
-       .s_axi_arvalid(ram_axi_arvalid), .s_axi_arready(ram_axi_arready),
-       .s_axi_araddr (ram_axi_araddr),  .s_axi_arid   (ram_axi_arid), // <-- Connect ID
-       .s_axi_arprot (ram_axi_arprot),
-       .s_axi_rvalid (ram_axi_rvalid),  .s_axi_rready (ram_axi_rready),
-       .s_axi_rid    (ram_axi_rid),     .s_axi_rdata  (ram_axi_rdata), // <-- Connect ID
-       .s_axi_rresp  (ram_axi_rresp)
+      .clk_i   (),
+      .rst_ni  (),
+      .req_i   (       ),
+      .we_i    (        ),
+      .be_i    (        ),
+      .addr_i  (      ),
+      .wdata_i (     ),
+      .rvalid_o(    ),
+      .rdata_o (     )
+      
+      ,.gnt_o   (       )
+
+      ,.program_rx_i   (    )
+      ,.system_reset_o ( )
+      ,.prog_mode_led_o( )
    );
 
    logic                            uart_axi_awvalid;
