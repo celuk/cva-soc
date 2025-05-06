@@ -15,7 +15,7 @@ with open(binFile, "rb") as f:
 	assert len(binData) < 4*maxlimit
 	assert len(binData) % 4 == 0
 
-	hexFileName = binFile[:-4] + "_static.hex"
+	hexFileName = binFile[:-4] + ".hex"
 	hexFile = open(hexFileName, 'w')
 
 	for i in range(maxlimit):
