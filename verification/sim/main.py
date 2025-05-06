@@ -70,6 +70,7 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
         and not str(path).rsplit('/', 1)[-1].endswith("riscv.sv")
         and "deprecated" not in str(path)
         and not str(path).rsplit('/', 1)[-1].startswith("hpdcache_wrapper.sv")
+        and not str(path).rsplit('/', 1)[-1].startswith("cva6_op_hpdcache_params_pkg.sv")
         and "hpdcache_to_l15" not in str(path)
         and "wt_l15_adapter" not in str(path)
         and "tb_wb_dcache" not in str(path)

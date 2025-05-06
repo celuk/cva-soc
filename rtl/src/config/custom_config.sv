@@ -9,6 +9,8 @@ package cva6_config_pkg;
   localparam CVA6ConfigAxiDataWidth = 32;
   localparam CVA6ConfigDataUserWidth = 32;
 
+  localparam config_pkg::cache_type_t CVA6ConfigDcacheType = config_pkg::WT;
+
   localparam config_pkg::cva6_user_cfg_t cva6_cfg = '{
       XLEN: unsigned'(CVA6ConfigXlen),
       VLEN: unsigned'(32),
@@ -77,7 +79,7 @@ package cva6_config_pkg;
       IcacheByteSize: unsigned'(2048),
       IcacheSetAssoc: unsigned'(4),
       IcacheLineWidth: unsigned'(128),
-      DCacheType: config_pkg::HPDCACHE_WT,
+      DCacheType: CVA6ConfigDcacheType,
       DcacheByteSize: unsigned'(2048),
       DcacheSetAssoc: unsigned'(4),
       DcacheLineWidth: unsigned'(128),
