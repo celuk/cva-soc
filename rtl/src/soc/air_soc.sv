@@ -106,9 +106,10 @@ module air_soc (
 
    // --- AXI Crossbar (XBAR) ---
    localparam int unsigned NUM_SLAVES_XBAR = 1; // CVA6
-   localparam int unsigned NUM_MASTERS_XBAR = 2; // RAM, UART
+   localparam int unsigned NUM_MASTERS_XBAR = 3; // RAM, UART, TIMER
    localparam int unsigned MASTER_RAM_IDX  = 0;
    localparam int unsigned MASTER_UART_IDX = 1;
+   localparam int unsigned MASTER_TIMR_IDX = 2;
 
    // Define AXI XBAR configuration
    localparam axi_pkg::xbar_cfg_t XbarCfg = '{
@@ -146,7 +147,8 @@ module air_soc (
       // Rule 0 -> Master Port 0 (RAM)
       '{ start_addr: `MEM_BASE_ADDR,   end_addr: `MEM_BASE_ADDR  + `MEM_RANGE,   idx: MASTER_RAM_IDX  },
       // Rule 1 -> Master Port 1 (UART)
-      '{ start_addr: `UART_BASE_ADDR,  end_addr: `UART_BASE_ADDR + `UART_RANGE,  idx: MASTER_UART_IDX }
+      '{ start_addr: `UART_BASE_ADDR,  end_addr: `UART_BASE_ADDR + `UART_RANGE,  idx: MASTER_UART_IDX },
+      '{ start_addr: `TIMER_BASE_ADDR, end_addr: `TIMER_BASE_ADDR+ `TIMER_RANGE, idx: MASTER_TIMR_IDX }
    };
 
    // Instantiate AXI XBAR
@@ -328,6 +330,88 @@ module air_soc (
        .s_axi_rid    (uart_axi_rid),     .s_axi_rdata  (uart_axi_rdata), // <-- Connect ID
        .s_axi_rresp  (uart_axi_rresp),
        .rx_i    ( uart_rx_i     ), .tx_o    ( uart_tx_o     )
+   );
+
+   logic                            timer_axi_awvalid;
+   logic                            timer_axi_awready;
+   logic [XbarCfg.AxiAddrWidth-1:0] timer_axi_awaddr;
+   logic [AXI_ID_WIDTH_XBAR_MST-1:0]timer_axi_awid;
+   logic [2:0]                      timer_axi_awprot;
+   logic                            timer_axi_wvalid;
+   logic                            timer_axi_wready;
+   logic [XbarCfg.AxiDataWidth-1:0] timer_axi_wdata;
+   logic [XbarCfg.AxiDataWidth/8-1:0] timer_axi_wstrb;
+   logic                            timer_axi_bvalid;
+   logic                            timer_axi_bready;
+   logic [AXI_ID_WIDTH_XBAR_MST-1:0]timer_axi_bid;
+   logic [1:0]                      timer_axi_bresp;
+   logic                            timer_axi_arvalid;
+   logic                            timer_axi_arready;
+   logic [XbarCfg.AxiAddrWidth-1:0] timer_axi_araddr;
+   logic [AXI_ID_WIDTH_XBAR_MST-1:0]timer_axi_arid;
+   logic [2:0]                      timer_axi_arprot;
+   logic                            timer_axi_rvalid;
+   logic                            timer_axi_rready;
+   logic [AXI_ID_WIDTH_XBAR_MST-1:0]timer_axi_rid;
+   logic [XbarCfg.AxiDataWidth-1:0] timer_axi_rdata;
+   logic [1:0]                      timer_axi_rresp;
+
+   assign timer_axi_awvalid = xbar_mst_ports_req[MASTER_TIMR_IDX].aw_valid;
+   assign timer_axi_awaddr  = xbar_mst_ports_req[MASTER_TIMR_IDX].aw.addr;
+   assign timer_axi_awid    = xbar_mst_ports_req[MASTER_TIMR_IDX].aw.id;
+   assign timer_axi_awprot  = xbar_mst_ports_req[MASTER_TIMR_IDX].aw.prot;
+   assign timer_axi_wvalid  = xbar_mst_ports_req[MASTER_TIMR_IDX].w_valid;
+   assign timer_axi_wdata   = xbar_mst_ports_req[MASTER_TIMR_IDX].w.data;
+   assign timer_axi_wstrb   = xbar_mst_ports_req[MASTER_TIMR_IDX].w.strb;
+   assign timer_axi_arvalid = xbar_mst_ports_req[MASTER_TIMR_IDX].ar_valid;
+   assign timer_axi_araddr  = xbar_mst_ports_req[MASTER_TIMR_IDX].ar.addr;
+   assign timer_axi_arid    = xbar_mst_ports_req[MASTER_TIMR_IDX].ar.id;
+   assign timer_axi_arprot  = xbar_mst_ports_req[MASTER_TIMR_IDX].ar.prot;
+   assign timer_axi_bready  = xbar_mst_ports_req[MASTER_TIMR_IDX].b_ready;
+   assign timer_axi_rready  = xbar_mst_ports_req[MASTER_TIMR_IDX].r_ready;
+
+   assign xbar_mst_ports_resp[MASTER_TIMR_IDX].aw_ready = timer_axi_awready;
+   assign xbar_mst_ports_resp[MASTER_TIMR_IDX].w_ready  = timer_axi_wready;
+   assign xbar_mst_ports_resp[MASTER_TIMR_IDX].ar_ready = timer_axi_arready;
+   assign xbar_mst_ports_resp[MASTER_TIMR_IDX].b_valid  = timer_axi_bvalid;
+   assign xbar_mst_ports_resp[MASTER_TIMR_IDX].b.id     = timer_axi_bid;
+   assign xbar_mst_ports_resp[MASTER_TIMR_IDX].b.resp   = timer_axi_bresp;
+   assign xbar_mst_ports_resp[MASTER_TIMR_IDX].r_valid  = timer_axi_rvalid;
+   assign xbar_mst_ports_resp[MASTER_TIMR_IDX].r.id     = timer_axi_rid;
+   assign xbar_mst_ports_resp[MASTER_TIMR_IDX].r.data   = timer_axi_rdata;
+   assign xbar_mst_ports_resp[MASTER_TIMR_IDX].r.resp   = timer_axi_rresp;
+   assign xbar_mst_ports_resp[MASTER_TIMR_IDX].r.last   = 1'b1;
+
+   timer_controller_axi #(
+       .AXI_ID_WIDTH  (AXI_ID_WIDTH_XBAR_MST),
+       .AXI_ADDR_WIDTH(XbarCfg.AxiAddrWidth),
+       .AXI_DATA_WIDTH(XbarCfg.AxiDataWidth)
+   ) timer_dut (
+       .clk_i   ( clkwiz_o      ),
+       .rst_ni  ( rst_n         ),
+       .s_axi_awvalid(timer_axi_awvalid),
+       .s_axi_awready(timer_axi_awready),
+       .s_axi_awaddr (timer_axi_awaddr),
+       .s_axi_awid   (timer_axi_awid),
+       .s_axi_awprot (timer_axi_awprot),
+       .s_axi_wvalid (timer_axi_wvalid),
+       .s_axi_wready (timer_axi_wready),
+       .s_axi_wdata  (timer_axi_wdata),
+       .s_axi_wstrb  (timer_axi_wstrb),
+       .s_axi_bvalid (timer_axi_bvalid),
+       .s_axi_bready (timer_axi_bready),
+       .s_axi_bid    (timer_axi_bid),
+       .s_axi_bresp  (timer_axi_bresp),
+       .s_axi_arvalid(timer_axi_arvalid),
+       .s_axi_arready(timer_axi_arready),
+       .s_axi_araddr (timer_axi_araddr),
+       .s_axi_arid   (timer_axi_arid),
+       .s_axi_arprot (timer_axi_arprot),
+       .s_axi_rvalid (timer_axi_rvalid),
+       .s_axi_rready (timer_axi_rready),
+       .s_axi_rid    (timer_axi_rid),
+       .s_axi_rdata  (timer_axi_rdata),
+       .s_axi_rresp  (timer_axi_rresp)
    );
 
 endmodule
