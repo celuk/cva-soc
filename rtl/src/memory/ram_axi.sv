@@ -1,233 +1,169 @@
-// Simple single-port RAM wrapped as an AXI4-Lite Slave
-// Compatible with AXI4 Masters like CVA6
-// Assumes single-cycle read latency
-
+// ram32_axi.sv
 `timescale 1ns / 1ps
 
-import axi_pkg::*; // Import standard AXI definitions (RESP_OKAY etc.)
+import axi_pkg::*; // Assuming axi_pkg is available
 
-module ram_axi #(
+module ram32_axi #(
+    parameter int unsigned AXI_ID_WIDTH   = 4, // Example ID width - **MUST MATCH XBAR MASTER PORT ID WIDTH**
     parameter int unsigned AXI_ADDR_WIDTH = 32,
     parameter int unsigned AXI_DATA_WIDTH = 32,
-    parameter int unsigned AXI_ID_WIDTH   = 4,  // Match CVA6 ID width
-    // Internal RAM Parameters
-    parameter SIZE = 16384, // Size in number of words (e.g., 16384 words * 4 bytes = 64KB)
-    parameter INIT_FILE = ""
-    // USE_BOOTROM parameter is removed as initialization is handled by INIT_FILE
+    parameter int unsigned RAM_DEPTH      = 16384,
+    parameter string       INIT_FILE      = ""
 ) (
-    // AXI Clock and Reset
-    input  logic ACLK,
-    input  logic ARESETn,
+    // Clock and Reset
+    input  logic clk_i,
+    input  logic rst_ni,
 
-    // AXI Write Address Channel
-    input  logic [AXI_ID_WIDTH-1:0]   AWID,
-    input  logic [AXI_ADDR_WIDTH-1:0] AWADDR,
-    input  logic                      AWVALID,
-    output logic                      AWREADY,
-    // AXI4-Lite ignores AWLEN, AWSIZE, AWBURST, AWLOCK, AWCACHE, AWPROT, AWQOS, AWREGION
-
-    // AXI Write Data Channel
-    input  logic [AXI_DATA_WIDTH-1:0] WDATA,
-    input  logic [AXI_DATA_WIDTH/8-1:0] WSTRB,
-    input  logic                      WVALID,
-    output logic                      WREADY,
-    // AXI4-Lite ignores WLAST
-
-    // AXI Write Response Channel
-    output logic [AXI_ID_WIDTH-1:0]   BID,
-    output logic [1:0]                BRESP,
-    output logic                      BVALID,
-    input  logic                      BREADY,
-
-    // AXI Read Address Channel
-    input  logic [AXI_ID_WIDTH-1:0]   ARID,
-    input  logic [AXI_ADDR_WIDTH-1:0] ARADDR,
-    input  logic                      ARVALID,
-    output logic                      ARREADY,
-    // AXI4-Lite ignores ARLEN, ARSIZE, ARBURST, ARLOCK, ARCACHE, ARPROT, ARQOS, ARREGION
-
-    // AXI Read Data Channel
-    output logic [AXI_ID_WIDTH-1:0]   RID,
-    output logic [AXI_DATA_WIDTH-1:0] RDATA,
-    output logic [1:0]                RRESP,
-    output logic                      RVALID,
-    input  logic                      RREADY
-    // AXI4-Lite ignores RLAST
+    // AXI4-Lite Slave Interface (with IDs)
+    input  logic                            s_axi_awvalid,
+    output logic                            s_axi_awready,
+    input  logic [AXI_ADDR_WIDTH-1:0]       s_axi_awaddr,
+    input  logic [AXI_ID_WIDTH-1:0]         s_axi_awid,   // <-- Added
+    input  logic [2:0]                      s_axi_awprot, // Ignored
+    input  logic                            s_axi_wvalid,
+    output logic                            s_axi_wready,
+    input  logic [AXI_DATA_WIDTH-1:0]       s_axi_wdata,
+    input  logic [AXI_DATA_WIDTH/8-1:0]     s_axi_wstrb,
+    output logic                            s_axi_bvalid,
+    input  logic                            s_axi_bready,
+    output logic [AXI_ID_WIDTH-1:0]         s_axi_bid,    // <-- Added
+    output logic [1:0]                      s_axi_bresp,
+    input  logic                            s_axi_arvalid,
+    output logic                            s_axi_arready,
+    input  logic [AXI_ADDR_WIDTH-1:0]       s_axi_araddr,
+    input  logic [AXI_ID_WIDTH-1:0]         s_axi_arid,   // <-- Added
+    input  logic [2:0]                      s_axi_arprot, // Ignored
+    output logic                            s_axi_rvalid,
+    input  logic                            s_axi_rready,
+    output logic [AXI_ID_WIDTH-1:0]         s_axi_rid,    // <-- Added
+    output logic [AXI_DATA_WIDTH-1:0]       s_axi_rdata,
+    output logic [1:0]                      s_axi_rresp
 );
 
-    // Calculate internal address width based on SIZE (number of words)
-    localparam int RAM_ADDR_W = $clog2(SIZE);
-    // Check if AXI address range is sufficient
-    initial begin
-        if (RAM_ADDR_W + 2 > AXI_ADDR_WIDTH) begin
-            $fatal(1,"AXI_ADDR_WIDTH (%0d) is too small for RAM SIZE (%0d words -> requires %0d bits)",
-                     AXI_ADDR_WIDTH, SIZE, RAM_ADDR_W + 2);
-        end
+    localparam int ADDR_W = $clog2(RAM_DEPTH);
+    localparam int DATA_BYTES = AXI_DATA_WIDTH / 8;
+
+    initial begin // Sanity checks
+        if (AXI_ID_WIDTH == 0) $warning("ram32_axi: AXI_ID_WIDTH is 0. Ensure this matches the interconnect.");
+        if (ADDR_W > AXI_ADDR_WIDTH - $clog2(DATA_BYTES)) $fatal(1,"RAM_DEPTH is too large for AXI_ADDR_WIDTH");
     end
 
-    // Internal Memory Array (Core logic from ram32)
-    logic [AXI_DATA_WIDTH-1:0] ram [SIZE*4];
-    logic [RAM_ADDR_W-1:0]     mem_addr_idx; // Internal index into the ram array
+    logic [AXI_DATA_WIDTH-1:0] ram [RAM_DEPTH-1:0];
+    logic [ADDR_W-1:0] ram_addr_idx;
+    logic [ADDR_W-1:0] read_addr_idx;
+    assign ram_addr_idx = s_axi_awaddr[ADDR_W + $clog2(DATA_BYTES) - 1 : $clog2(DATA_BYTES)];
+    assign read_addr_idx = s_axi_araddr[ADDR_W + $clog2(DATA_BYTES) - 1 : $clog2(DATA_BYTES)];
 
-    // Internal state registers and signals
-    logic [AXI_ADDR_WIDTH-1:0] awaddr_reg;
-    logic [AXI_ID_WIDTH-1:0]   awid_reg;
-    logic                      aw_received; // Flag: AW phase done
-
-    logic [AXI_ADDR_WIDTH-1:0] araddr_reg;
-    logic [AXI_ID_WIDTH-1:0]   arid_reg;
-    logic                      ar_received; // Flag: AR phase done
-
-    logic [AXI_DATA_WIDTH-1:0] ram_read_data_reg; // Register to hold read data for output
-    logic                      read_data_valid;   // Flag: Internal read data is ready
-
-    // Internal write control
-    logic                      write_en; // Internal signal to trigger RAM write
-
-    // Assign internal memory index based on latched address
-    // Assuming word addressing (bottom 2 bits ignored for word index)
-    assign mem_addr_idx = (aw_received ? awaddr_reg[RAM_ADDR_W-1+2:2] : araddr_reg[RAM_ADDR_W-1+2:2]);
-
-    //-----------------------------------------------------
-    // AXI Write Logic
-    //-----------------------------------------------------
-
-    // AWREADY logic: Ready to accept address if not already processing a write
-    // and B channel handshake is complete (BVALID is low or BREADY is high)
-    assign AWREADY = !aw_received && (!BVALID || BREADY);
-
-    // WREADY logic: Ready to accept data only after address is received
-    assign WREADY = aw_received && (!BVALID || BREADY);
-
-    // Latch AW channel info when handshake happens (AWVALID & AWREADY)
-    always @(posedge ACLK or negedge ARESETn) begin
-        if (!ARESETn) begin
-            awaddr_reg  <= '0;
-            awid_reg    <= '0;
-            aw_received <= 1'b0;
-        end else begin
-            if (AWVALID && AWREADY) begin
-                awaddr_reg  <= AWADDR;
-                awid_reg    <= AWID;
-                aw_received <= 1'b1;
-            end else if (BVALID && BREADY) begin
-                // Clear flag when B channel handshake completes
-                aw_received <= 1'b0;
-            end
-        end
-    end
-
-    // Internal write enable generation: Trigger write one cycle after W channel handshake
-    always @(posedge ACLK or negedge ARESETn) begin
-        if (!ARESETn) begin
-            write_en <= 1'b0;
-        end else begin
-            // Assert write_en if W channel handshake happens AND AW was received
-            write_en <= WVALID && WREADY && aw_received;
-        end
-    end
-
-    // Perform the synchronous RAM write (adapted from ram32)
-    always @(posedge ACLK) begin
-        if (write_en) begin // Use internal write enable signal
-            // Use latched address (awaddr_reg) and current WDATA/WSTRB
-            for (int i = 0; i < (AXI_DATA_WIDTH / 8); i++) begin
-                if (WSTRB[i] == 1'b1) begin
-                    ram[awaddr_reg[RAM_ADDR_W-1+2:2]][i*8 +: 8] <= WDATA[i*8 +: 8];
-                end
-            end
-        end
-    end
-
-    // B channel logic
+    // Registers for AXI state and IDs
+    logic aw_transfer_pending;
+    logic ar_transfer_pending;
+    logic [AXI_ID_WIDTH-1:0] reg_awid;
+    logic [AXI_ID_WIDTH-1:0] reg_arid;
+    logic [AXI_DATA_WIDTH-1:0] read_data_reg;
     logic bvalid_reg;
-    logic [AXI_ID_WIDTH-1:0] bid_reg;
+    logic rvalid_reg;
 
-    assign BVALID = bvalid_reg;
-    assign BID    = bid_reg;
-    assign BRESP  = axi_pkg::RESP_OKAY; // Always OKAY for this simple RAM
+    // --- Write Channel Logic ---
+    assign s_axi_awready = !aw_transfer_pending;
+    assign s_axi_wready  = aw_transfer_pending;
 
-    always @(posedge ACLK or negedge ARESETn) begin
-        if (!ARESETn) begin
-            bvalid_reg <= 1'b0;
-            bid_reg    <= '0;
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+        if (!rst_ni) begin
+            aw_transfer_pending <= 1'b0;
+            reg_awid <= '0;
         end else begin
-            if (write_en) begin // BVALID goes high one cycle after internal write starts
+            if (s_axi_awvalid && s_axi_awready) begin
+                aw_transfer_pending <= 1'b1;
+                reg_awid <= s_axi_awid; // Capture AWID
+            end else if (s_axi_wvalid && s_axi_wready) begin
+                aw_transfer_pending <= 1'b0;
+            end
+        end
+    end
+
+    always @(posedge clk_i) begin // Memory write
+        if (s_axi_wvalid && s_axi_wready) begin
+             for (int i = 0; i < DATA_BYTES; i++) begin
+                 if (s_axi_wstrb[i]) ram[ram_addr_idx][i*8 +: 8] <= s_axi_wdata[i*8 +: 8];
+             end
+        end
+    end
+
+    // --- Write Response Channel Logic (B) ---
+    assign s_axi_bvalid = bvalid_reg;
+    assign s_axi_bresp  = RESP_OKAY;
+    assign s_axi_bid    = reg_awid; // Return captured AWID
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+        if (!rst_ni) begin
+            bvalid_reg <= 1'b0;
+        end else begin
+            if (s_axi_wvalid && s_axi_wready) begin
                 bvalid_reg <= 1'b1;
-                bid_reg    <= awid_reg; // Use latched AWID
-            end else if (BVALID && BREADY) begin // Handshake complete
+            end else if (s_axi_bready && s_axi_bvalid) begin
                 bvalid_reg <= 1'b0;
             end
         end
     end
 
-    //-----------------------------------------------------
-    // AXI Read Logic
-    //-----------------------------------------------------
+    // --- Read Channel Logic ---
+    assign s_axi_arready = !ar_transfer_pending;
+    assign s_axi_rresp   = RESP_OKAY;
+    assign s_axi_rvalid  = rvalid_reg;
+    assign s_axi_rdata   = read_data_reg;
+    assign s_axi_rid     = reg_arid; // Return captured ARID
 
-    // ARREADY logic: Ready to accept address if not already processing a read
-    // and R channel handshake is complete (RVALID is low or RREADY is high)
-    assign ARREADY = !ar_received && (!RVALID || RREADY);
+    always @(posedge clk_i or negedge rst_ni) begin // Read Address and Data Path
+         if (!rst_ni) begin
+             ar_transfer_pending <= 1'b0;
+             read_data_reg <= '0;
+             reg_arid <= '0;
+         end else begin
+             if (s_axi_arvalid && s_axi_arready) begin
+                 ar_transfer_pending <= 1'b1;
+                 read_data_reg <= ram[read_addr_idx]; // Read data combinationally
+                 reg_arid <= s_axi_arid; // Capture ARID
+             end else if (s_axi_rready && s_axi_rvalid) begin // If response accepted this cycle
+                 ar_transfer_pending <= 1'b0;
+                 read_data_reg <= '0;
+                 // Keep reg_arid until next AR transfer
+             end else if (ar_transfer_pending) begin
+                 // Hold read data if RVALID is asserted but RREADY is not yet high
+                 read_data_reg <= read_data_reg;
+                 reg_arid <= reg_arid; // Hold ID too
+             end else begin
+                 read_data_reg <= '0;
+             end
+         end
+     end
 
-    // Latch AR channel info when handshake happens (ARVALID & ARREADY)
-    always @(posedge ACLK or negedge ARESETn) begin
-        if (!ARESETn) begin
-            araddr_reg  <= '0;
-            arid_reg    <= '0;
-            ar_received <= 1'b0;
-        end else begin
-            if (ARVALID && ARREADY) begin
-                araddr_reg  <= ARADDR;
-                arid_reg    <= ARID;
-                ar_received <= 1'b1;
-            end else if (RVALID && RREADY) begin
-                 // Clear flag when R channel handshake completes
-                 ar_received <= 1'b0;
-            end
-        end
+     always_ff @(posedge clk_i or negedge rst_ni) begin // Read Valid Path
+         if (!rst_ni) begin
+             rvalid_reg <= 1'b0;
+         end else begin
+             if (s_axi_arvalid && s_axi_arready) begin
+                 rvalid_reg <= 1'b1; // Assert RVALID next cycle
+             end else if (s_axi_rready && s_axi_rvalid) begin
+                 rvalid_reg <= 1'b0; // Deassert RVALID next cycle
+             end else if (rvalid_reg) begin
+                 // Keep RVALID asserted if master is not ready
+                 rvalid_reg <= 1'b1;
+             end else begin
+                 rvalid_reg <= 1'b0;
+             end
+         end
+     end
+
+    generate
+    if (INIT_FILE != "") begin: use_init_file
+      initial
+        $readmemh(INIT_FILE, ram, 0, RAM_DEPTH-1);
+    end else begin: init_bram_to_zero
+      integer ram_index;
+      initial
+        for (ram_index = 0; ram_index < RAM_DEPTH; ram_index = ram_index + 1)
+          ram[ram_index] = {(32){1'b0}};
     end
-
-    // Internal synchronous read data capture (1 cycle latency)
-    // Replicates behavior of original `rvalid_o <= req_i`
-    always @(posedge ACLK or negedge ARESETn) begin
-        if (!ARESETn) begin
-            ram_read_data_reg <= '0;
-            read_data_valid   <= 1'b0;
-        end else begin
-            if (ARVALID && ARREADY) begin
-                // Start read access on the cycle address is accepted
-                ram_read_data_reg <= ram[ARADDR[RAM_ADDR_W-1+2:2]]; // Read from ram
-                read_data_valid   <= 1'b1; // Data will be valid NEXT cycle
-            end else if (RVALID && RREADY) begin
-                // Deassert valid once handshake completes
-                read_data_valid <= 1'b0;
-            end else if (!ar_received) begin
-                 // Deassert if no read is active
-                 read_data_valid <= 1'b0;
-            end
-            // Note: ram_read_data_reg holds the value during RVALID assertion
-        end
-    end
-
-    // R channel logic
-    assign RVALID = read_data_valid; // RVALID is high when internal read data is ready
-    assign RDATA  = ram_read_data_reg; // Output the registered read data
-    assign RID    = arid_reg; // Use latched ARID
-    assign RRESP  = axi_pkg::RESP_OKAY; // Always OKAY
-
-    //-----------------------------------------------------
-    // Memory Initialization (Core logic from ram32)
-    //-----------------------------------------------------
-    initial begin
-        for (int i = 0; i < SIZE; i++) begin
-            ram[i] = {AXI_DATA_WIDTH{1'b0}}; // Use parameter for width
-        end
-        if (INIT_FILE != "") begin
-            $display("AXI RAM: Initializing memory from %s", INIT_FILE);
-            $readmemh(INIT_FILE, ram);
-        end else begin
-            $display("AXI RAM: No INIT_FILE specified, memory initialized to zeros.");
-        end
-    end
+    endgenerate
 
 endmodule
