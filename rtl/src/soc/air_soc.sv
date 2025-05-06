@@ -184,6 +184,31 @@ module air_soc (
       .axi_rsp_o          ( xbar_mst_ports_resp[MASTER_RAM_IDX] )
    );
 
+   initial begin
+      $readmemh("../../../tests/coremark/coremark_baremetal.hex", main_memory2.ram);
+   end
+
+   ram32_obi #(
+      .SIZE     (`RAM_SIZE / 4),
+      .INIT_FILE(`RAM_FPATH)
+   ) main_memory2 (
+      .clk_i   (),
+      .rst_ni  (),
+      .req_i   (       ),
+      .we_i    (        ),
+      .be_i    (        ),
+      .addr_i  (      ),
+      .wdata_i (     ),
+      .rvalid_o(    ),
+      .rdata_o (     )
+      
+      ,.gnt_o   (       )
+
+      ,.program_rx_i   (    )
+      ,.system_reset_o ( )
+      ,.prog_mode_led_o( )
+   );
+
    logic                            uart_axi_awvalid;
    logic                            uart_axi_awready;
    logic [XbarCfg.AxiAddrWidth-1:0] uart_axi_awaddr;
