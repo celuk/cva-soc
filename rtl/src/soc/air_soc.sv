@@ -47,33 +47,6 @@ module air_soc (
    wire rst_n = rst_ni & system_reset_o;
    `endif
 
-   logic               mem_gnt;
-   logic               mem_req;
-   logic [       31:0] mem_addr;
-   logic               mem_we;
-   logic [        3:0] mem_be;
-   logic [       31:0] mem_wdata;
-   logic               mem_rvalid;
-   logic [       31:0] mem_rdata;
-
-   logic               main_mem_gnt;
-   logic               main_mem_req;
-   logic [       31:0] main_mem_addr;
-   logic               main_mem_we;
-   logic [        3:0] main_mem_be;
-   logic [       31:0] main_mem_wdata;
-   logic               main_mem_rvalid;
-   logic [       31:0] main_mem_rdata;
-
-   logic                uart_req;
-   logic [       31:0]  uart_addr;
-   logic                uart_we;
-   logic [`MEM_W/8-1:0] uart_be;
-   logic [`MEM_W  -1:0] uart_wdata;
-   logic                uart_gnt;
-   logic                uart_rvalid;
-   logic [`MEM_W  -1:0] uart_rdata;
-
    localparam config_pkg::cva6_cfg_t CVA6Cfg = build_config_pkg::build_config(cva6_config_pkg::cva6_cfg);
 
    ariane_axi::req_t  cva6_axi_req;
@@ -196,62 +169,19 @@ module air_soc (
    assign xbar_slv_port0_req = cva6_axi_req;
    assign cva6_axi_resp      = xbar_slv_port0_resp;
 
-   axi_sim_mem #(
+   axi_synth_mem #(
       .AddrWidth          ( cva6_config_pkg::CVA6ConfigAxiAddrWidth    ),
       .DataWidth          ( cva6_config_pkg::CVA6ConfigAxiDataWidth ),
       .IdWidth            ( cva6_config_pkg::CVA6ConfigAxiIdWidth ),
       .UserWidth          ( cva6_config_pkg::CVA6ConfigDataUserWidth ),
-      .axi_req_t          ( ariane_axi::req_t ),
-      .axi_rsp_t          ( ariane_axi::resp_t ),
-      .WarnUninitialized  ( 1 ),
-      .ClearErrOnAccess   ( 1 ),
-      .ApplDelay          ( /* ClkPeriodSys */ 0 ),
-      .AcqDelay           ( /* ClkPeriodSys * TTest */ 0 )
-      ,.UninitializedData ("zeros")
-    ) i_sim_mem (
-      .clk_i              ( clkwiz_o   ),
-      .rst_ni             ( rst_n ),
-      .axi_req_i          ( xbar_mst_ports_req[MASTER_RAM_IDX] ),
-      .axi_rsp_o          ( xbar_mst_ports_resp[MASTER_RAM_IDX] ),
-      .mon_w_valid_o      ( ),
-      .mon_w_addr_o       ( ),
-      .mon_w_data_o       ( ),
-      .mon_w_id_o         ( ),
-      .mon_w_user_o       ( ),
-      .mon_w_beat_count_o ( ),
-      .mon_w_last_o       ( ),
-      .mon_r_valid_o      ( ),
-      .mon_r_addr_o       ( ),
-      .mon_r_data_o       ( ),
-      .mon_r_id_o         ( ),
-      .mon_r_user_o       ( ),
-      .mon_r_beat_count_o ( ),
-      .mon_r_last_o       ( )
-    );
-
-   initial begin
-      $readmemh("../../../tests/demo/demo.vmem", i_sim_mem.mem);
-   end
-
-   ram32_obi #(
-      .SIZE     (`RAM_SIZE / 4),
-      .INIT_FILE(`RAM_FPATH)
+      .MemDepthWords      ( `RAM_SIZE / 4 ),
+      .req_t              ( ariane_axi::req_t ),
+      .rsp_t              ( ariane_axi::resp_t )
    ) main_memory (
-      .clk_i   (),
-      .rst_ni  (),
-      .req_i   (       ),
-      .we_i    (        ),
-      .be_i    (        ),
-      .addr_i  (      ),
-      .wdata_i (     ),
-      .rvalid_o(    ),
-      .rdata_o (     )
-      
-      ,.gnt_o   (       )
-
-      ,.program_rx_i   (    )
-      ,.system_reset_o ( )
-      ,.prog_mode_led_o( )
+      .clk_i              ( clkwiz_o   ),
+      .rst_ni             ( rst_ni `ifdef BASYS3 & clkwiz_locked `endif ),
+      .axi_req_i          ( xbar_mst_ports_req[MASTER_RAM_IDX] ),
+      .axi_rsp_o          ( xbar_mst_ports_resp[MASTER_RAM_IDX] )
    );
 
    logic                            uart_axi_awvalid;
