@@ -65,6 +65,7 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
              and not str(path).rsplit('/', 1)[-1].endswith("SyncSpRamBeNx32.sv"))
         and "openpiton" not in str(path)
         and "tb_cva6" not in str(path)
+        and "pulp-platform/tech_cells_generic/src/rtl/tc_sram.sv" not in str(path)
         and not str(path).rsplit('/', 1)[-1].endswith("spike.sv")
         and not str(path).rsplit('/', 1)[-1].startswith("Sim")
         and not str(path).rsplit('/', 1)[-1].endswith("riscv.sv")
@@ -82,6 +83,7 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
         and not str(path).rsplit('/', 1)[-1].endswith("axi_id_serialize.sv")
         and not (str(path).rsplit('/', 1)[-1].endswith("_config_pkg.sv") and not str(path).rsplit('/', 1)[-1].endswith("build_config_pkg.sv")) ## fix config conflict by not including all
     ]
+    #and "util/tc_sram_wrapper_cache_techno.sv" not in str(path)
     #and "cache_subsystem/wt_" not in str(path)
     #and not str(path).rsplit('/', 1)[-1].endswith("custom_config.sv")
     #and "hpdcache" not in str(path)
