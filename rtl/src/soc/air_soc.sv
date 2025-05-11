@@ -259,6 +259,8 @@ module air_soc (
    assign mem_obi_rsp.r.rid   = mem_obi_req.a.aid; // Echo back the ID
    assign mem_obi_rsp.r.err  = 1'b0; // Assuming no errors from simple RAM
 
+   // TODO: Handle atomics with wrapper
+
    ram32 #(
       .SIZE     (`RAM_SIZE / 4),
       .INIT_FILE(`RAM_FPATH)
