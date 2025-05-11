@@ -113,7 +113,7 @@ module ram32 #(
 
    // assign initial values to FPGA work without need of switching
    initial begin
-       prog_addr = `BOOT_ADDR >> 2;
+       prog_addr = 0; //`BOOT_ADDR >> 2;
        state_prog = SequenceWait;
        rdata_o = 0;
        rvalid_o = 0;
@@ -131,7 +131,7 @@ module ram32 #(
    always @(posedge clk_i or negedge rst_n) begin
       if (!rst_n) begin
         // TODO: get this start address from UART
-        prog_addr <= `BOOT_ADDR >> 2; //'h0; // start from boot address if hex file is starting from boot address
+        prog_addr <= 0; //`BOOT_ADDR >> 2; //'h0; // start from boot address if hex file is starting from boot address
       end else begin
         if (prog_mode_led_o && ram_prog_data_valid) begin
           prog_addr <= prog_addr + 1'b1;
