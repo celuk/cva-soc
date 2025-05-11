@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
 ---------------------------------------------------------------------------------------------------------
 | Tool Version : Vivado v.2022.2 (lin64) Build 3671981 Fri Oct 14 04:59:54 MDT 2022
-| Date         : Sun May 11 06:16:00 2025
+| Date         : Sun May 11 06:25:57 2025
 | Host         : karpuz running 64-bit Ubuntu 22.04.5 LTS
 | Command      : report_utilization -file air_soc_utilization_synth.rpt -pb air_soc_utilization_synth.pb
 | Design       : air_soc

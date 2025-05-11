@@ -35,7 +35,7 @@
 `define ICACHE_WAY_LEN `ICACHE_SZ / (`ICACHE_LINE_W / 8) / 2
 `define DCACHE_WAY_LEN `DCACHE_SZ / (`DCACHE_LINE_W / 8) / 2
 
-`define RAM_FPATH "../../../tests/demo/demo.hex" //"../../../tests/coremark/coremark_baremetal.hex" //"../../../tests/qspi_demo/qspi_demo.hex"
+`define RAM_FPATH "" //"../../../tests/demo/demo.hex" //"../../../tests/coremark/coremark_baremetal.hex" //"../../../tests/qspi_demo/qspi_demo.hex"
 `define RAM_SIZE 'h8000 //'h3200 //131072 //32'h0002_0000 //131072 //256 * 1024
 
 `define MEM_BASE_ADDR   32'h0000_0000
