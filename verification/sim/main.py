@@ -66,6 +66,7 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
         and "openpiton" not in str(path)
         and "tb_cva6" not in str(path)
         and "pulp-platform/tech_cells_generic/src/rtl/tc_sram.sv" not in str(path)
+        and "util/tc_sram_wrapper_cache_techno.sv" not in str(path)
         and not str(path).rsplit('/', 1)[-1].endswith("spike.sv")
         and not str(path).rsplit('/', 1)[-1].startswith("Sim")
         and not str(path).rsplit('/', 1)[-1].endswith("riscv.sv")

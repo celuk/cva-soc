@@ -1,6 +1,8 @@
 `define COMMON_CELLS_ASSERTS_OFF 1
 `define ASSERTS_OFF 1
 
+`define TARGET_SYNTHESIS
+
 //`define PITON_ARIANE 1
 
 `define COREV_PULP 1'b0

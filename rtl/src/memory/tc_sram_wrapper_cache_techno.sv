@@ -38,23 +38,23 @@ module tc_sram_wrapper_cache_techno #(
   output data_t [NumPorts-1:0] rdata_o     // read data
 );
 
-    ram32 #(
-      .SIZE     (NumWords),
-      .INIT_FILE("")
-    ) sram32 (
-      .clk_i   (clk_i),
-      .rst_ni  (rst_ni),
-      .req_i   ( req_i      ),
-      .we_i    ( we_i       ),
-      .be_i    ( be_i       ),
-      .addr_i  ( addr_i     ),
-      .wdata_i ( wdata_i    ),
-      .rvalid_o(    ),
-      .rdata_o ( rdata_o    )
-
-      ,.program_rx_i   (    )
-      ,.system_reset_o (  )
-      ,.prog_mode_led_o( )
-   );
+    tc_sram #(
+    .NumWords(NumWords),
+    .DataWidth(DataWidth),
+    .ByteWidth(ByteWidth),
+    .NumPorts(NumPorts),
+    .Latency(Latency),
+    .SimInit(SimInit),
+    .PrintSimCfg(PrintSimCfg)
+  ) i_tc_sram (
+      .clk_i    ( clk_i   ),
+      .rst_ni   ( rst_ni  ),
+      .req_i    ( req_i   ),
+      .we_i     ( we_i    ),
+      .be_i     ( be_i    ),
+      .wdata_i  ( wdata_i ),
+      .addr_i   ( addr_i  ),
+      .rdata_o  ( rdata_o )
+    );
 
 endmodule

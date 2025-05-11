@@ -128,7 +128,6 @@ module air_soc (
    axi_xbar #(
       .Cfg          ( XbarCfg ),
       .ATOPs        ( 1'b0 ), // Disable ATOPs if CVA6/peripherals don't use them
-      .Connectivity ( '1 ), // Fully connected for simplicity
       // Pass AXI type definitions for slave port (matches CVA6)
       .slv_aw_chan_t( ariane_axi::aw_chan_t ),
       .slv_ar_chan_t( ariane_axi::ar_chan_t ),
