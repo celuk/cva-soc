@@ -300,8 +300,12 @@ module ram32 #(
       if (!rst_n) begin
          rdata_o <= 0;
       end else begin
-         if ((req_i && we_i) || (prog_mode_led_o && ram_prog_data_valid)) begin
+         if ((req_i && we_i)) begin
             for (int i = 0; i < 4; i++) if (be_i[i] == 1'b1) ram[wr_addr_ram][i*8+:8] <= wr_data_ram[i*8+:8];
+         end
+         // while programming do not rely on req, we and be
+         else if ((prog_mode_led_o && ram_prog_data_valid)) begin
+            for (int i = 0; i < 4; i++) ram[wr_addr_ram][i*8+:8] <= wr_data_ram[i*8+:8];
          end
          rdata_o <= ram[mem_addr];
       end

@@ -83,29 +83,35 @@ async def _send_uart_string(dut, string_data, cycles_per_bit):
         await _send_uart_byte(dut, ord(char), cycles_per_bit)
 
 @cocotb.coroutine
-async def anabellek(dut):
+async def anabellek(dut, clock_period_ns, uart_baud_rate):
     await RisingEdge(dut.clk_i)
-    dut.rst_ni.value = 0
-    await RisingEdge(dut.clk_i)
+    #dut.rst_ni.value = 0
+    #await RisingEdge(dut.clk_i)
     
-    CLOCK_PERIOD_NS = 10
-    UART_BAUD_RATE = 3686400
-    clock_freq_hz = int(1 / (CLOCK_PERIOD_NS * 1e-9))
-    cycles_per_bit = math.ceil(clock_freq_hz / UART_BAUD_RATE)
+    clock_freq_hz = int(1 / (clock_period_ns * 1e-9))
+    cycles_per_bit = math.ceil(clock_freq_hz / uart_baud_rate)
 
     dut.program_rx_i.value = 1
 
     for test in tests:
-        dut.rst_ni.value = 0
+        #dut.rst_ni.value = 0
         dut.program_rx_i.value = 1
         await RisingEdge(dut.clk_i)
 
-        for index, instruction_hex in enumerate(tests[test]["instructions"]):
+        instructions = tests[test]["instructions"]
+        prog_size = len(instructions)
+
+        await _send_uart_string(dut, "TEKNOFEST", cycles_per_bit)
+        await _send_uart_word32(dut, prog_size, cycles_per_bit)
+
+        ## TODO: send start address to UART
+
+        for index, instruction_hex in enumerate(instructions):
             instruction_val = int(instruction_hex, 16)
             await _send_uart_word32(dut, instruction_val, cycles_per_bit)
 
         await RisingEdge(dut.clk_i)
-        dut.rst_ni.value = 1
+        #dut.rst_ni.value = 1
 
         timeout = 0
         while True:
@@ -118,10 +124,13 @@ async def anabellek(dut):
 async def tair(dut):
     await read_instructions()
 
-    await cocotb.start(Clock(dut.clk_i, 10, "ns").start(start_high=False))
-    dut.rst_ni.value = 0
+    CLOCK_PERIOD_NS = 40
+    UART_BAUD_RATE = 115200
+
+    await cocotb.start(Clock(dut.clk_i, CLOCK_PERIOD_NS, "ns").start(start_high=False))
+    dut.rst_ni.value = 1
     await RisingEdge(dut.clk_i)
     await RisingEdge(dut.clk_i)
     dut.rst_ni.value = 1
-    blk = cocotb.start_soon(anabellek(dut))
+    blk = cocotb.start_soon(anabellek(dut, CLOCK_PERIOD_NS, UART_BAUD_RATE))
     await blk
