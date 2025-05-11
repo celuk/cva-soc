@@ -64,16 +64,16 @@ async def anabellek(dut):
     dut.rst_ni.value = 0
     await RisingEdge(dut.clk_i)
     
-    memory = load_verilog_hex_file()
-    for address, value in memory.items():
-        if address % 4 == 0:
-            word = (
-                memory.get(address + 3, 0) << 24 |
-                memory.get(address + 2, 0) << 16 |
-                memory.get(address + 1, 0) << 8  |
-                memory.get(address, 0)
-            )
-            dut.main_memory.ram[address >> 2].value = word
+    #memory = load_verilog_hex_file()
+    #for address, value in memory.items():
+    #    if address % 4 == 0:
+    #        word = (
+    #            memory.get(address + 3, 0) << 24 |
+    #            memory.get(address + 2, 0) << 16 |
+    #            memory.get(address + 1, 0) << 8  |
+    #            memory.get(address, 0)
+    #        )
+    #        dut.main_memory.ram[address >> 2].value = word
     
     await RisingEdge(dut.clk_i)
     dut.rst_ni.value = 1

@@ -49,8 +49,12 @@ module ram32 #(
 
    generate
    if (INIT_FILE != "") begin: use_init_file
-     initial
-       $readmemh(INIT_FILE, ram, 0, RAM_DEPTH-1);
+    initial begin
+      integer ram_index;
+      for (ram_index = 0; ram_index < RAM_DEPTH; ram_index = ram_index + 1)
+          ram[ram_index] = {(NB_COL*COL_WIDTH){1'b0}};
+      $readmemh(INIT_FILE, ram);
+    end
    end else begin: init_bram_to_zero
      integer ram_index;
      initial
@@ -285,7 +289,10 @@ module ram32 #(
          if ((req_i && we_i) || (prog_mode_led_o && ram_prog_data_valid)) begin
             for (int i = 0; i < 4; i++) if (be_i[i] == 1'b1) ram[wr_addr_ram][i*8+:8] <= wr_data_ram[i*8+:8];
          end
-         rdata_o <= ram[mem_addr];
+         if(mem_addr <= SIZE*4)
+            rdata_o <= ram[mem_addr];
+         else
+            rdata_o <= 0;
       end
    end
 
