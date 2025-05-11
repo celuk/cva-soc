@@ -49,12 +49,8 @@ module ram32 #(
 
    generate
    if (INIT_FILE != "") begin: use_init_file
-    initial begin
-      integer ram_index;
-      for (ram_index = 0; ram_index < RAM_DEPTH; ram_index = ram_index + 1)
-          ram[ram_index] = {(NB_COL*COL_WIDTH){1'b0}};
-      $readmemh(INIT_FILE, ram);
-    end
+     initial
+       $readmemh(INIT_FILE, ram, 0, RAM_DEPTH-1);
    end else begin: init_bram_to_zero
      integer ram_index;
      initial
@@ -78,24 +74,6 @@ module ram32 #(
    endgenerate
    */
 
-   wire [clogb2(RAM_DEPTH-1)-1:0] wr_addr_ram;
-   wire [(NB_COL*COL_WIDTH)-1:0]  wr_data_ram;
-   
-   assign wr_addr_ram = (prog_mode_led_o && ram_prog_data_valid) ? prog_addr : mem_addr;
-   assign wr_data_ram = (prog_mode_led_o && ram_prog_data_valid) ? ram_prog_data : wdata_i;
-
-   wire rst_n = rst_ni && system_reset_o;
-
-   always @(posedge clk_i or negedge rst_n) begin
-      if (!rst_n) begin
-        prog_addr <= 'h0;
-      end else begin
-        if (prog_mode_led_o && ram_prog_data_valid) begin
-          prog_addr <= prog_addr + 1'b1;
-        end
-      end
-   end
-   
    localparam PROGRAM_SEQUENCE    = "TEKNOFEST";
    localparam PROG_SEQ_LENGTH     = 9 ;
    localparam SEQ_BREAK_THRESHOLD = 32'd1000000;
@@ -124,6 +102,42 @@ module ram32 #(
    reg  prog_inst_valid;
    reg  prog_sys_rst_n;
    wire ram_prog_rd_en;
+
+   wire [clogb2(RAM_DEPTH-1)-1:0] wr_addr_ram;
+   wire [(NB_COL*COL_WIDTH)-1:0]  wr_data_ram;
+   
+   assign wr_addr_ram = (prog_mode_led_o && ram_prog_data_valid) ? prog_addr : mem_addr;
+   assign wr_data_ram = (prog_mode_led_o && ram_prog_data_valid) ? ram_prog_data : wdata_i;
+
+   wire rst_n = rst_ni && system_reset_o;
+
+   // assign initial values to FPGA work without need of switching
+   initial begin
+       prog_addr = `BOOT_ADDR >> 2;
+       state_prog = SequenceWait;
+       rdata_o = 0;
+       rvalid_o = 0;
+       instruction_byte_ctr = 2'b0;
+       prog_instruction     = 32'h0;
+       prog_intr_number     = 32'h0;
+       prog_intr_ctr        = 32'h0;
+       sequence_break_ctr   = 32'h0;
+       received_sequence    = 72'h0;
+       rcv_seq_ctr          = 4'h0;
+       prog_inst_valid      = 1'b0;
+       prog_sys_rst_n       = 1'b1;
+   end
+   
+   always @(posedge clk_i or negedge rst_n) begin
+      if (!rst_n) begin
+        // TODO: get this start address from UART
+        prog_addr <= `BOOT_ADDR >> 2; //'h0; // start from boot address if hex file is starting from boot address
+      end else begin
+        if (prog_mode_led_o && ram_prog_data_valid) begin
+          prog_addr <= prog_addr + 1'b1;
+        end
+      end
+   end
    
    assign ram_prog_data       = prog_instruction;
    assign ram_prog_data_valid = prog_inst_valid;
@@ -289,14 +303,11 @@ module ram32 #(
          if ((req_i && we_i) || (prog_mode_led_o && ram_prog_data_valid)) begin
             for (int i = 0; i < 4; i++) if (be_i[i] == 1'b1) ram[wr_addr_ram][i*8+:8] <= wr_data_ram[i*8+:8];
          end
-         if(mem_addr <= SIZE*4)
-            rdata_o <= ram[mem_addr];
-         else
-            rdata_o <= 0;
+         rdata_o <= ram[mem_addr];
       end
    end
 
-   always_ff @(posedge clk_i or negedge rst_n) begin
+   always @(posedge clk_i or negedge rst_n) begin
       if (!rst_n) begin
          rvalid_o <= 0;
       end else begin

@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
 -----------------------------------------------------------------------------------------------------------
 | Tool Version : Vivado v.2022.2 (lin64) Build 3671981 Fri Oct 14 04:59:54 MDT 2022
-| Date         : Sun May 11 06:26:51 2025
+| Date         : Sun May 11 12:10:44 2025
 | Host         : karpuz running 64-bit Ubuntu 22.04.5 LTS
 | Command      : report_utilization -file air_soc_utilization_placed.rpt -pb air_soc_utilization_placed.pb
 | Design       : air_soc
@@ -58,8 +58,8 @@ Table of Contents
 | 0     |            _ |         Set |            - |
 | 0     |            _ |       Reset |            - |
 | 0     |          Yes |           - |            - |
-| 38    |          Yes |           - |          Set |
-| 6666  |          Yes |           - |        Reset |
+| 39    |          Yes |           - |          Set |
+| 6665  |          Yes |           - |        Reset |
 | 1     |          Yes |         Set |            - |
 | 3360  |          Yes |       Reset |            - |
 +-------+--------------+-------------+--------------+
@@ -187,7 +187,7 @@ Table of Contents
 |  Ref Name  | Used | Functional Category |
 +------------+------+---------------------+
 | LUT6       | 7070 |                 LUT |
-| FDCE       | 6666 |        Flop & Latch |
+| FDCE       | 6665 |        Flop & Latch |
 | FDRE       | 3360 |        Flop & Latch |
 | LUT4       | 2589 |                 LUT |
 | LUT5       | 2414 |                 LUT |
@@ -195,7 +195,7 @@ Table of Contents
 | LUT2       | 1651 |                 LUT |
 | MUXF7      |  830 |               MuxFx |
 | CARRY4     |  611 |          CarryLogic |
-| FDPE       |   38 |        Flop & Latch |
+| FDPE       |   39 |        Flop & Latch |
 | LUT1       |   37 |                 LUT |
 | RAMB36E1   |   32 |        Block Memory |
 | MUXF8      |   26 |               MuxFx |
