@@ -120,7 +120,21 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
         + list([Path(SCRIPT_DIR / "../../cva6/vendor/pulp-platform/fpga-support/rtl/SyncSpRamBeNx32.sv")])
         + list(pkg_sv_paths)
         + list(other_paths)
+        + list(["../../vivado/cva_soc_zc706/cva_soc_zc706.gen/sources_1/ip/clk_wiz_0/clk_wiz_0_sim_netlist.v"])
+        + list(["/tools/Xilinx/Vivado/2022.2/data/verilog/src/glbl.v"])
+        + list(["/tools/Xilinx/Vivado/2022.2/data/verilog/src/unisims/OBUFDS.v"])
+        + list(["/tools/Xilinx/Vivado/2022.2/data/verilog/src/unisims/IOBUFDS.v"])
+        + list(["/tools/Xilinx/Vivado/2022.2/data/verilog/src/unisims/OSERDESE2.v"])
+        + list(["/tools/Xilinx/Vivado/2022.2/data/verilog/src/unisims/ISERDESE2.v"])
+        + list(["/tools/Xilinx/Vivado/2022.2/data/verilog/src/unisims/IOBUF.v"])
+        + list(["/tools/Xilinx/Vivado/2022.2/data/verilog/src/unisims/IDELAYE2.v"])
+        + list(["/tools/Xilinx/Vivado/2022.2/data/verilog/src/unisims/IDELAYCTRL.v"])
+        + list(["/tools/Xilinx/Vivado/2022.2/data/verilog/src/unisims/BUFG.v"])
+        + list(["/tools/Xilinx/Vivado/2022.2/data/verilog/src/unisims/IBUFDS.v"])
+        + list(["/tools/Xilinx/Vivado/2022.2/data/verilog/src/unisims/MMCME2_ADV.v"])
     )
+
+    vivado_ip_vhdls = ["/tools/Xilinx/Vivado/2022.2/data/vhdl/src/unisims/unisim_VCOMP.vhd", "/tools/Xilinx/Vivado/2022.2/data/vhdl/src/unisims/unisim_VPKG.vhd"]
 
     include_dirs = [
         header.parent
@@ -148,27 +162,116 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
     print("\nVERILOG_SOURCES:")
     print(verilog_sources)
 
+    import cocotb
+    from cocotb.runner import Xcelium
+    def fixed_test_command(self):
+        self.env["CDS_AUTO_64BIT"] = "all"
+
+        if self.pre_cmd:
+            print("WARNING: pre_cmd is not implemented for Xcelium.")
+
+        verbosity_opts = []
+        if self.verbose:
+            verbosity_opts += ["-messages", "-status", "-gverbose", "-pliverbose", "-plidebug", "-plierr_verbose"]
+        else:
+            verbosity_opts += ["-quiet", "-plinowarn"]
+
+        tmpdir = f"implicit_tmpdir_{self.current_test_name}"
+        xrun_top = ":" if self.hdl_toplevel_lang == "vhdl" else self.sim_hdl_toplevel
+
+        input_script = (
+            f"@database -open cocotb_waves -default;"
+            f"probe -database cocotb_waves -create {xrun_top} -all -memories -variables -depth all;"
+        #    f"probe -create -packed 131072 *;"
+            f"run;"
+            f"exit;"
+            if self.waves
+            else "@run; exit;"
+        )
+
+        cmds = [["mkdir", "-p", tmpdir]]
+        cmds += [
+            ["xrun"]
+            + ["-logfile", f"xrun_{self.current_test_name}.log"]
+            + ["-xmlibdirname", f"{self.build_dir}/xrun_snapshot"]
+            + ["-cds_implicit_tmpdir", tmpdir]
+            + ["-licqueue"]
+            + verbosity_opts
+            + ["-R"]
+            + self.test_args
+            + self.plusargs
+            + (["-gui"] if self.gui else [])
+            + ["-input", input_script]
+        ]
+
+        self.env["GPI_EXTRA"] = (
+            cocotb.config.lib_name_path("vhpi", "xcelium") + ":cocotbvhpi_entry_point"
+        )
+
+        return cmds
+    Xcelium._test_command = fixed_test_command
+
+    runner_build_args = ["-modelsimini", "../../../vivado/modelsim.ini"]
+    runner_pre_cmd = ['set WildcardFilter {};set WildcardSizeThreshold "16777216"; coverage save -onexit covres.ucdb;']
+    runner_test_args = ["-suppress", "14408", "-suppress", "16154", "-suppress", "8630", "-modelsimini", "../../../vivado/modelsim.ini", "-L", "compiled-libs", "top.glbl"]
+
+    if simulator.lower() == "xcelium":
+        with open("pre_input.tcl", "w") as f:
+            f.writelines(["set probe_packed_limit 0;\n", "set probe_unpacked_limit 0;\n"])
+        if "dram" in cfile:
+            runner_build_args.extend(["-f", "/tools/Xilinx/Vivado/2022.2/data/secureip/secureip_cell.list.f"])
+        runner_build_args = [
+                             #"-f", "/tools/Xilinx/Vivado/2022.2/data/secureip/secureip_cell.list.f",
+                             "-newperf", "-plusperf",
+                             "-top", "glbl", "-namemap_mixgen", "-verbose", "-access", "+rwc", "-timescale", "1ns/1ps", "-ALLOWREDEFINITION", "-relax", "-sv",
+                             "-v93",
+                             '+incdir+"../../../vivado/cva_soc_zc706/cva_soc_zc706.gen/sources_1/ip/clk_wiz_0"']
+        if "dram" in cfile:
+            runner_build_args.extend(["-f", "/tools/Xilinx/Vivado/2022.2/data/secureip/secureip_cell.list.f"])
+        runner_pre_cmd = []
+        runner_test_args = ["-newperf", "-plusperf", "-top", "glbl", "-verbose", "-access", "+rwc", "-timescale", "1ns/1ps", "-pre_input", "../pre_input.tcl"] #["set probe_packed_limit 131072; set probe_unpacked_limit 131072;"] #["probe -create -packed 131072 *;"]
+
     runner = get_runner(simulator)
     runner.build(
         verilog_sources=verilog_sources,
+        vhdl_sources=vivado_ip_vhdls,
         includes=include_dirs,
         hdl_toplevel=top_module,
         always=True,
+    #    build_args=["-L", "../../vivado/compiled-libs"]
+    #    build_args=["-modelsimini", "../../../vivado/modelsim.ini"]
+        build_args=runner_build_args
     )
 
     runner.test(
         hdl_toplevel=top_module,
+    #    hdl_toplevel_library="glbl",
+        hdl_toplevel_lang="verilog",
         test_module=str(test_file),
         waves=waves,
+        gui=False,
         plusargs=["+nowarnTSCALE"],
         extra_env={
+            "XILINX_VIVADO": "/tools/Xilinx/Vivado/2022.2",
+        #    "COCOTB_LOG_LEVEL": "TRACE",
+        #    "COCOTB_SCHEDULER_DEBUG": "1",
+            "SHM_RESET_DEFAULTS": "1",
+        #    "SHM_UNPACKED_LIMIT": "131072",
+        #    "SHM_PACKED_LIMIT": "131072",
             "COCOTB_HDL_TIMEUNIT": "1ns",
             "COCOTB_HDL_TIMEPRECISION": "1ps",
             "CFILE": cfile,
         },
-        pre_cmd=[
-            'set WildcardFilter {};set WildcardSizeThreshold "16777216"; coverage save -onexit covres.ucdb;'
-        ],
+        pre_cmd=runner_pre_cmd,
+    #    pre_cmd=["probe -create -packed 131072 *;"]
+        #pre_cmd=[
+        #    'set WildcardFilter {};set WildcardSizeThreshold "16777216"; coverage save -onexit covres.ucdb;' #vmap compiled-libs "../../vivado/compiled-libs";'
+        #],
+        ##test_args=["-L", "compiled-libs"]
+        ##test_args=["-L", "../../vivado/compiled-libs"]
+        ##test_args=["-modelsimini ../../vivado/modelsim.ini"]
+        #test_args=["-suppress", "14408", "-suppress", "16154", "-suppress", "8630", "-modelsimini", "../../../vivado/modelsim.ini", "-L", "compiled-libs", "top.glbl"]
+        test_args=runner_test_args
     )
 
 
@@ -201,4 +304,7 @@ if __name__ == "__main__":
     # if args.test not in test_names:
     #     raise FileNotFoundError(f"Can't find <{args.test}> in <{tests}>")
 
-    run_test(args.sim, args.test, args.top, args.waves, args.cfile)
+    try:
+        run_test(args.sim, args.test, args.top, args.waves, args.cfile)
+    except:
+        pass

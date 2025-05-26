@@ -23,7 +23,7 @@
 `define HART_ID 32'h0
 `define DM_EXCEPTION_ADDR 32'h0
 
-`define CPU_CLK 25_000_000
+`define CPU_CLK 100_000_000
 `define BAUD_RATE 115200
 
 // Cache sizes must be multiple of 64 --> e.g. 0, 64, 128, 256, ...
@@ -41,9 +41,13 @@
 `define MEM_BASE_ADDR   32'h0000_0000
 `define MEM_RANGE       32'h0F00_0000
 
-`define BASYS3
+//`define BASYS3
 //`define EXT_FLASH
 //`define QSPI_SIM
+
+`define ZC706
+`define DDR_MHZ 100
+//`define DRAM_SIM
 
 /*
 PERIPHERALS
@@ -62,3 +66,6 @@ PERIPHERALS
 `define QSPI_RANGE      32'h0000_FFFF
 `define TIMER_BASE_ADDR 32'hFF05_0000
 `define TIMER_RANGE     32'h0000_FFFF
+
+`define DDR_BASE_ADDR 32'h8000_0000
+`define DDR_RANGE     32'h1F00_0000 //32'h7F00_0000

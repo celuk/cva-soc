@@ -1,0 +1,28 @@
+#define DDR_BASE_ADDR 0x80000000
+
+#include "uart.h"
+#include "timer.h"
+#include "defines.h"
+
+void write_to_ddr3(unsigned int offset_in_ddr, unsigned int data) {
+    volatile unsigned int* ptr = (volatile unsigned int*)(DDR_BASE_ADDR + offset_in_ddr);
+    *ptr = data;
+}
+
+unsigned int read_from_ddr3(unsigned int offset_in_ddr) {
+    volatile unsigned int* ptr = (volatile unsigned int*)(DDR_BASE_ADDR + offset_in_ddr);
+    return *ptr;
+}
+
+int main() {
+    init_uart();
+    wait_for_us(500);
+
+    write_to_ddr3(0x100, 0x1241BAEF);
+
+    unsigned int value = read_from_ddr3(0x100);
+
+    tekno_printf("Value read from dram: %x\n", value);
+
+    return 0;
+}
