@@ -10,8 +10,10 @@ int main(){
     wait_for_us(500);
 
     unsigned int address = 0x00000000;
-    for (unsigned int i = 0; i < 6277; i += 1) { // 7218*4 = 28872
-        unsigned int *data_16bytes = dram_read_16bytes(address);
+    for (unsigned int i = 0; i < 1569; i += 1) { // 7218*4 = 28872
+        //unsigned int *data_16bytes = dram_read_16bytes(address);
+        unsigned int data_16bytes[4];
+        dram_read_16bytes(address, data_16bytes);
         tekno_printf("Read data %x at address: %x\n", data_16bytes[0], address);
         address += 4;
         tekno_printf("Read data %x at address: %x\n", data_16bytes[1], address);

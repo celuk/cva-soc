@@ -69,26 +69,18 @@ void dram_write_16bytes(unsigned int address, unsigned int data0, unsigned int d
     while(!DRAM_ACK);
 }
 
-
-// unsigned int *data_ptr = dram_read_16bytes(dram_address);
-// unsigned int word0 = data_ptr[0];
-// unsigned int word1 = data_ptr[1];
-// unsigned int word2 = data_ptr[2];
-// unsigned int word3 = data_ptr[3];
-unsigned int* dram_read_16bytes(unsigned int address){
-    unsigned int data_buffer[4];
-
+void dram_read_16bytes(unsigned int address, unsigned int* data_buffer){
     DRAM_ADDRESS = address;
     DRAM_RE = 1;
     while(!DRAM_ACCEPT);
+    tekno_printf("Waiting for DRAM ACK...\n");
     while(!DRAM_ACK);
+    tekno_printf("DRAM ACK received.\n");
 
     data_buffer[0] = DRAM_DATA_READ;
     data_buffer[1] = DRAM_DATA_READ1;
     data_buffer[2] = DRAM_DATA_READ2;
     data_buffer[3] = DRAM_DATA_READ3;
-    
-    return data_buffer;
 }
 
 void set_dram_commands(command_t commands){
