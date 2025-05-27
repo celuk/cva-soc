@@ -109,7 +109,7 @@ u_phy
     ,.ddr3_dq_io(ddr3_dq)
 );
 
-wire  [ 15:0]  ram_wr = {12'b0, {4{wr_en}}};
+wire  [ 15:0]  ram_wr = {16{wr_en}};
 wire           ram_rd = rd_en;
 
 wire  [127:0]  ram_write_data = wr_data;

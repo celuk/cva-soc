@@ -57,6 +57,40 @@ unsigned int dram_read(unsigned int address){
     return DRAM_DATA_READ;
 }
 
+void dram_write_16bytes(unsigned int address, unsigned int data0, unsigned int data1, unsigned int data2, unsigned int data3){
+    // order is important
+    DRAM_ADDRESS = address;
+    DRAM_DATA_WRITE = data0;
+    DRAM_DATA_WRITE1 = data1;
+    DRAM_DATA_WRITE2 = data2;
+    DRAM_DATA_WRITE3 = data3;
+    DRAM_WE = 1;
+    while(!DRAM_ACCEPT);
+    while(!DRAM_ACK);
+}
+
+
+// unsigned int *data_ptr = dram_read_16bytes(dram_address);
+// unsigned int word0 = data_ptr[0];
+// unsigned int word1 = data_ptr[1];
+// unsigned int word2 = data_ptr[2];
+// unsigned int word3 = data_ptr[3];
+unsigned int* dram_read_16bytes(unsigned int address){
+    unsigned int data_buffer[4];
+
+    DRAM_ADDRESS = address;
+    DRAM_RE = 1;
+    while(!DRAM_ACCEPT);
+    while(!DRAM_ACK);
+
+    data_buffer[0] = DRAM_DATA_READ;
+    data_buffer[1] = DRAM_DATA_READ1;
+    data_buffer[2] = DRAM_DATA_READ2;
+    data_buffer[3] = DRAM_DATA_READ3;
+    
+    return data_buffer;
+}
+
 void set_dram_commands(command_t commands){
     DRAM_COMMAND = commands.bits;
 }

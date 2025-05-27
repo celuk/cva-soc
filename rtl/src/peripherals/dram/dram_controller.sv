@@ -50,10 +50,22 @@ module dram_controller (
     reg [31:0] DRAM_COMMAND_NEXT;
     reg [31:0] DRAM_ADDRESS;
     reg [31:0] DRAM_ADDRESS_NEXT;
-    reg [31:0] DRAM_DATA_WRITE;
-    reg [31:0] DRAM_DATA_WRITE_NEXT;
-    reg [31:0] DRAM_DATA_READ;
-    reg [31:0] DRAM_DATA_READ_NEXT;
+    reg [31:0] DRAM_DATA_WRITE0;
+    reg [31:0] DRAM_DATA_WRITE0_NEXT;
+    reg [31:0] DRAM_DATA_WRITE1;
+    reg [31:0] DRAM_DATA_WRITE1_NEXT;
+    reg [31:0] DRAM_DATA_WRITE2;
+    reg [31:0] DRAM_DATA_WRITE2_NEXT;
+    reg [31:0] DRAM_DATA_WRITE3;
+    reg [31:0] DRAM_DATA_WRITE3_NEXT;
+    reg [31:0] DRAM_DATA_READ0;
+    reg [31:0] DRAM_DATA_READ0_NEXT;
+    reg [31:0] DRAM_DATA_READ1;
+    reg [31:0] DRAM_DATA_READ1_NEXT;
+    reg [31:0] DRAM_DATA_READ2;
+    reg [31:0] DRAM_DATA_READ2_NEXT;
+    reg [31:0] DRAM_DATA_READ3;
+    reg [31:0] DRAM_DATA_READ3_NEXT;
     reg DRAM_TIMER_RESET;
     reg DRAM_TIMER_RESET_NEXT;
     reg [31:0] DRAM_TIMER;
@@ -71,8 +83,14 @@ module dram_controller (
 
     localparam DRAM_COMMAND_OFFSET = 8'h00;
     localparam DRAM_ADDRESS_OFFSET = 8'h04;
-    localparam DRAM_DATA_WRITE_OFFSET = 8'h08;
-    localparam DRAM_DATA_READ_OFFSET = 8'h0C;
+    localparam DRAM_DATA_WRITE0_OFFSET = 8'h08;
+    localparam DRAM_DATA_WRITE1_OFFSET = 8'h4C;
+    localparam DRAM_DATA_WRITE2_OFFSET = 8'h50;
+    localparam DRAM_DATA_WRITE3_OFFSET = 8'h54;
+    localparam DRAM_DATA_READ0_OFFSET = 8'h0C;
+    localparam DRAM_DATA_READ1_OFFSET = 8'h58;
+    localparam DRAM_DATA_READ2_OFFSET = 8'h5C;
+    localparam DRAM_DATA_READ3_OFFSET = 8'h60;
     localparam DRAM_TIMER_RESET_OFFSET = 8'h10;
     localparam DRAM_TIMER_OFFSET = 8'h14;
     localparam DRAM_RE_OFFSET = 8'h18;
@@ -81,12 +99,15 @@ module dram_controller (
     localparam DRAM_ACK_OFFSET = 8'h24;
     localparam DRAM_WDG_OFFSET = 8'h48;
 
-    wire [31:0] data_read_w;
+    wire [31:0] data_read_w0;
+    wire [31:0] data_read_w1;
+    wire [31:0] data_read_w2;
+    wire [31:0] data_read_w3;
  
     `ifdef ZC706
     wire [31:0]  ram_addr = DRAM_ADDRESS;
     wire         ram_wr = DRAM_WE;
-    wire [127:0] ram_wr_data = {96'h0, DRAM_DATA_WRITE};
+    wire [127:0] ram_wr_data = {DRAM_DATA_WRITE3, DRAM_DATA_WRITE2, DRAM_DATA_WRITE1, DRAM_DATA_WRITE0};
     wire         ram_rd = DRAM_RE;
     wire [127:0] ram_rd_data;
     wire         ram_accept;
@@ -143,7 +164,10 @@ module dram_controller (
     wire         ram_ack = 1;
     `endif
 
-    assign data_read_w = ram_rd_data[31:0];
+    assign data_read_w0 = ram_rd_data[31:0];
+    assign data_read_w1 = ram_rd_data[63:32];
+    assign data_read_w2 = ram_rd_data[95:64];
+    assign data_read_w3 = ram_rd_data[127:96];
  
     always @* begin
         wb_ack_next_r = 0;
@@ -151,8 +175,14 @@ module dram_controller (
     
         DRAM_COMMAND_NEXT = DRAM_COMMAND;
         DRAM_ADDRESS_NEXT = DRAM_ADDRESS;
-        DRAM_DATA_WRITE_NEXT = DRAM_DATA_WRITE;
-        DRAM_DATA_READ_NEXT = DRAM_DATA_READ;
+        DRAM_DATA_WRITE0_NEXT = DRAM_DATA_WRITE0;
+        DRAM_DATA_WRITE1_NEXT = DRAM_DATA_WRITE1;
+        DRAM_DATA_WRITE2_NEXT = DRAM_DATA_WRITE2;
+        DRAM_DATA_WRITE3_NEXT = DRAM_DATA_WRITE3;
+        DRAM_DATA_READ0_NEXT = DRAM_DATA_READ0;
+        DRAM_DATA_READ1_NEXT = DRAM_DATA_READ1;
+        DRAM_DATA_READ2_NEXT = DRAM_DATA_READ2;
+        DRAM_DATA_READ3_NEXT = DRAM_DATA_READ3;
         DRAM_TIMER_RESET_NEXT = DRAM_TIMER_RESET;
         DRAM_TIMER_NEXT = DRAM_TIMER;
         DRAM_RE_NEXT = DRAM_RE;
@@ -176,17 +206,53 @@ module dram_controller (
                         DRAM_ADDRESS_NEXT[23:16] = wb_sel_i[2] ? wb_dat_i[23:16] : DRAM_ADDRESS[23:16];
                         DRAM_ADDRESS_NEXT[31:24] = wb_sel_i[3] ? wb_dat_i[31:24] : DRAM_ADDRESS[31:24];
                     end
-                    DRAM_DATA_WRITE_OFFSET: begin
-                        DRAM_DATA_WRITE_NEXT[7:0  ] = wb_sel_i[0] ? wb_dat_i[7:0  ] : DRAM_DATA_WRITE[7:0  ];
-                        DRAM_DATA_WRITE_NEXT[15:8 ] = wb_sel_i[1] ? wb_dat_i[15:8 ] : DRAM_DATA_WRITE[15:8 ];
-                        DRAM_DATA_WRITE_NEXT[23:16] = wb_sel_i[2] ? wb_dat_i[23:16] : DRAM_DATA_WRITE[23:16];
-                        DRAM_DATA_WRITE_NEXT[31:24] = wb_sel_i[3] ? wb_dat_i[31:24] : DRAM_DATA_WRITE[31:24];
+                    DRAM_DATA_WRITE0_OFFSET: begin
+                        DRAM_DATA_WRITE0_NEXT[7:0  ] = wb_sel_i[0] ? wb_dat_i[7:0  ] : DRAM_DATA_WRITE0[7:0  ];
+                        DRAM_DATA_WRITE0_NEXT[15:8 ] = wb_sel_i[1] ? wb_dat_i[15:8 ] : DRAM_DATA_WRITE0[15:8 ];
+                        DRAM_DATA_WRITE0_NEXT[23:16] = wb_sel_i[2] ? wb_dat_i[23:16] : DRAM_DATA_WRITE0[23:16];
+                        DRAM_DATA_WRITE0_NEXT[31:24] = wb_sel_i[3] ? wb_dat_i[31:24] : DRAM_DATA_WRITE0[31:24];
                     end
-                    DRAM_DATA_READ_OFFSET: begin
-                        DRAM_DATA_READ_NEXT[7:0  ] = wb_sel_i[0] ? wb_dat_i[7:0  ] : DRAM_DATA_READ[7:0  ];
-                        DRAM_DATA_READ_NEXT[15:8 ] = wb_sel_i[1] ? wb_dat_i[15:8 ] : DRAM_DATA_READ[15:8 ];
-                        DRAM_DATA_READ_NEXT[23:16] = wb_sel_i[2] ? wb_dat_i[23:16] : DRAM_DATA_READ[23:16];
-                        DRAM_DATA_READ_NEXT[31:24] = wb_sel_i[3] ? wb_dat_i[31:24] : DRAM_DATA_READ[31:24];
+                    DRAM_DATA_WRITE1_OFFSET: begin
+                        DRAM_DATA_WRITE1_NEXT[7:0  ] = wb_sel_i[0] ? wb_dat_i[7:0  ] : DRAM_DATA_WRITE1[7:0  ];
+                        DRAM_DATA_WRITE1_NEXT[15:8 ] = wb_sel_i[1] ? wb_dat_i[15:8 ] : DRAM_DATA_WRITE1[15:8 ];
+                        DRAM_DATA_WRITE1_NEXT[23:16] = wb_sel_i[2] ? wb_dat_i[23:16] : DRAM_DATA_WRITE1[23:16];
+                        DRAM_DATA_WRITE1_NEXT[31:24] = wb_sel_i[3] ? wb_dat_i[31:24] : DRAM_DATA_WRITE1[31:24];
+                    end
+                    DRAM_DATA_WRITE2_OFFSET: begin
+                        DRAM_DATA_WRITE2_NEXT[7:0  ] = wb_sel_i[0] ? wb_dat_i[7:0  ] : DRAM_DATA_WRITE2[7:0  ];
+                        DRAM_DATA_WRITE2_NEXT[15:8 ] = wb_sel_i[1] ? wb_dat_i[15:8 ] : DRAM_DATA_WRITE2[15:8 ];
+                        DRAM_DATA_WRITE2_NEXT[23:16] = wb_sel_i[2] ? wb_dat_i[23:16] : DRAM_DATA_WRITE2[23:16];
+                        DRAM_DATA_WRITE2_NEXT[31:24] = wb_sel_i[3] ? wb_dat_i[31:24] : DRAM_DATA_WRITE2[31:24];
+                    end
+                    DRAM_DATA_WRITE3_OFFSET: begin
+                        DRAM_DATA_WRITE3_NEXT[7:0  ] = wb_sel_i[0] ? wb_dat_i[7:0  ] : DRAM_DATA_WRITE3[7:0  ];
+                        DRAM_DATA_WRITE3_NEXT[15:8 ] = wb_sel_i[1] ? wb_dat_i[15:8 ] : DRAM_DATA_WRITE3[15:8 ];
+                        DRAM_DATA_WRITE3_NEXT[23:16] = wb_sel_i[2] ? wb_dat_i[23:16] : DRAM_DATA_WRITE3[23:16];
+                        DRAM_DATA_WRITE3_NEXT[31:24] = wb_sel_i[3] ? wb_dat_i[31:24] : DRAM_DATA_WRITE3[31:24];
+                    end
+                    DRAM_DATA_READ0_OFFSET: begin
+                        DRAM_DATA_READ0_NEXT[7:0  ] = wb_sel_i[0] ? wb_dat_i[7:0  ] : DRAM_DATA_READ0[7:0  ];
+                        DRAM_DATA_READ0_NEXT[15:8 ] = wb_sel_i[1] ? wb_dat_i[15:8 ] : DRAM_DATA_READ0[15:8 ];
+                        DRAM_DATA_READ0_NEXT[23:16] = wb_sel_i[2] ? wb_dat_i[23:16] : DRAM_DATA_READ0[23:16];
+                        DRAM_DATA_READ0_NEXT[31:24] = wb_sel_i[3] ? wb_dat_i[31:24] : DRAM_DATA_READ0[31:24];
+                    end
+                    DRAM_DATA_READ1_OFFSET: begin
+                        DRAM_DATA_READ1_NEXT[7:0  ] = wb_sel_i[0] ? wb_dat_i[7:0  ] : DRAM_DATA_READ1[7:0  ];
+                        DRAM_DATA_READ1_NEXT[15:8 ] = wb_sel_i[1] ? wb_dat_i[15:8 ] : DRAM_DATA_READ1[15:8 ];
+                        DRAM_DATA_READ1_NEXT[23:16] = wb_sel_i[2] ? wb_dat_i[23:16] : DRAM_DATA_READ1[23:16];
+                        DRAM_DATA_READ1_NEXT[31:24] = wb_sel_i[3] ? wb_dat_i[31:24] : DRAM_DATA_READ1[31:24];
+                    end
+                    DRAM_DATA_READ2_OFFSET: begin
+                        DRAM_DATA_READ2_NEXT[7:0  ] = wb_sel_i[0] ? wb_dat_i[7:0  ] : DRAM_DATA_READ2[7:0  ];
+                        DRAM_DATA_READ2_NEXT[15:8 ] = wb_sel_i[1] ? wb_dat_i[15:8 ] : DRAM_DATA_READ2[15:8 ];
+                        DRAM_DATA_READ2_NEXT[23:16] = wb_sel_i[2] ? wb_dat_i[23:16] : DRAM_DATA_READ2[23:16];
+                        DRAM_DATA_READ2_NEXT[31:24] = wb_sel_i[3] ? wb_dat_i[31:24] : DRAM_DATA_READ2[31:24];
+                    end
+                    DRAM_DATA_READ3_OFFSET: begin
+                        DRAM_DATA_READ3_NEXT[7:0  ] = wb_sel_i[0] ? wb_dat_i[7:0  ] : DRAM_DATA_READ3[7:0  ];
+                        DRAM_DATA_READ3_NEXT[15:8 ] = wb_sel_i[1] ? wb_dat_i[15:8 ] : DRAM_DATA_READ3[15:8 ];
+                        DRAM_DATA_READ3_NEXT[23:16] = wb_sel_i[2] ? wb_dat_i[23:16] : DRAM_DATA_READ3[23:16];
+                        DRAM_DATA_READ3_NEXT[31:24] = wb_sel_i[3] ? wb_dat_i[31:24] : DRAM_DATA_READ3[31:24];
                     end
                     DRAM_TIMER_RESET_OFFSET: begin
                         DRAM_TIMER_RESET_NEXT = wb_sel_i[0] ? wb_dat_i[0] : DRAM_TIMER_RESET;
@@ -221,8 +287,14 @@ module dram_controller (
                 case(wb_adr_i)
                     DRAM_COMMAND_OFFSET:     wb_read_data_next_r = DRAM_COMMAND;
                     DRAM_ADDRESS_OFFSET:     wb_read_data_next_r = DRAM_ADDRESS;
-                    DRAM_DATA_WRITE_OFFSET:  wb_read_data_next_r = DRAM_DATA_WRITE;
-                    DRAM_DATA_READ_OFFSET:   wb_read_data_next_r = DRAM_DATA_READ;
+                    DRAM_DATA_WRITE0_OFFSET:  wb_read_data_next_r = DRAM_DATA_WRITE0;
+                    DRAM_DATA_WRITE1_OFFSET:  wb_read_data_next_r = DRAM_DATA_WRITE1;
+                    DRAM_DATA_WRITE2_OFFSET:  wb_read_data_next_r = DRAM_DATA_WRITE2;
+                    DRAM_DATA_WRITE3_OFFSET:  wb_read_data_next_r = DRAM_DATA_WRITE3;
+                    DRAM_DATA_READ0_OFFSET:   wb_read_data_next_r = DRAM_DATA_READ0;
+                    DRAM_DATA_READ1_OFFSET:   wb_read_data_next_r = DRAM_DATA_READ1;
+                    DRAM_DATA_READ2_OFFSET:   wb_read_data_next_r = DRAM_DATA_READ2;
+                    DRAM_DATA_READ3_OFFSET:   wb_read_data_next_r = DRAM_DATA_READ3;
                     DRAM_TIMER_RESET_OFFSET: wb_read_data_next_r = DRAM_TIMER_RESET;
                     DRAM_TIMER_OFFSET:       wb_read_data_next_r = DRAM_TIMER;
                     DRAM_RE_OFFSET:          wb_read_data_next_r = DRAM_RE;
@@ -245,18 +317,21 @@ module dram_controller (
             DRAM_TIMER_NEXT = DRAM_TIMER + 1;
         end
 
-        DRAM_DATA_READ_NEXT = data_read_w;
+        DRAM_DATA_READ0_NEXT = data_read_w0;
+        DRAM_DATA_READ1_NEXT = data_read_w1;
+        DRAM_DATA_READ2_NEXT = data_read_w2;
+        DRAM_DATA_READ3_NEXT = data_read_w3;
 
         // TODO: prevent 2 times read and write to dram
         if(ram_accept) DRAM_ACCEPT_NEXT = 1;
         if(ram_ack) DRAM_ACK_NEXT = 1;
         // if their 1'ness is read by program, make them 0
-        if(DRAM_ACCEPT & wb_cyc_i & !(wb_stb_i & wb_we_i & !wb_ack_o) & !wb_we_i & (wb_adr_i == 8'h20)) DRAM_ACCEPT_NEXT = 0;
-        if(DRAM_ACK & wb_cyc_i & !(wb_stb_i & wb_we_i & !wb_ack_o) & !wb_we_i & (wb_adr_i == 8'h24)) DRAM_ACK_NEXT = 0;
+        if(DRAM_ACCEPT & wb_cyc_i & !(wb_stb_i & wb_we_i & !wb_ack_o) & !wb_we_i & (wb_adr_i == DRAM_ACCEPT_OFFSET)) DRAM_ACCEPT_NEXT = 0;
+        if(DRAM_ACK & wb_cyc_i & !(wb_stb_i & wb_we_i & !wb_ack_o) & !wb_we_i & (wb_adr_i == DRAM_ACK_OFFSET)) DRAM_ACK_NEXT = 0;
 
         // if there is no write to RE and WE, and previous RE or WE accepted, then reset the RE and WE
-        if(DRAM_ACCEPT & !(wb_stb_i & wb_we_i & !wb_ack_o & (wb_adr_i == 8'h18))) DRAM_RE_NEXT = 0;
-        if(DRAM_ACCEPT & !(wb_stb_i & wb_we_i & !wb_ack_o & (wb_adr_i == 8'h1C))) DRAM_WE_NEXT = 0;
+        if(DRAM_ACCEPT & !(wb_stb_i & wb_we_i & !wb_ack_o & (wb_adr_i == DRAM_RE_OFFSET))) DRAM_RE_NEXT = 0;
+        if(DRAM_ACCEPT & !(wb_stb_i & wb_we_i & !wb_ack_o & (wb_adr_i == DRAM_WE_OFFSET))) DRAM_WE_NEXT = 0;
     end
     
     always_ff @(posedge clk_i) begin
@@ -266,8 +341,14 @@ module dram_controller (
     
             DRAM_COMMAND <= 0;
             DRAM_ADDRESS <= 0;
-            DRAM_DATA_WRITE <= 0;
-            DRAM_DATA_READ <= 0;
+            DRAM_DATA_WRITE0 <= 0;
+            DRAM_DATA_WRITE1 <= 0;
+            DRAM_DATA_WRITE2 <= 0;
+            DRAM_DATA_WRITE3 <= 0;
+            DRAM_DATA_READ0 <= 0;
+            DRAM_DATA_READ1 <= 0;
+            DRAM_DATA_READ2 <= 0;
+            DRAM_DATA_READ3 <= 0;
             DRAM_TIMER_RESET <= 0;
             DRAM_TIMER <= 0;
             DRAM_RE <= 0;
@@ -282,8 +363,14 @@ module dram_controller (
     
             DRAM_COMMAND <= DRAM_COMMAND_NEXT;
             DRAM_ADDRESS <= DRAM_ADDRESS_NEXT;
-            DRAM_DATA_WRITE <= DRAM_DATA_WRITE_NEXT;
-            DRAM_DATA_READ <= DRAM_DATA_READ_NEXT;
+            DRAM_DATA_WRITE0 <= DRAM_DATA_WRITE0_NEXT;
+            DRAM_DATA_WRITE1 <= DRAM_DATA_WRITE1_NEXT;
+            DRAM_DATA_WRITE2 <= DRAM_DATA_WRITE2_NEXT;
+            DRAM_DATA_WRITE3 <= DRAM_DATA_WRITE3_NEXT;
+            DRAM_DATA_READ0 <= DRAM_DATA_READ0_NEXT;
+            DRAM_DATA_READ1 <= DRAM_DATA_READ1_NEXT;
+            DRAM_DATA_READ2 <= DRAM_DATA_READ2_NEXT;
+            DRAM_DATA_READ3 <= DRAM_DATA_READ3_NEXT;
             DRAM_TIMER_RESET <= DRAM_TIMER_RESET_NEXT;
             DRAM_TIMER <= DRAM_TIMER_NEXT;
             DRAM_RE <= DRAM_RE_NEXT;
