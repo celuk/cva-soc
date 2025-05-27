@@ -330,8 +330,8 @@ module dram_controller (
         if(DRAM_ACK & wb_cyc_i & !(wb_stb_i & wb_we_i & !wb_ack_o) & !wb_we_i & (wb_adr_i == DRAM_ACK_OFFSET)) DRAM_ACK_NEXT = 0;
 
         // if there is no write to RE and WE, and previous RE or WE accepted, then reset the RE and WE
-        if(DRAM_ACCEPT & !(wb_stb_i & wb_we_i & !wb_ack_o & (wb_adr_i == DRAM_RE_OFFSET))) DRAM_RE_NEXT = 0;
-        if(DRAM_ACCEPT & !(wb_stb_i & wb_we_i & !wb_ack_o & (wb_adr_i == DRAM_WE_OFFSET))) DRAM_WE_NEXT = 0;
+        if(DRAM_ACK & !(wb_stb_i & wb_we_i & !wb_ack_o & (wb_adr_i == DRAM_RE_OFFSET))) DRAM_RE_NEXT = 0;
+        if(DRAM_ACK & !(wb_stb_i & wb_we_i & !wb_ack_o & (wb_adr_i == DRAM_WE_OFFSET))) DRAM_WE_NEXT = 0;
     end
     
     always_ff @(posedge clk_i) begin

@@ -221,6 +221,7 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
         if "dram" in cfile:
             runner_build_args.extend(["-f", "/tools/Xilinx/Vivado/2022.2/data/secureip/secureip_cell.list.f"])
         runner_build_args = [
+                             #"-clean", "-cleanlib",
                              #"-f", "/tools/Xilinx/Vivado/2022.2/data/secureip/secureip_cell.list.f",
                              "-newperf", "-plusperf",
                              "-top", "glbl", "-namemap_mixgen", "-verbose", "-access", "+rwc", "-timescale", "1ns/1ps", "-ALLOWREDEFINITION", "-relax", "-sv",
