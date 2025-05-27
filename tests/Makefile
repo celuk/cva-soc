@@ -29,8 +29,8 @@ DRIVERS_PATH ?= $(COMMON_PATH)/drivers
 DRIVERS ?= $(DRIVERS_PATH)/uart.c $(DRIVERS_PATH)/timer.c $(DRIVERS_PATH)/qspi.c $(DRIVERS_PATH)/dram.c
 
 ifeq ($(USE_COREMARK), 1)
-	LINKER_SCRIPT := coremark/riscv32-baremetal/link.ld
-	START_ASM := coremark/riscv32-baremetal/crt0.S
+	LINKER_SCRIPT := coremark/riscv32-baremetal/link$(WITHBOOTLOADER).ld
+	START_ASM := coremark/riscv32-baremetal/crt0$(WITHBOOTLOADER).S
 	DRIVERS += coremark/riscv32-baremetal/syscalls.c coremark/riscv32-baremetal/ee_printf.c
 endif
 
@@ -71,6 +71,10 @@ ifeq ($(BOOT), 1)
 endif
 
 ifeq ($(CFILE), bootloader)
+	python3 ../tools/generate_bootrom.py -f $(CPATH).hex --addr_width 14 > ../rtl/src/memory/bootrom.sv
+endif
+
+ifeq ($(CFILE), bootloader_dram)
 	python3 ../tools/generate_bootrom.py -f $(CPATH).hex --addr_width 14 > ../rtl/src/memory/bootrom.sv
 endif
 

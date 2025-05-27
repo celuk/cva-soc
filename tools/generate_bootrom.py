@@ -6,13 +6,13 @@ def generate_bootrom(hex_file):
     with open(hex_file, 'r') as f:
         lines = f.readlines()
 
-    print(f"`define ADDR_WIDTH {ADDR_WIDTH}\n")
+    #print(f"`define ADDR_WIDTH {ADDR_WIDTH}\n")
     print("module bootrom (")
     print("   input logic [31:0] addr_i,")
     print("   output logic [31:0] rdata_o")
     print(");\n")
     print("always_comb begin")
-    print("   case (addr_i[`ADDR_WIDTH-1:2])")
+    print("   case (addr_i)")
 
     for i, line in enumerate(lines):
         line = line.strip()
