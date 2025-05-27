@@ -326,7 +326,7 @@ module dram_controller (
         if(ram_accept) DRAM_ACCEPT_NEXT = 1;
         if(ram_ack) DRAM_ACK_NEXT = 1;
         // if their 1'ness is read by program, make them 0
-        if(DRAM_ACCEPT & wb_cyc_i & !(wb_stb_i & wb_we_i & !wb_ack_o) & !wb_we_i & (wb_adr_i == DRAM_ACCEPT_OFFSET)) DRAM_ACCEPT_NEXT = 0; // & !DRAM_WE & !DRAM_RE
+        if(DRAM_ACCEPT & !DRAM_WE & !DRAM_RE & wb_cyc_i & !(wb_stb_i & wb_we_i & !wb_ack_o) & !wb_we_i & (wb_adr_i == DRAM_ACCEPT_OFFSET)) DRAM_ACCEPT_NEXT = 0; // & !DRAM_WE & !DRAM_RE
         // hold ack as 1 until we and re will be zero
         if(DRAM_ACK & !DRAM_WE & !DRAM_RE & wb_cyc_i & !(wb_stb_i & wb_we_i & !wb_ack_o) & !wb_we_i & (wb_adr_i == DRAM_ACK_OFFSET)) DRAM_ACK_NEXT = 0;
 
