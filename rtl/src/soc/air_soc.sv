@@ -131,11 +131,11 @@ module air_soc (
 
    // --- AXI Crossbar (XBAR) ---
    localparam int unsigned NUM_SLAVES_XBAR = 1; // CVA6
-   localparam int unsigned NUM_MASTERS_XBAR = 4; // RAM, UART, TIMER, DDR
+   localparam int unsigned NUM_MASTERS_XBAR = 4; // RAM, UART, TIMER, DRAM
    localparam int unsigned MASTER_RAM_IDX  = 0;
    localparam int unsigned MASTER_UART_IDX = 1;
    localparam int unsigned MASTER_TIMR_IDX = 2;
-   localparam int unsigned MASTER_DDR_IDX = 3;
+   localparam int unsigned MASTER_DRAM_IDX = 3;
 
    // Define AXI XBAR configuration
    localparam axi_pkg::xbar_cfg_t XbarCfg = '{
@@ -175,7 +175,7 @@ module air_soc (
       // Rule 1 -> Master Port 1 (UART)
       '{ start_addr: `UART_BASE_ADDR,  end_addr: `UART_BASE_ADDR + `UART_RANGE,  idx: MASTER_UART_IDX },
       '{ start_addr: `TIMER_BASE_ADDR, end_addr: `TIMER_BASE_ADDR+ `TIMER_RANGE, idx: MASTER_TIMR_IDX },
-      '{ start_addr: `DDR_BASE_ADDR, end_addr: `DDR_BASE_ADDR+ `DDR_RANGE, idx: MASTER_DDR_IDX }
+      '{ start_addr: `DRAM_BASE_ADDR, end_addr: `DRAM_BASE_ADDR+ `DRAM_RANGE, idx: MASTER_DRAM_IDX }
    };
 
    // Instantiate AXI XBAR
@@ -534,138 +534,107 @@ module air_soc (
    );
    `endif
 
-   logic [14:0] dfi_address_to_phy_w;
-   logic [2:0]  dfi_bank_to_phy_w;
-   logic        dfi_cas_n_to_phy_w;
-   logic        dfi_cke_to_phy_w;
-   logic        dfi_cs_n_to_phy_w;
-   logic        dfi_odt_to_phy_w;
-   logic        dfi_ras_n_to_phy_w;
-   logic        dfi_reset_n_to_phy_w;
-   logic        dfi_we_n_to_phy_w;
-   logic [31:0] dfi_wrdata_to_phy_w;
-   logic        dfi_wrdata_en_to_phy_w;
-   logic [3:0]  dfi_wrdata_mask_to_phy_w;
-   logic        dfi_rddata_en_to_phy_w;
+   logic                            dram_axi_awvalid;
+   logic                            dram_axi_awready;
+   logic [XbarCfg.AxiAddrWidth-1:0] dram_axi_awaddr;
+   logic [AXI_ID_WIDTH_XBAR_MST-1:0]dram_axi_awid;
+   logic [2:0]                      dram_axi_awprot;
+   logic                            dram_axi_wvalid;
+   logic                            dram_axi_wready;
+   logic [XbarCfg.AxiDataWidth-1:0] dram_axi_wdata;
+   logic [XbarCfg.AxiDataWidth/8-1:0] dram_axi_wstrb;
+   logic                            dram_axi_bvalid;
+   logic                            dram_axi_bready;
+   logic [AXI_ID_WIDTH_XBAR_MST-1:0]dram_axi_bid;
+   logic [1:0]                      dram_axi_bresp;
+   logic                            dram_axi_arvalid;
+   logic                            dram_axi_arready;
+   logic [XbarCfg.AxiAddrWidth-1:0] dram_axi_araddr;
+   logic [AXI_ID_WIDTH_XBAR_MST-1:0]dram_axi_arid;
+   logic [2:0]                      dram_axi_arprot;
+   logic                            dram_axi_rvalid;
+   logic                            dram_axi_rready;
+   logic [AXI_ID_WIDTH_XBAR_MST-1:0]dram_axi_rid;
+   logic [XbarCfg.AxiDataWidth-1:0] dram_axi_rdata;
+   logic [1:0]                      dram_axi_rresp;
 
-   logic [31:0] dfi_rddata_from_phy_w;
-   logic        dfi_rddata_valid_from_phy_w;
-   logic [1:0]  dfi_rddata_dnv_from_phy_w;
+   assign dram_axi_awvalid = xbar_mst_ports_req[MASTER_DRAM_IDX].aw_valid;
+   assign dram_axi_awaddr  = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.addr;
+   assign dram_axi_awid    = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.id;
+   assign dram_axi_awprot  = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.prot;
+   assign dram_axi_wvalid  = xbar_mst_ports_req[MASTER_DRAM_IDX].w_valid;
+   assign dram_axi_wdata   = xbar_mst_ports_req[MASTER_DRAM_IDX].w.data;
+   assign dram_axi_wstrb   = xbar_mst_ports_req[MASTER_DRAM_IDX].w.strb;
+   assign dram_axi_arvalid = xbar_mst_ports_req[MASTER_DRAM_IDX].ar_valid;
+   assign dram_axi_araddr  = xbar_mst_ports_req[MASTER_DRAM_IDX].ar.addr;
+   assign dram_axi_arid    = xbar_mst_ports_req[MASTER_DRAM_IDX].ar.id;
+   assign dram_axi_arprot  = xbar_mst_ports_req[MASTER_DRAM_IDX].ar.prot;
+   assign dram_axi_bready  = xbar_mst_ports_req[MASTER_DRAM_IDX].b_ready;
+   assign dram_axi_rready  = xbar_mst_ports_req[MASTER_DRAM_IDX].r_ready;
 
-   ddr3_axi #(
-      .DDR_MHZ          ( `DDR_MHZ ),
-      .DDR_WRITE_LATENCY( 4 ),
-      .DDR_READ_LATENCY ( 4 )
-   ) i_ddr3_axi (
-      .clk_i   ( clkwiz_o ),
-      .rst_i   ( ~rst_n   ),
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].aw_ready = dram_axi_awready;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].w_ready  = dram_axi_wready;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].ar_ready = dram_axi_arready;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].b_valid  = dram_axi_bvalid;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].b.id     = dram_axi_bid;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].b.resp   = dram_axi_bresp;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].r_valid  = dram_axi_rvalid;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].r.id     = dram_axi_rid;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].r.data   = dram_axi_rdata;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].r.resp   = dram_axi_rresp;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].r.last   = 1'b1;
 
-      // AXI Slave Write Address Channel
-      .inport_awvalid_i ( xbar_mst_ports_req[MASTER_DDR_IDX].aw_valid ),
-      .inport_awaddr_i  ( xbar_mst_ports_req[MASTER_DDR_IDX].aw.addr[31:0] ),
-      .inport_awid_i    ( xbar_mst_ports_req[MASTER_DDR_IDX].aw.id[3:0]    ),
-      .inport_awlen_i   ( xbar_mst_ports_req[MASTER_DDR_IDX].aw.len      ),
-      .inport_awburst_i ( xbar_mst_ports_req[MASTER_DDR_IDX].aw.burst    ),
-      .inport_awready_o ( xbar_mst_ports_resp[MASTER_DDR_IDX].aw_ready   ),
+   dram_controller_axi #(
+       .AXI_ID_WIDTH  (AXI_ID_WIDTH_XBAR_MST),
+       .AXI_ADDR_WIDTH(XbarCfg.AxiAddrWidth),
+       .AXI_DATA_WIDTH(XbarCfg.AxiDataWidth)
+   ) dram_dut (
+       .clk_i   ( clkwiz_o      ),
+       .rst_ni  ( rst_n         ),
+       .s_axi_awvalid(dram_axi_awvalid),
+       .s_axi_awready(dram_axi_awready),
+       .s_axi_awaddr (dram_axi_awaddr),
+       .s_axi_awid   (dram_axi_awid),
+       .s_axi_awprot (dram_axi_awprot),
+       .s_axi_wvalid (dram_axi_wvalid),
+       .s_axi_wready (dram_axi_wready),
+       .s_axi_wdata  (dram_axi_wdata),
+       .s_axi_wstrb  (dram_axi_wstrb),
+       .s_axi_bvalid (dram_axi_bvalid),
+       .s_axi_bready (dram_axi_bready),
+       .s_axi_bid    (dram_axi_bid),
+       .s_axi_bresp  (dram_axi_bresp),
+       .s_axi_arvalid(dram_axi_arvalid),
+       .s_axi_arready(dram_axi_arready),
+       .s_axi_araddr (dram_axi_araddr),
+       .s_axi_arid   (dram_axi_arid),
+       .s_axi_arprot (dram_axi_arprot),
+       .s_axi_rvalid (dram_axi_rvalid),
+       .s_axi_rready (dram_axi_rready),
+       .s_axi_rid    (dram_axi_rid),
+       .s_axi_rdata  (dram_axi_rdata),
+       .s_axi_rresp  (dram_axi_rresp)
 
-      // AXI Slave Write Data Channel
-      .inport_wvalid_i  ( xbar_mst_ports_req[MASTER_DDR_IDX].w_valid     ),
-      .inport_wdata_i   ( xbar_mst_ports_req[MASTER_DDR_IDX].w.data      ),
-      .inport_wstrb_i   ( xbar_mst_ports_req[MASTER_DDR_IDX].w.strb[3:0] ),
-      .inport_wlast_i   ( xbar_mst_ports_req[MASTER_DDR_IDX].w.last      ),
-      .inport_wready_o  ( xbar_mst_ports_resp[MASTER_DDR_IDX].w_ready    ),
-
-      // AXI Slave Write Response Channel
-      .inport_bready_i  ( xbar_mst_ports_req[MASTER_DDR_IDX].b_ready     ),
-      .inport_bvalid_o  ( xbar_mst_ports_resp[MASTER_DDR_IDX].b_valid    ),
-      .inport_bresp_o   ( xbar_mst_ports_resp[MASTER_DDR_IDX].b.resp     ),
-      .inport_bid_o     ( xbar_mst_ports_resp[MASTER_DDR_IDX].b.id       ),
-
-      // AXI Slave Read Address Channel
-      .inport_arvalid_i ( xbar_mst_ports_req[MASTER_DDR_IDX].ar_valid    ),
-      .inport_araddr_i  ( xbar_mst_ports_req[MASTER_DDR_IDX].ar.addr[31:0] ),
-      .inport_arid_i    ( xbar_mst_ports_req[MASTER_DDR_IDX].ar.id[3:0]    ),
-      .inport_arlen_i   ( xbar_mst_ports_req[MASTER_DDR_IDX].ar.len      ),
-      .inport_arburst_i ( xbar_mst_ports_req[MASTER_DDR_IDX].ar.burst    ),
-      .inport_arready_o ( xbar_mst_ports_resp[MASTER_DDR_IDX].ar_ready   ),
-
-      // AXI Slave Read Data Channel
-      .inport_rready_i  ( xbar_mst_ports_req[MASTER_DDR_IDX].r_ready     ),
-      .inport_rvalid_o  ( xbar_mst_ports_resp[MASTER_DDR_IDX].r_valid    ),
-      .inport_rdata_o   ( xbar_mst_ports_resp[MASTER_DDR_IDX].r.data     ),
-      .inport_rresp_o   ( xbar_mst_ports_resp[MASTER_DDR_IDX].r.resp     ),
-      .inport_rid_o     ( xbar_mst_ports_resp[MASTER_DDR_IDX].r.id       ),
-      .inport_rlast_o   ( xbar_mst_ports_resp[MASTER_DDR_IDX].r.last     ),
-
-      // DFI PHY Interface Inputs
-      .dfi_rddata_i       ( dfi_rddata_from_phy_w       ),
-      .dfi_rddata_valid_i ( dfi_rddata_valid_from_phy_w ),
-      .dfi_rddata_dnv_i   ( dfi_rddata_dnv_from_phy_w   ),
-
-      // DFI PHY Interface Outputs
-      .dfi_address_o     ( dfi_address_to_phy_w         ),
-      .dfi_bank_o        ( dfi_bank_to_phy_w            ),
-      .dfi_cas_n_o       ( dfi_cas_n_to_phy_w           ),
-      .dfi_cke_o         ( dfi_cke_to_phy_w             ),
-      .dfi_cs_n_o        ( dfi_cs_n_to_phy_w            ),
-      .dfi_odt_o         ( dfi_odt_to_phy_w             ),
-      .dfi_ras_n_o       ( dfi_ras_n_to_phy_w           ),
-      .dfi_reset_n_o     ( dfi_reset_n_to_phy_w         ),
-      .dfi_we_n_o        ( dfi_we_n_to_phy_w            ),
-      .dfi_wrdata_o      ( dfi_wrdata_to_phy_w          ),
-      .dfi_wrdata_en_o   ( dfi_wrdata_en_to_phy_w       ),
-      .dfi_wrdata_mask_o ( dfi_wrdata_mask_to_phy_w     ),
-      .dfi_rddata_en_o   ( dfi_rddata_en_to_phy_w       )
-   );
-
-   ddr3_dfi_phy i_ddr3_dfi_phy (
-       // Clock and Reset Inputs
-       .clk_i         ( clk100      ), // DFI clock domain
-       .clk_ddr_i     ( clk_ddr     ), // Connect to a top-level input providing this clock
-       .clk_ddr90_i   ( clk_ddr_dqs ), // Connect to a top-level input
-       .clk_ref_i     ( clk_ref     ), // Connect to a top-level input
-       .rst_i         ( ~rst_n      ), // Active-high reset
-
-       // Configuration Inputs
-       .cfg_valid_i   ( 0 ), // Connect to a top-level input or config logic
-       .cfg_i         ( 0 ), // Connect to a top-level input or config logic
-
-       // DFI Inputs to PHY (from ddr3_axi)
-       .dfi_address_i     ( dfi_address_to_phy_w         ),
-       .dfi_bank_i        ( dfi_bank_to_phy_w            ),
-       .dfi_cas_n_i       ( dfi_cas_n_to_phy_w           ),
-       .dfi_cke_i         ( dfi_cke_to_phy_w             ),
-       .dfi_cs_n_i        ( dfi_cs_n_to_phy_w            ),
-       .dfi_odt_i         ( dfi_odt_to_phy_w             ),
-       .dfi_ras_n_i       ( dfi_ras_n_to_phy_w           ),
-       .dfi_reset_n_i     ( dfi_reset_n_to_phy_w         ),
-       .dfi_we_n_i        ( dfi_we_n_to_phy_w            ),
-       .dfi_wrdata_i      ( dfi_wrdata_to_phy_w          ),
-       .dfi_wrdata_en_i   ( dfi_wrdata_en_to_phy_w       ),
-       .dfi_wrdata_mask_i ( dfi_wrdata_mask_to_phy_w     ),
-       .dfi_rddata_en_i   ( dfi_rddata_en_to_phy_w       ),
-
-       // DFI Outputs from PHY (to ddr3_axi)
-       .dfi_rddata_o       ( dfi_rddata_from_phy_w        ),
-       .dfi_rddata_valid_o ( dfi_rddata_valid_from_phy_w  ),
-       .dfi_rddata_dnv_o   ( dfi_rddata_dnv_from_phy_w    ),
-
-       // DDR3 Physical Interface Outputs
-       .ddr3_ck_p_o   ( ddr3_ck_p   ),
-       .ddr3_ck_n_o   ( ddr3_ck_n   ),
-       .ddr3_cke_o    ( ddr3_cke    ),
-       .ddr3_reset_n_o( ddr3_reset_n),
-       .ddr3_ras_n_o  ( ddr3_ras_n  ),
-       .ddr3_cas_n_o  ( ddr3_cas_n  ),
-       .ddr3_we_n_o   ( ddr3_we_n   ),
-       .ddr3_cs_n_o   ( ddr3_cs_n   ),
-       .ddr3_ba_o     ( ddr3_ba     ),
-       .ddr3_addr_o   ( ddr3_addr   ), // Note: PHY output is [13:0], DFI input was [14:0]
-       .ddr3_odt_o    ( ddr3_odt    ),
-       .ddr3_dm_o     ( ddr3_dm     ), // Data Mask for writes
-       .ddr3_dqs_p_io ( ddr3_dqs_p ), // Data Strobe
-       .ddr3_dqs_n_io ( ddr3_dqs_n ), // Data Strobe
-       .ddr3_dq_io    ( ddr3_dq    )  // Data
+       ,.ddr3_reset_n(ddr3_reset_n)
+       ,.ddr3_cke(ddr3_cke)
+       ,.ddr3_ck_p(ddr3_ck_p)
+       ,.ddr3_ck_n(ddr3_ck_n)
+       ,.ddr3_cs_n(ddr3_cs_n)
+       ,.ddr3_ras_n(ddr3_ras_n)
+       ,.ddr3_cas_n(ddr3_cas_n)
+       ,.ddr3_we_n(ddr3_we_n)
+       ,.ddr3_ba(ddr3_ba)
+       ,.ddr3_addr(ddr3_addr)
+       ,.ddr3_odt(ddr3_odt)
+       ,.ddr3_dm(ddr3_dm)
+       ,.ddr3_dqs_p(ddr3_dqs_p)
+       ,.ddr3_dqs_n(ddr3_dqs_n)
+       ,.ddr3_dq(ddr3_dq)
+ 
+       ,.clk100(clk100)
+       ,.clk_ddr(clk_ddr)
+       ,.clk_ref(clk_ref)
+       ,.clk_ddr_dqs(clk_ddr_dqs)
    );
 
 endmodule

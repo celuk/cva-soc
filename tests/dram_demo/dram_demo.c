@@ -1,38 +1,64 @@
-#define DDR_BASE_ADDR 0x80000000
-
 #include "uart.h"
-#include "timer.h"
-#include "defines.h"
+#include "dram.h"
+#include "core_portme.h"
 
-#define DDR100 (*(volatile uint32_t*)(DDR_BASE_ADDR + 0x100))
-#define DDR200 (*(volatile uint32_t*)(DDR_BASE_ADDR + 0x100))
-#define DDR300 (*(volatile uint32_t*)(DDR_BASE_ADDR + 0x100))
+unsigned int addresses[8][8] =
+{
+    {0x00000001, 0x00000015, 0x0000001a, 0x0000001f, 0x00000024, 0x00000029, 0x0000002e, 0x00000033},
+    {0x00000510, 0x00000515, 0x0000051a, 0x0000051f, 0x00000524, 0x00000529, 0x0000052e, 0x00000533},
+    {0x00000a10, 0x00000a15, 0x00000a1a, 0x00000a1f, 0x00000a24, 0x00000a29, 0x00000a2e, 0x00000a33},
+    {0x00000f10, 0x00000f15, 0x00000f1a, 0x00000f1f, 0x00000f24, 0x00000f29, 0x00000f2e, 0x00000f33},
+    {0x00001410, 0x00001415, 0x0000141a, 0x0000141f, 0x00001424, 0x00001429, 0x0000142e, 0x00001433},
+    {0x00001910, 0x00001915, 0x0000191a, 0x0000191f, 0x00001924, 0x00001929, 0x0000192e, 0x00001933},
+    {0x00001e10, 0x00001e15, 0x00001e1a, 0x00001e1f, 0x00001e24, 0x00001e29, 0x00001e2e, 0x00001e33},
+    {0x00002310, 0x00002315, 0x0000231a, 0x0000231f, 0x00002324, 0x00002329, 0x0000232e, 0x00002333}
+};
 
-void write_to_ddr3(unsigned int offset_in_ddr, unsigned int data) {
-    volatile unsigned int* ptr = (*(volatile uint32_t*)(DDR_BASE_ADDR + offset_in_ddr));
-    *ptr = data;
-}
-
-unsigned int read_from_ddr3(unsigned int offset_in_ddr) {
-    volatile unsigned int* ptr = (*(volatile uint32_t*)(DDR_BASE_ADDR + offset_in_ddr));
-    return *ptr;
-}
-
-int main() {
+int main()
+{
     init_uart();
-    wait_for_us(500);
+    init_dram(500);
 
-    //write_to_ddr3(0x100, 0x1241BAEF);
-    //write_to_ddr3(0x200, 0x1241BEEF);
-    //write_to_ddr3(0x300, 0x1242BAEF);
+    unsigned int address = 0x00002FFF;
+    unsigned int data = 0x1234BAEF;
+    dram_write(address, data);
+    ee_printf("basladi");
+    dram_write(0x00001FFF, 0x1234BEEF);
+    dram_read(address);
 
-    DDR100 = 0x1241BAEF;
-    DDR200 = 0x1241BEEF;
-    DDR300 = 0x1242BAEF;
+    dram_write(0x00001FFF, 0xab1cd2ef);
+    dram_write(0x0000100F, 0xed2f3abd);
 
-    unsigned int value = DDR200; //read_from_ddr3(0x100);
+    ee_printf("data: %x\n", dram_read(0x00001FFF));
+    ee_printf("data: %x\n", dram_read(0x0000100F));
+    ee_printf("data: %x\n", dram_read(address));
 
-    tekno_printf("Value read from dram: %x\n", value);
+    ee_printf("bitti\n");
 
+    ee_printf("Basladi..\n");
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            address = addresses[i][j];
+            //ee_printf("%d\n", address);
+            dram_write(address, 0x1234BEEF);
+            //ee_printf("%d\n", i*j);
+        }
+    }
+
+    int error_count = 0;
+    int value = 0;
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 4; j++) {
+            address = addresses[i][j];
+            //ee_printf("0x%x\n", dram_read(address));
+            value = dram_read(address);
+            ee_printf("0x%x\n", value);
+            if (value != 0x1234BEEF) {
+                error_count++;
+            }
+        }
+    }
+    ee_printf("Error count: %d\n", error_count);
+    
     return 0;
 }
