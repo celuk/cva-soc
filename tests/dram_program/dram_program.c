@@ -91,6 +91,13 @@ void write_all_dram_data(void) {
             }
         }
     }
+    // address is already incremented in the last loop
+    // Write the last 16 bytes with all ones to get recognized by bootloader
+    dram_write_16bytes(addr, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF);
+    tekno_printf("Wrote data %x to address: %x\n", 0xFFFFFFFF, addr);
+    tekno_printf("Wrote data %x to address: %x\n", 0xFFFFFFFF, addr+4);
+    tekno_printf("Wrote data %x to address: %x\n", 0xFFFFFFFF, addr+8);
+    tekno_printf("Wrote data %x to address: %x\n", 0xFFFFFFFF, addr+12);
 }
 
 int main() {
