@@ -128,8 +128,8 @@ wire [ 15:0]  ram_resp_id;
 
 ddr3_core
 #(
-     .DDR_WRITE_LATENCY(4)
-    ,.DDR_READ_LATENCY(4)
+     .DDR_WRITE_LATENCY(6)
+    ,.DDR_READ_LATENCY(5)
     ,.DDR_MHZ(DDR_MHZ)
 )
 u_ddr_core

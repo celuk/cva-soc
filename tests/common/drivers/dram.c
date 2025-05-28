@@ -66,6 +66,7 @@ void dram_write_16bytes(unsigned int address, unsigned int data0, unsigned int d
     DRAM_DATA_WRITE3 = data3;
     DRAM_WE = 1;
     while(!DRAM_ACCEPT);
+    wait_for_us(1);
     while(!DRAM_ACK);
 }
 
