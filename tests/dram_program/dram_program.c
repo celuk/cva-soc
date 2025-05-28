@@ -102,6 +102,7 @@ void write_all_dram_data(void) {
 
 int main() {
     init_uart();
+    init_timer();
 
     tekno_printf("DRAM write started\n");
 

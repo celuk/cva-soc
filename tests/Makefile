@@ -65,10 +65,11 @@ all:
 
 	$(RISCVTYPE)-objcopy -O verilog $(CPATH).riscv $(CPATH).vmem
 
-ifeq ($(BOOT), 1)
-	python3 ../tools/clear_adresses_for_qspi_boot.py -f $(CPATH).vmem --place_zero > $(CPATH).tmp
-	mv $(CPATH).tmp $(CPATH).vmem
-endif
+## use this for qspi flash sim
+#ifeq ($(BOOT), 1)
+#	python3 ../tools/clear_adresses_for_qspi_boot.py -f $(CPATH).vmem --place_zero > $(CPATH).tmp
+#	mv $(CPATH).tmp $(CPATH).vmem
+#endif
 
 ifeq ($(CFILE), bootloader)
 	python3 ../tools/generate_bootrom.py -f $(CPATH).hex --addr_width 14 > ../rtl/src/memory/bootrom.sv

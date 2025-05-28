@@ -7,6 +7,8 @@ int main(){
     init_uart();
     tekno_printf("DRAM read started\n");
 
+    init_timer();
+
     wait_for_us(500);
 
     unsigned int address = 0x00000000;
