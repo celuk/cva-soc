@@ -74,11 +74,9 @@ void dram_read_16bytes(unsigned int address, unsigned int* data_buffer){
     DRAM_RE = 1;
     while(!DRAM_ACCEPT);
     //tekno_printf("Waiting for DRAM ACK...\n");
-    //wait_for_us(10);
-    tekno_printf("");
+    wait_for_us(1);
     while(!DRAM_ACK);
-    tekno_printf("");
-    //wait_for_us(10);
+    //wait_for_us(1);
     //tekno_printf("DRAM ACK received.\n");
 
     data_buffer[0] = DRAM_DATA_READ;
