@@ -110,9 +110,8 @@ void write_all_dram_data(void) {
         }
     }
     
-    // After the loop, current_phys_addr is the start of the next 16-byte chunk
-    // that is >= max_addr_excl_overall. This is where the final signature is written.
-    // This is equivalent to ceil_align_16(max_addr_excl_overall).
+    // After the loop, we should write the final signature at max_addr_excl_overall
+    // which is the address immediately after the last data byte
     unsigned int final_signature_addr;
     if (max_addr_excl_overall == 0 && NUM_MEMORY_BLOCKS > 0 && min_addr_overall == 0) {
         // Special case: blocks exist but total length is 0, starting at address 0.
@@ -120,9 +119,9 @@ void write_all_dram_data(void) {
         // current_phys_addr would be (min_addr_overall & ~0xF) which is 0.
         final_signature_addr = 0;
     } else {
-        // In all other cases where the loop runs or would have run,
-        // current_phys_addr holds the smallest 16-byte aligned address >= max_addr_excl_overall.
-        final_signature_addr = current_phys_addr;
+        // Use max_addr_excl_overall as the starting address for the final signature
+        // Ensure it's aligned to 4 bytes for proper word access
+        final_signature_addr = (max_addr_excl_overall + 3) & ~3;
     }
 
     dram_write_16bytes(final_signature_addr, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF);
