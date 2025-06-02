@@ -110,25 +110,49 @@ void write_all_dram_data(void) {
         }
     }
     
-    // After the loop, we should write the final signature at max_addr_excl_overall
-    // which is the address immediately after the last data byte
-    unsigned int final_signature_addr;
-    if (max_addr_excl_overall == 0 && NUM_MEMORY_BLOCKS > 0 && min_addr_overall == 0) {
-        // Special case: blocks exist but total length is 0, starting at address 0.
-        // The main loop might not run if min_addr_overall (aligned) is not < max_addr_excl_overall (0).
-        // current_phys_addr would be (min_addr_overall & ~0xF) which is 0.
-        final_signature_addr = 0;
-    } else {
-        // Use max_addr_excl_overall as the starting address for the final signature
-        // Ensure it's aligned to 4 bytes for proper word access
-        final_signature_addr = (max_addr_excl_overall + 3) & ~3;
+    // Calculate the padding needed to align to 16 bytes
+    unsigned int aligned_end_addr = (max_addr_excl_overall + 15) & ~0xF; // Round up to 16-byte boundary
+    
+    // Write zeros for padding if needed
+    if (max_addr_excl_overall < aligned_end_addr) {
+        // Initialize buffer to zeros for padding
+        dram_buffer[0] = 0; dram_buffer[1] = 0; dram_buffer[2] = 0; dram_buffer[3] = 0;
+        
+        // Calculate start address for padding (must be 16-byte aligned)
+        unsigned int padding_start = (max_addr_excl_overall & ~0xF);
+        if (padding_start < max_addr_excl_overall) {
+            // Fill the buffer with actual data first (if there's overlap)
+            for (unsigned int addr = padding_start; addr < max_addr_excl_overall; addr++) {
+                unsigned int byte_idx = addr - padding_start;
+                // Find the byte value from memory blocks if it exists
+                for (int i = NUM_MEMORY_BLOCKS - 1; i >= 0; i--) {
+                    const memory_block_t* block = &memory_blocks[i];
+                    if (addr >= block->address && addr < block->address + block->length) {
+                        ((unsigned char*)dram_buffer)[byte_idx] = 
+                            ((const unsigned char*)block->data)[addr - block->address];
+                        break;
+                    }
+                }
+            }
+            
+            // Write the partially filled buffer with zeros in the padding area
+            dram_write_16bytes(padding_start, dram_buffer[0], dram_buffer[1], dram_buffer[2], dram_buffer[3]);
+            
+            // Log the padding
+            for (unsigned int addr = max_addr_excl_overall; addr < padding_start + 16; addr += 4) {
+                if (addr < aligned_end_addr) {
+                    tekno_printf("PADDING: Wrote data %08x to address: %08x\n", 0, addr);
+                }
+            }
+        }
     }
-
-    dram_write_16bytes(final_signature_addr, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF);
-    tekno_printf("FINAL: Wrote data %08x to address: %08x\n", 0xFFFFFFFF, final_signature_addr);
-    tekno_printf("FINAL: Wrote data %08x to address: %08x\n", 0xFFFFFFFF, final_signature_addr + 4);
-    tekno_printf("FINAL: Wrote data %08x to address: %08x\n", 0xFFFFFFFF, final_signature_addr + 8);
-    tekno_printf("FINAL: Wrote data %08x to address: %08x\n", 0xFFFFFFFF, final_signature_addr + 12);
+    
+    // Now write the final signature at the aligned address
+    dram_write_16bytes(aligned_end_addr, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF);
+    tekno_printf("FINAL: Wrote data %08x to address: %08x\n", 0xFFFFFFFF, aligned_end_addr);
+    tekno_printf("FINAL: Wrote data %08x to address: %08x\n", 0xFFFFFFFF, aligned_end_addr + 4);
+    tekno_printf("FINAL: Wrote data %08x to address: %08x\n", 0xFFFFFFFF, aligned_end_addr + 8);
+    tekno_printf("FINAL: Wrote data %08x to address: %08x\n", 0xFFFFFFFF, aligned_end_addr + 12);
 }
 
 int main() {
