@@ -78,6 +78,14 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
         and "tb_wb_dcache" not in str(path)
         and "cvxif_example" not in str(path)
         and "mmu_sv39" not in str(path)
+        and "cvfpu/src/common_cells" not in str(path)
+        and "rtl/src/common_cells" not in str(path)
+        and "rtl/src/common/macros/behav" not in str(path)
+        and "vendor/pulp-platform/axi/src" not in str(path)
+        and "corev_apu/bootrom" not in str(path)
+        and "vendor/lowrisc_opentitan/src" not in str(path)
+        and "corev_apu/tb/axi" not in str(path)
+        
         and not str(path).rsplit('/', 1)[-1].endswith("ddr3_axi_pmem.v")
         and not str(path).rsplit('/', 1)[-1].endswith("obi_atop_resolver.sv")
         and not str(path).rsplit('/', 1)[-1].endswith("axi_lite_lfsr.sv")
@@ -134,6 +142,8 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
         + list(["/tools/Xilinx/Vivado/2022.2/data/verilog/src/unisims/IBUFDS.v"])
         + list(["/tools/Xilinx/Vivado/2022.2/data/verilog/src/unisims/MMCME2_ADV.v"])
     )
+
+    verilog_sources = list(dict.fromkeys(verilog_sources))
 
     vivado_ip_vhdls = ["/tools/Xilinx/Vivado/2022.2/data/vhdl/src/unisims/unisim_VCOMP.vhd", "/tools/Xilinx/Vivado/2022.2/data/vhdl/src/unisims/unisim_VPKG.vhd"]
 
@@ -222,6 +232,7 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
         if "dram" in cfile:
             runner_build_args.extend(["-f", "/tools/Xilinx/Vivado/2022.2/data/secureip/secureip_cell.list.f"])
         runner_build_args = [
+                             #"-xmvlog_args,-XMWARN DLCSMD",
                              #"-xmvlog_args", '"-update"', #'"-xmwarn DLCSMD"',
                              #"-xmwarn", "DLCSMD",
                              #"-xmelab_args", '"-xmwarn DLCSMD"', #'"-update"',
@@ -263,6 +274,8 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
             "SHM_RESET_DEFAULTS": "1",
         #    "SHM_UNPACKED_LIMIT": "131072",
         #    "SHM_PACKED_LIMIT": "131072",
+        #    "CADENCE_ENABLE_AVSREQ_44905_PHASE_1": "1",
+        #    "CADENCE_ENABLE_AVSREQ_63188_PHASE_1": "1",
             "COCOTB_HDL_TIMEUNIT": "1ns",
             "COCOTB_HDL_TIMEPRECISION": "1ps",
             "CFILE": cfile,
