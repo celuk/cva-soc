@@ -1,3 +1,11 @@
+static const unsigned int addresses[] = {
+    0x3F029B1A, 0x35029B1D
+};
+
+static const unsigned int data[] = {
+    0x1241BAEF, 0x2231BEEF
+};
+
 #define CPU_MHZ 100
 #define CPU_CLK (CPU_MHZ * 1000000)
 #define BAUD_RATE 115200
@@ -47,7 +55,9 @@ int main()
             diff = start - end;
 	}
 
-    (*(volatile unsigned int*)(DDR3_AXI_BASE_ADDR + 0x3F029B1A)) = 0x1241BAEF;
-
+    for (int i = 0; i < sizeof(addresses)/sizeof(addresses[0]); i++) {
+        (*(volatile unsigned int*)(DDR3_AXI_BASE_ADDR + addresses[i])) = data[i];
+    }
+    
     return 0;
 }

@@ -53,8 +53,8 @@ ifeq ($(ASM), 1)
 endif
 
 ifeq ($(SIMPLE), 1)
-	SRCS := $(CPATH).c
-	CFLAGS := -Os -mcmodel=medany -static -nostartfiles -nostdlib -march=rv32im -mabi=ilp32 -T $(COMMON_PATH)/link_asm.ld
+	SRCS := $(CPATH).c $(START_ASM)
+	CFLAGS := -Os -mcmodel=medany -static -nostartfiles -nostdlib -march=rv32im -mabi=ilp32 -T $(LINKER_SCRIPT)
 endif
 
 .PHONY: all
