@@ -234,39 +234,15 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
         if "dram" in cfile:
             runner_build_args.extend(["-f", "/tools/Xilinx/Vivado/2022.2/data/secureip/secureip_cell.list.f"])
         runner_build_args = [
-                             #"-xmvlog_args,-XMWARN DLCSMD",
-                             #"-xmvlog_args", '"-update"', #'"-xmwarn DLCSMD"',
-                             #"-xmwarn", "DLCSMD",
-                             #"-xmelab_args", '"-xmwarn DLCSMD"', #'"-update"',
-                             #"-clean", "-cleanlib",
                              #"-f", "/tools/Xilinx/Vivado/2022.2/data/secureip/secureip_cell.list.f",
-                             "-license_order", "MS_APP_FIRST",
-                             #"-mcl", "20", 
-                             "-mce", "-mce_newperf", "-mce_build_thread_count", "20", "-mcmaxcores", "20", "-enable_tclthread", "-mce_sim_thread_count", "20", 
-                             "-mce_sim_use_hyper_threading", "1",
-                             "-mce_build_cpu_configuration", "all-cores",
-                             "-mce_sim_cpu_configuration", "all-cores",
-                             "-64bit",
-                             "-newsv", "-plussv",
                              "-newperf", "-plusperf",
-                             "-new_perf_sv", "-plus_perf_sv",
                              "-top", "glbl", "-namemap_mixgen", "-verbose", "-access", "+rwc", "-timescale", "1ns/1ps", "-ALLOWREDEFINITION", "-relax", "-sv",
                              "-v93",
-                             '+incdir+"../../../vivado/cva_soc_zc706/cva_soc_zc706.gen/sources_1/ip/clk_wiz_0"']
+                             '+incdir+"../../../vivado/airsoc-dram-zc706/airsoc-dram-zc706.gen/sources_1/ip/clk_wiz_0"']
         if "dram" in cfile:
             runner_build_args.extend(["-f", "/tools/Xilinx/Vivado/2022.2/data/secureip/secureip_cell.list.f"])
         runner_pre_cmd = []
-        runner_test_args = [
-                            "-license_order", "MS_APP_FIRST",
-                            #"-mcl", "20",
-                            "-mce", "-mce_newperf", "-mce_build_thread_count", "20", "-mcmaxcores", "20", "-enable_tclthread", "-mce_sim_thread_count", "20",
-                            "-mce_sim_use_hyper_threading", "1",
-                            "-mce_build_cpu_configuration", "all-cores",
-                            "-mce_sim_cpu_configuration", "all-cores",
-                            "-64bit",
-                            "-newsv", "-plussv",
-                            "-newperf", "-plusperf",
-                            "-new_perf_sv", "-plus_perf_sv", "-top", "glbl", "-verbose", "-access", "+rwc", "-timescale", "1ns/1ps", "-pre_input", "../pre_input.tcl"] #["set probe_packed_limit 131072; set probe_unpacked_limit 131072;"] #["probe -create -packed 131072 *;"]
+        runner_test_args = ["-newperf", "-plusperf", "-top", "glbl", "-verbose", "-access", "+rwc", "-timescale", "1ns/1ps", "-pre_input", "../pre_input.tcl"] #["set probe_packed_limit 131072; set probe_unpacked_limit 131072;"] #["probe -create -packed 131072 *;"]
 
     runner = get_runner(simulator)
     runner.build(
