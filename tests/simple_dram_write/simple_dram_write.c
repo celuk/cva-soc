@@ -1,14 +1,13 @@
-static const unsigned int addresses[] = {
-    0x3F029B1A, 0x35029B1D
-};
+static const unsigned int start_address = 0x00000000;
 
 static const unsigned int data[] = {
     0x1241BAEF, 0x2231BEEF
 };
 
+#define DDR3_AXI_BASE_ADDR 0x80000000
+
 #define CPU_MHZ 100
 #define CPU_CLK (CPU_MHZ * 1000000)
-#define BAUD_RATE 115200
 
 #define US(x) (CPU_CLK/1000000 * x)
 
@@ -28,8 +27,6 @@ static const unsigned int data[] = {
 #define TIM_MOD (*(volatile unsigned int*) (TIM_BASE_ADDR + TIM_MOD_OFFSET))
 #define TIM_CNT (*(volatile unsigned int*) (TIM_BASE_ADDR + TIM_CNT_OFFSET))
 #define TIM_EVC (*(volatile unsigned int*) (TIM_BASE_ADDR + TIM_EVC_OFFSET))
-
-#define DDR3_AXI_BASE_ADDR 0x80000000
 
 int main()
 {
@@ -55,8 +52,8 @@ int main()
             diff = start - end;
 	}
 
-    for (int i = 0; i < sizeof(addresses)/sizeof(addresses[0]); i++) {
-        (*(volatile unsigned int*)(DDR3_AXI_BASE_ADDR + addresses[i])) = data[i];
+    for (int i = 0; i < sizeof(data)/sizeof(data[0]); i++) {
+        (*(volatile unsigned int*)(DDR3_AXI_BASE_ADDR + start_address + i*4)) = data[i];
     }
     
     return 0;

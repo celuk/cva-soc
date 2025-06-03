@@ -46,6 +46,18 @@ compile:
 	+@$(SUBMAKE) tests clean CFILE=$(ARGS)
 	+@$(SUBMAKE) tests CFILE=$(ARGS)
 
+.PHONY: compiletemp
+compiletemp:
+	@mkdir -p temp;
+	@cp -f tests/Makefile temp/Makefile;
+	@cp -rf tests/common temp/common;
+	+@$(SUBMAKE) temp clean CFILE=$(ARGS)
+	+@$(SUBMAKE) temp CFILE=$(ARGS)
+
+.PHONY: rmtemp
+rmtemp:
+	@rm -rf temp;
+
 .PHONY: clean_test
 clean_test:
 	+@$(SUBMAKE) tests clean CFILE=$(ARGS)
@@ -87,6 +99,10 @@ show:
 #	simvision -input verification/sim/waveform/xcelium_wave_setup.tcl verification/sim/sim_build/cocotb_waves.shm/cocotb_waves.trn
 #	vsim verification/sim/sim_build/vsim.wlf -do verification/sim/waveform/wave.do
 #-do verification/sim/waveform/wave.do
+
+.PHONY: gen_dramw
+gen_dramw:
+	python3 ./tools/generate_simple_dram_writes.py -f $(ARGS)
 
 .PHONY: clean
 clean:
