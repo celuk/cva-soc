@@ -126,10 +126,11 @@ assign rd_data = ram_read_data;
 wire          ram_error;
 wire [ 15:0]  ram_resp_id;
 
+// TODO: write read latencies
 ddr3_core
 #(
-     .DDR_WRITE_LATENCY(6)
-    ,.DDR_READ_LATENCY(5)
+     .DDR_WRITE_LATENCY(4)
+    ,.DDR_READ_LATENCY(4)
     ,.DDR_MHZ(DDR_MHZ)
 )
 u_ddr_core
