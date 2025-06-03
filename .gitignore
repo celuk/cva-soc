@@ -20,4 +20,7 @@
 
 .vscode
 
+vivado/modelsim.ini
+vivado/compiled-libs/*
+
 typescript*
