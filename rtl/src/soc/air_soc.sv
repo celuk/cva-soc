@@ -131,11 +131,15 @@ module air_soc (
 
    // --- AXI Crossbar (XBAR) ---
    localparam int unsigned NUM_SLAVES_XBAR = 1; // CVA6
+   `ifdef ZC706
    localparam int unsigned NUM_MASTERS_XBAR = 4; // RAM, UART, TIMER, DRAM
+   `else
+   localparam int unsigned NUM_MASTERS_XBAR = 3; // RAM, UART, TIMER
+   `endif
    localparam int unsigned MASTER_RAM_IDX  = 0;
    localparam int unsigned MASTER_UART_IDX = 1;
    localparam int unsigned MASTER_TIMR_IDX = 2;
-   localparam int unsigned MASTER_DRAM_IDX = 3;
+   `ifdef ZC706 localparam int unsigned MASTER_DRAM_IDX = 3; `endif
 
    // Define AXI XBAR configuration
    localparam axi_pkg::xbar_cfg_t XbarCfg = '{
@@ -174,8 +178,8 @@ module air_soc (
       '{ start_addr: `MEM_BASE_ADDR,   end_addr: `MEM_BASE_ADDR  + `MEM_RANGE,   idx: MASTER_RAM_IDX  },
       // Rule 1 -> Master Port 1 (UART)
       '{ start_addr: `UART_BASE_ADDR,  end_addr: `UART_BASE_ADDR + `UART_RANGE,  idx: MASTER_UART_IDX },
-      '{ start_addr: `TIMER_BASE_ADDR, end_addr: `TIMER_BASE_ADDR+ `TIMER_RANGE, idx: MASTER_TIMR_IDX },
-      '{ start_addr: `DRAM_BASE_ADDR, end_addr: `DRAM_BASE_ADDR+ `DRAM_RANGE, idx: MASTER_DRAM_IDX }
+      '{ start_addr: `TIMER_BASE_ADDR, end_addr: `TIMER_BASE_ADDR+ `TIMER_RANGE, idx: MASTER_TIMR_IDX }
+      `ifdef ZC706 ,'{ start_addr: `DRAM_BASE_ADDR, end_addr: `DRAM_BASE_ADDR+ `DRAM_RANGE, idx: MASTER_DRAM_IDX } `endif
    };
 
    // Instantiate AXI XBAR
@@ -534,6 +538,7 @@ module air_soc (
    );
    `endif
 
+   `ifdef ZC706
    logic                            dram_axi_awvalid;
    logic                            dram_axi_awready;
    logic [XbarCfg.AxiAddrWidth-1:0] dram_axi_awaddr;
@@ -636,5 +641,6 @@ module air_soc (
        ,.clk_ref(clk_ref)
        ,.clk_ddr_dqs(clk_ddr_dqs)
    );
+   `endif
 
 endmodule

@@ -24,7 +24,7 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
         Path(SCRIPT_DIR / "../../cva6/common"),
         Path(SCRIPT_DIR / "../../cva6/corev_apu"),
         Path(SCRIPT_DIR / "../../cva6/verif/tb/core/tb_components"),
-        Path(SCRIPT_DIR / "../../axi"),
+        #Path(SCRIPT_DIR / "../../axi"),
         Path(SCRIPT_DIR / "../../obi"),
         Path(SCRIPT_DIR / "../../safety_island/future/axi_obi")
     ]
@@ -79,13 +79,13 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
         and "cvxif_example" not in str(path)
         and "mmu_sv39" not in str(path)
         and "cvfpu/src/common_cells" not in str(path)
-        and "rtl/src/common_cells" not in str(path)
+        #and "rtl/src/common_cells" not in str(path)
         and "rtl/src/common/macros/behav" not in str(path)
-        and "vendor/pulp-platform/axi/src" not in str(path)
         and "corev_apu/bootrom" not in str(path)
         and "vendor/lowrisc_opentitan/src" not in str(path)
         and "corev_apu/tb/axi" not in str(path)
-        
+        and "riscv-dbg/tb" not in str(path)
+        and not str(path).rsplit('/', 1)[-1].endswith("ariane_testharness.sv")
         and not str(path).rsplit('/', 1)[-1].endswith("ddr3_axi_pmem.v")
         and not str(path).rsplit('/', 1)[-1].endswith("obi_atop_resolver.sv")
         and not str(path).rsplit('/', 1)[-1].endswith("axi_lite_lfsr.sv")
@@ -97,6 +97,7 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
     #and "cache_subsystem/wt_" not in str(path)
     #and not str(path).rsplit('/', 1)[-1].endswith("custom_config.sv")
     #and "hpdcache" not in str(path)
+    #and "vendor/pulp-platform/axi/src" not in str(path)
 
     ## sort the sources to make sure that the def and pkg.sv files are at the beginning
     ## otherwise the simulator might not find the packages
@@ -121,6 +122,7 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
         + list(params_pkg_paths)
         + list(pre_pkg_sv_paths)
         + list([Path(SCRIPT_DIR / "../../cva6/corev_apu/tb/ariane_axi_pkg.sv")])
+        + list([Path(SCRIPT_DIR / "../../axi/src/axi_demux_simple.sv")])
         + list([Path(SCRIPT_DIR / "../../cva6/vendor/pulp-platform/fpga-support/rtl/SyncSpRam.sv")])
         + list([Path(SCRIPT_DIR / "../../cva6/vendor/pulp-platform/fpga-support/rtl/SyncSpRamBeNx64.sv")])
         + list([Path(SCRIPT_DIR / "../../cva6/vendor/pulp-platform/fpga-support/rtl/AsyncDpRam.sv")])
