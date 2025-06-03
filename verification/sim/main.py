@@ -78,6 +78,7 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
         and "tb_wb_dcache" not in str(path)
         and "cvxif_example" not in str(path)
         and "mmu_sv39" not in str(path)
+        and not str(path).rsplit('/', 1)[-1].endswith("ddr3_axi_pmem.v")
         and not str(path).rsplit('/', 1)[-1].endswith("obi_atop_resolver.sv")
         and not str(path).rsplit('/', 1)[-1].endswith("axi_lite_lfsr.sv")
         and not str(path).rsplit('/', 1)[-1].endswith("axi_zero_mem.sv")
@@ -221,6 +222,9 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
         if "dram" in cfile:
             runner_build_args.extend(["-f", "/tools/Xilinx/Vivado/2022.2/data/secureip/secureip_cell.list.f"])
         runner_build_args = [
+                             #"-xmvlog_args", '"-update"', #'"-xmwarn DLCSMD"',
+                             #"-xmwarn", "DLCSMD",
+                             #"-xmelab_args", '"-xmwarn DLCSMD"', #'"-update"',
                              #"-clean", "-cleanlib",
                              #"-f", "/tools/Xilinx/Vivado/2022.2/data/secureip/secureip_cell.list.f",
                              "-newperf", "-plusperf",
