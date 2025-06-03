@@ -24,3 +24,5 @@ vivado/modelsim.ini
 vivado/compiled-libs/*
 
 typescript*
+
+.simvision/*

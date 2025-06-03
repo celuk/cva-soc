@@ -163,6 +163,17 @@ else
 wire read_limit_w  = (read_pending_q > 4'd6);
 wire write_limit_w = (write_pending_q > 4'd6);
 
+reg        awvalid_q;
+reg [31:0] awaddr_q;
+reg [7:0]  awlen_q;
+reg [3:0]  awid_q;
+reg        wfirst_q;
+
+wire        awvalid_w = axi_awvalid_i | awvalid_q;
+wire [31:0] awaddr_w  = awvalid_q ? awaddr_q : axi_awaddr_i;
+wire [7:0]  awlen_w   = awvalid_q ? awlen_q  : axi_awlen_i;
+wire [3:0]  awid_w    = awvalid_q ? awid_q   : axi_awid_i;
+
 //-------------------------------------------------------------
 // Read / Write arbitration
 //-------------------------------------------------------------
@@ -188,11 +199,6 @@ wire read_enable_w  = read_prio_w  & ~read_limit_w;
 //-------------------------------------------------------------
 // Write Buffer
 //-------------------------------------------------------------
-reg        awvalid_q;
-reg [31:0] awaddr_q;
-reg [7:0]  awlen_q;
-reg [3:0]  awid_q;
-reg        wfirst_q;
 
 wire wr_cmd_accepted_w  = (axi_awvalid_i && axi_awready_o) || awvalid_q;
 wire wr_data_accepted_w = (axi_wvalid_i  && axi_wready_o);
@@ -227,11 +233,6 @@ begin
     awlen_q   <= axi_awlen_i;
     awid_q    <= axi_awid_i;
 end
-
-wire        awvalid_w = axi_awvalid_i | awvalid_q;
-wire [31:0] awaddr_w  = awvalid_q ? awaddr_q : axi_awaddr_i;
-wire [7:0]  awlen_w   = awvalid_q ? awlen_q  : axi_awlen_i;
-wire [3:0]  awid_w    = awvalid_q ? awid_q   : axi_awid_i;
 
 wire   inport_accept_w;
 assign axi_awready_o = write_enable_w & ~awvalid_q;

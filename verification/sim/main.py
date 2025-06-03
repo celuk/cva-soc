@@ -86,7 +86,6 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
         and "corev_apu/tb/axi" not in str(path)
         and "riscv-dbg/tb" not in str(path)
         and not str(path).rsplit('/', 1)[-1].endswith("ariane_testharness.sv")
-        and not str(path).rsplit('/', 1)[-1].endswith("ddr3_axi_pmem.v")
         and not str(path).rsplit('/', 1)[-1].endswith("obi_atop_resolver.sv")
         and not str(path).rsplit('/', 1)[-1].endswith("axi_lite_lfsr.sv")
         and not str(path).rsplit('/', 1)[-1].endswith("axi_zero_mem.sv")
