@@ -52,6 +52,11 @@ ifeq ($(ASM), 1)
 	CFLAGS := -nostartfiles -nostdlib -march=rv32im -mabi=ilp32 -T $(COMMON_PATH)/link_asm.ld
 endif
 
+ifeq ($(SIMPLE), 1)
+	SRCS := $(CPATH).c
+	CFLAGS := -Os -mcmodel=medany -static -nostartfiles -nostdlib -march=rv32im -mabi=ilp32 -T $(COMMON_PATH)/link_asm.ld
+endif
+
 .PHONY: all
 all:
 	$(CC) $(CFLAGS) $(SRCS) -o $(OUTNAME)
