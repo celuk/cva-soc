@@ -12,6 +12,9 @@ module air_soc (
    `ifdef ZC706
    input  wire clk_p,
    input  wire clk_n,
+   `elsif DDR3_AXI
+   input  wire clk_p,
+   input  wire clk_n,
    `else
    input wire clk_i,
    `endif
@@ -26,6 +29,7 @@ module air_soc (
    output wire uart_tx_o
 
    `ifndef ZC706
+   `ifndef DDR3_AXI
    `ifndef QSPI_SIM
    ,output wire qspi_cs_n_o
    `ifdef EXT_FLASH
@@ -34,9 +38,26 @@ module air_soc (
    ,inout wire [3:0] qspi_data_io
    `endif
    `endif
+   `endif
 
    `ifndef DRAM_SIM
    `ifdef ZC706
+   ,output wire ddr3_reset_n
+   ,output wire ddr3_cke
+   ,output wire ddr3_ck_p
+   ,output wire ddr3_ck_n
+   ,output wire ddr3_cs_n
+   ,output wire ddr3_ras_n
+   ,output wire ddr3_cas_n
+   ,output wire ddr3_we_n
+   ,output wire [2:0] ddr3_ba
+   ,output wire [13:0] ddr3_addr
+   ,output wire ddr3_odt
+   ,output wire [1:0] ddr3_dm
+   ,inout wire [1:0] ddr3_dqs_p
+   ,inout wire [1:0] ddr3_dqs_n
+   ,inout wire [15:0] ddr3_dq
+   `elsif DDR3_AXI
    ,output wire ddr3_reset_n
    ,output wire ddr3_cke
    ,output wire ddr3_ck_p
@@ -70,6 +91,31 @@ module air_soc (
       );
       wire rst_n = rst_ni & system_reset_o & clkwiz_locked;
    `elsif ZC706
+      wire pll_locked;
+      wire clk100;
+      wire clk_ddr;
+      wire clk_ref;
+      wire clk_ddr_dqs;
+      wire clk_i;
+      clk_wiz_0 u_pll
+      //clk_wiz_1 u_pll
+      (
+         .clk_in1_p(clk_p),
+         .clk_in1_n(clk_n)
+
+         ,.reset(~rst_ni)
+
+         ,.clk_out1(clk100)      // 100
+         ,.clk_out2(clk_ddr)     // 400
+         ,.clk_out3(clk_ref)     // 200
+         ,.clk_out4(clk_ddr_dqs) // 400 (phase 90)
+         ,.clk_out5(clk_i)       // 50 or 25
+         ,.locked(pll_locked)
+      );
+
+      wire clkwiz_o = clk_i;
+      wire rst_n = rst_ni & system_reset_o & pll_locked;
+   `elsif DDR3_AXI
       wire pll_locked;
       wire clk100;
       wire clk_ddr;
@@ -133,13 +179,19 @@ module air_soc (
    localparam int unsigned NUM_SLAVES_XBAR = 1; // CVA6
    `ifdef ZC706
    localparam int unsigned NUM_MASTERS_XBAR = 4; // RAM, UART, TIMER, DRAM
+   `elsif DDR3_AXI
+   localparam int unsigned NUM_MASTERS_XBAR = 4; // RAM, UART, TIMER, DRAM
    `else
    localparam int unsigned NUM_MASTERS_XBAR = 3; // RAM, UART, TIMER
    `endif
    localparam int unsigned MASTER_RAM_IDX  = 0;
    localparam int unsigned MASTER_UART_IDX = 1;
    localparam int unsigned MASTER_TIMR_IDX = 2;
-   `ifdef ZC706 localparam int unsigned MASTER_DRAM_IDX = 3; `endif
+   `ifdef ZC706 
+   localparam int unsigned MASTER_DRAM_IDX = 3; 
+   `elsif DDR3_AXI
+   localparam int unsigned MASTER_DRAM_IDX = 3;
+   `endif
 
    // Define AXI XBAR configuration
    localparam axi_pkg::xbar_cfg_t XbarCfg = '{
@@ -179,7 +231,11 @@ module air_soc (
       // Rule 1 -> Master Port 1 (UART)
       '{ start_addr: `UART_BASE_ADDR,  end_addr: `UART_BASE_ADDR + `UART_RANGE,  idx: MASTER_UART_IDX },
       '{ start_addr: `TIMER_BASE_ADDR, end_addr: `TIMER_BASE_ADDR+ `TIMER_RANGE, idx: MASTER_TIMR_IDX }
-      `ifdef ZC706 ,'{ start_addr: `DRAM_BASE_ADDR, end_addr: `DRAM_BASE_ADDR+ `DRAM_RANGE, idx: MASTER_DRAM_IDX } `endif
+      `ifdef ZC706 
+      ,'{ start_addr: `DRAM_BASE_ADDR, end_addr: `DRAM_BASE_ADDR+ `DRAM_RANGE, idx: MASTER_DRAM_IDX }
+      `elsif DDR3_AXI
+      ,'{ start_addr: `DDR3_AXI_BASE_ADDR, end_addr: `DDR3_AXI_BASE_ADDR+ `DDR3_AXI_RANGE, idx: MASTER_DRAM_IDX }
+      `endif
    };
 
    // Instantiate AXI XBAR
@@ -640,6 +696,200 @@ module air_soc (
        ,.clk_ddr(clk_ddr)
        ,.clk_ref(clk_ref)
        ,.clk_ddr_dqs(clk_ddr_dqs)
+   );
+   `elsif DDR3_AXI
+   logic                            dram_axi_awvalid;
+   logic                            dram_axi_awready;
+   logic [XbarCfg.AxiAddrWidth-1:0] dram_axi_awaddr;
+   logic [AXI_ID_WIDTH_XBAR_MST-1:0]dram_axi_awid;
+   logic [7:0]                      dram_axi_awlen;
+   logic [1:0]                      dram_axi_awburst;
+   logic [2:0]                      dram_axi_awprot;
+   logic                            dram_axi_wvalid;
+   logic                            dram_axi_wready;
+   logic [XbarCfg.AxiDataWidth-1:0] dram_axi_wdata;
+   logic [XbarCfg.AxiDataWidth/8-1:0] dram_axi_wstrb;
+   logic                            dram_axi_wlast;
+   logic                            dram_axi_bvalid;
+   logic                            dram_axi_bready;
+   logic [AXI_ID_WIDTH_XBAR_MST-1:0]dram_axi_bid;
+   logic [1:0]                      dram_axi_bresp;
+   logic                            dram_axi_arvalid;
+   logic                            dram_axi_arready;
+   logic [XbarCfg.AxiAddrWidth-1:0] dram_axi_araddr;
+   logic [AXI_ID_WIDTH_XBAR_MST-1:0]dram_axi_arid;
+   logic [7:0]                      dram_axi_arlen;
+   logic [1:0]                      dram_axi_arburst;
+   logic [2:0]                      dram_axi_arprot;
+   logic                            dram_axi_rvalid;
+   logic                            dram_axi_rready;
+   logic [AXI_ID_WIDTH_XBAR_MST-1:0]dram_axi_rid;
+   logic [XbarCfg.AxiDataWidth-1:0] dram_axi_rdata;
+   logic [1:0]                      dram_axi_rresp;
+   logic                            dram_axi_rlast;
+
+   assign dram_axi_awvalid = xbar_mst_ports_req[MASTER_DRAM_IDX].aw_valid;
+   assign dram_axi_awaddr  = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.addr;
+   assign dram_axi_awid    = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.id;
+   assign dram_axi_awlen   = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.len;
+   assign dram_axi_awburst = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.burst;
+   assign dram_axi_awprot  = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.prot;
+
+   assign dram_axi_wvalid  = xbar_mst_ports_req[MASTER_DRAM_IDX].w_valid;
+   assign dram_axi_wdata   = xbar_mst_ports_req[MASTER_DRAM_IDX].w.data;
+   assign dram_axi_wstrb   = xbar_mst_ports_req[MASTER_DRAM_IDX].w.strb;
+   assign dram_axi_wlast   = xbar_mst_ports_req[MASTER_DRAM_IDX].w.last;
+
+   assign dram_axi_arvalid = xbar_mst_ports_req[MASTER_DRAM_IDX].ar_valid;
+   assign dram_axi_araddr  = xbar_mst_ports_req[MASTER_DRAM_IDX].ar.addr;
+   assign dram_axi_arid    = xbar_mst_ports_req[MASTER_DRAM_IDX].ar.id;
+   assign dram_axi_arlen   = xbar_mst_ports_req[MASTER_DRAM_IDX].ar.len;
+   assign dram_axi_arburst = xbar_mst_ports_req[MASTER_DRAM_IDX].ar.burst;
+   assign dram_axi_arprot  = xbar_mst_ports_req[MASTER_DRAM_IDX].ar.prot;
+
+   assign dram_axi_bready  = xbar_mst_ports_req[MASTER_DRAM_IDX].b_ready;
+   assign dram_axi_rready  = xbar_mst_ports_req[MASTER_DRAM_IDX].r_ready;
+
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].aw_ready = dram_axi_awready;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].w_ready  = dram_axi_wready;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].ar_ready = dram_axi_arready;
+
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].b_valid  = dram_axi_bvalid;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].b.id     = dram_axi_bid;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].b.resp   = dram_axi_bresp;
+
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].r_valid  = dram_axi_rvalid;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].r.id     = dram_axi_rid;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].r.data   = dram_axi_rdata;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].r.resp   = dram_axi_rresp;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].r.last   = dram_axi_rlast;
+
+   logic [14:0] dfi_address_to_phy_w;
+   logic [2:0]  dfi_bank_to_phy_w;
+   logic        dfi_cas_n_to_phy_w;
+   logic        dfi_cke_to_phy_w;
+   logic        dfi_cs_n_to_phy_w;
+   logic        dfi_odt_to_phy_w;
+   logic        dfi_ras_n_to_phy_w;
+   logic        dfi_reset_n_to_phy_w;
+   logic        dfi_we_n_to_phy_w;
+   logic [XbarCfg.AxiDataWidth-1:0] dfi_wrdata_to_phy_w;
+   logic        dfi_wrdata_en_to_phy_w;
+   logic [XbarCfg.AxiDataWidth/8/2-1:0]  dfi_wrdata_mask_to_phy_w;
+   logic        dfi_rddata_en_to_phy_w;
+
+   logic [XbarCfg.AxiDataWidth-1:0] dfi_rddata_from_phy_w;
+   logic        dfi_rddata_valid_from_phy_w;
+   logic [XbarCfg.AxiDataWidth/32-1:0]  dfi_rddata_dnv_from_phy_w;
+
+   ddr3_axi #(
+      .DDR_MHZ          ( `DDR_MHZ ),
+      .DDR_WRITE_LATENCY( 4 ),
+      .DDR_READ_LATENCY ( 4 )
+   ) i_ddr3_axi (
+      .clk_i   ( clkwiz_o ),
+      .rst_i   ( ~rst_n   ),
+
+      .inport_awvalid_i ( dram_axi_awvalid ),
+      .inport_awaddr_i  ( dram_axi_awaddr ),
+      .inport_awid_i    ( dram_axi_awid    ),
+      .inport_awlen_i   ( dram_axi_awlen        ),
+      .inport_awburst_i ( dram_axi_awburst      ),
+      .inport_awready_o ( dram_axi_awready      ),
+
+      .inport_wvalid_i  ( dram_axi_wvalid  ),
+      .inport_wdata_i   ( dram_axi_wdata   ),
+      .inport_wstrb_i   ( dram_axi_wstrb   ),
+      .inport_wlast_i   ( dram_axi_wlast   ),
+      .inport_wready_o  ( dram_axi_wready  ),
+
+      .inport_bready_i  ( dram_axi_bready  ),
+      .inport_bvalid_o  ( dram_axi_bvalid  ),
+      .inport_bresp_o   ( dram_axi_bresp   ),
+      .inport_bid_o     ( dram_axi_bid     ),
+
+      .inport_arvalid_i ( dram_axi_arvalid ),
+      .inport_araddr_i  ( dram_axi_araddr ),
+      .inport_arid_i    ( dram_axi_arid    ),
+      .inport_arlen_i   ( dram_axi_arlen        ),
+      .inport_arburst_i ( dram_axi_arburst      ),
+      .inport_arready_o ( dram_axi_arready      ),
+
+      .inport_rready_i  ( dram_axi_rready  ),
+      .inport_rvalid_o  ( dram_axi_rvalid  ),
+      .inport_rdata_o   ( dram_axi_rdata   ),
+      .inport_rresp_o   ( dram_axi_rresp   ),
+      .inport_rid_o     ( dram_axi_rid     ),
+      .inport_rlast_o   ( dram_axi_rlast   ),
+
+      .dfi_rddata_i       ( dfi_rddata_from_phy_w       ),
+      .dfi_rddata_valid_i ( dfi_rddata_valid_from_phy_w ),
+      .dfi_rddata_dnv_i   ( dfi_rddata_dnv_from_phy_w   ),
+
+      .dfi_address_o     ( dfi_address_to_phy_w         ),
+      .dfi_bank_o        ( dfi_bank_to_phy_w            ),
+      .dfi_cas_n_o       ( dfi_cas_n_to_phy_w           ),
+      .dfi_cke_o         ( dfi_cke_to_phy_w             ),
+      .dfi_cs_n_o        ( dfi_cs_n_to_phy_w            ),
+      .dfi_odt_o         ( dfi_odt_to_phy_w             ),
+      .dfi_ras_n_o       ( dfi_ras_n_to_phy_w           ),
+      .dfi_reset_n_o     ( dfi_reset_n_to_phy_w         ),
+      .dfi_we_n_o        ( dfi_we_n_to_phy_w            ),
+      .dfi_wrdata_o      ( dfi_wrdata_to_phy_w          ),
+      .dfi_wrdata_en_o   ( dfi_wrdata_en_to_phy_w       ),
+      .dfi_wrdata_mask_o ( dfi_wrdata_mask_to_phy_w     ),
+      .dfi_rddata_en_o   ( dfi_rddata_en_to_phy_w       )
+   );
+
+   ddr3_dfi_phy 
+   #(
+     .DQS_TAP_DELAY_INIT(27)
+    ,.DQ_TAP_DELAY_INIT(0)
+    ,.TPHY_RDLAT(5)
+   )
+   i_ddr3_dfi_phy (
+       .clk_i         ( clk100      ),
+       .clk_ddr_i     ( clk_ddr     ),
+       .clk_ddr90_i   ( clk_ddr_dqs ),
+       .clk_ref_i     ( clk_ref     ),
+       .rst_i         ( ~rst_n      ),
+
+       .cfg_valid_i   ( 1'b0 ),
+       .cfg_i         ( '0   ),
+
+       .dfi_address_i     ( dfi_address_to_phy_w         ),
+       .dfi_bank_i        ( dfi_bank_to_phy_w            ),
+       .dfi_cas_n_i       ( dfi_cas_n_to_phy_w           ),
+       .dfi_cke_i         ( dfi_cke_to_phy_w             ),
+       .dfi_cs_n_i        ( dfi_cs_n_to_phy_w            ),
+       .dfi_odt_i         ( dfi_odt_to_phy_w             ),
+       .dfi_ras_n_i       ( dfi_ras_n_to_phy_w           ),
+       .dfi_reset_n_i     ( dfi_reset_n_to_phy_w         ),
+       .dfi_we_n_i        ( dfi_we_n_to_phy_w            ),
+       .dfi_wrdata_i      ( dfi_wrdata_to_phy_w          ),
+       .dfi_wrdata_en_i   ( dfi_wrdata_en_to_phy_w       ),
+       .dfi_wrdata_mask_i ( dfi_wrdata_mask_to_phy_w     ),
+       .dfi_rddata_en_i   ( dfi_rddata_en_to_phy_w       ),
+
+       .dfi_rddata_o       ( dfi_rddata_from_phy_w        ),
+       .dfi_rddata_valid_o ( dfi_rddata_valid_from_phy_w  ),
+       .dfi_rddata_dnv_o   ( dfi_rddata_dnv_from_phy_w    ),
+
+       .ddr3_ck_p_o   ( ddr3_ck_p   ),
+       .ddr3_ck_n_o   ( ddr3_ck_n   ),
+       .ddr3_cke_o    ( ddr3_cke    ),
+       .ddr3_reset_n_o( ddr3_reset_n),
+       .ddr3_ras_n_o  ( ddr3_ras_n  ),
+       .ddr3_cas_n_o  ( ddr3_cas_n  ),
+       .ddr3_we_n_o   ( ddr3_we_n   ),
+       .ddr3_cs_n_o   ( ddr3_cs_n   ),
+       .ddr3_ba_o     ( ddr3_ba     ),
+       .ddr3_addr_o   ( ddr3_addr   ),
+       .ddr3_odt_o    ( ddr3_odt    ),
+       .ddr3_dm_o     ( ddr3_dm     ),
+       .ddr3_dqs_p_io ( ddr3_dqs_p  ),
+       .ddr3_dqs_n_io ( ddr3_dqs_n  ),
+       .ddr3_dq_io    ( ddr3_dq     )
    );
    `endif
 

@@ -47,7 +47,8 @@
 //`define EXT_FLASH
 //`define QSPI_SIM
 
-`define ZC706
+//`define ZC706
+`define DDR3_AXI
 `define DDR_MHZ 100
 `define DRAM_SIM
 
@@ -71,5 +72,5 @@ PERIPHERALS
 `define DRAM_BASE_ADDR  32'hFF07_0000
 `define DRAM_RANGE      32'h0000_FFFF
 
-//`define DDR_BASE_ADDR 32'h8000_0000
-//`define DDR_RANGE     32'h1F00_0000 //32'h7F00_0000
+`define DDR3_AXI_BASE_ADDR 32'h8000_0000
+`define DDR3_AXI_RANGE     32'h1F00_0000 //32'h7F00_0000
