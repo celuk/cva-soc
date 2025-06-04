@@ -11,6 +11,11 @@ void load_code_through_dram()
     init_timer();
     wait_for_us(500);
 
+    (*(volatile uint32_t*)(DDR3_AXI_BASE_ADDR + 0x100)) = 0x00A00293;
+    (*(volatile uint32_t*)(DDR3_AXI_BASE_ADDR + 0x100 + 4)) = 0xFFF28293;
+    (*(volatile uint32_t*)(DDR3_AXI_BASE_ADDR + 0x100 + 8)) = 0xFE029EE3;
+    (*(volatile uint32_t*)(DDR3_AXI_BASE_ADDR + 0x100 + 12)) = 0x0000006F;
+
     /*
     unsigned int address = 0x00000000;
     unsigned int data_4bytes = 0;

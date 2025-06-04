@@ -121,7 +121,7 @@ async def main_memory(dut, clk, start_address):
     dut.rst_ni.value = 0
     await RisingEdge(clk)
     
-    if cfile != "bootloader" or cfile != "secure_bootloader":
+    if cfile != "bootloader" or cfile != "bootloader_dram" or cfile != "secure_bootloader":
         memory = load_verilog_hex_file()
         for address, value in memory.items():
             if address % 4 == 0: # TODO: are all addresses 4 byte aligned?
@@ -133,6 +133,15 @@ async def main_memory(dut, clk, start_address):
                 )
                 dut.main_memory.ram[address >> 2].value = word
     
+    ## for dram bootloader test
+    #if cfile == "bootloader_dram":
+    #    for i in range(1024):
+    #        dut.ddr3_dut.memory[i].value = 0xDEADBEEF
+    #    dut.ddr3_dut.memory[256 + 0].value = 0x00A00293
+    #    dut.ddr3_dut.memory[256 + 1].value = 0xFFF28293
+    #    dut.ddr3_dut.memory[256 + 2].value = 0xFE029EE3
+    #    dut.ddr3_dut.memory[256 + 3].value = 0x0000006F
+
     await RisingEdge(clk)
     dut.rst_ni.value = 1
 
