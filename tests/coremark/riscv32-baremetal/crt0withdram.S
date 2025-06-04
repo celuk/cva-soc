@@ -10,10 +10,13 @@
     .rept 31
     nop
     .endr
-    j exc_wrapper
-
+    la t0, exc_wrapper
+    jr t0
     # the reset vector is redirected to _start
-    j _start
+        .section .vectors, "ax", @progbits
+    la t0, _start
+        .option norvc;
+    jr t0
 
 
 
@@ -30,7 +33,7 @@ _start:
     la t1, _bss_start
     la t2, _bss_end
 
-    jal main	
+    j main
     1: j 1b
     #bge t1, t2, bss_clear_end
 
@@ -45,8 +48,8 @@ bss_clear_end:
     li a0, 0
     li a1, 0
     la ra, _start
-    j main
-
+    j main	
+    #1: j 1b
 
 # default exception handler (infinite loop)
     .weak exception_handler
@@ -120,7 +123,7 @@ exc_wrapper:
     lw ra, 76(sp)
     addi sp, sp, 80
     mret
-    
+
 .section ".tohost","aw",@progbits
 .align 6
 .globl tohost

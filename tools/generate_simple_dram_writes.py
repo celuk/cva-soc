@@ -2,8 +2,8 @@ import os
 import subprocess
 import argparse
 
-WORDS_PER_FILE = 2048
-START_ADDRESS_STEP = 0x2000  # 2048 * 4
+WORDS_PER_FILE = 8192
+START_ADDRESS_STEP = WORDS_PER_FILE * 4 #0x2000  # 2048 * 4
 BUILD_DIR = "temp"
 
 HEADER_TEMPLATE = """static const unsigned int start_address = 0x{start_address:08X};
@@ -109,7 +109,7 @@ def generate_files(hex_file):
         if i == 0:
             content = TIMER_INIT_TEMPLATE.format(start_address=start_address, data_lines=data_lines)
         else:
-            content = SIMPLE_TEMPLATE.format(start_address=start_address, data_lines=data_lines)
+            content = TIMER_INIT_TEMPLATE.format(start_address=start_address, data_lines=data_lines)
 
         c_filename = f"{folder_name}.c"
         c_filepath = os.path.join(folder_path, c_filename)
