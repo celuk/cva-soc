@@ -33,7 +33,7 @@ CC = $(RISCVTYPE)-gcc #/home/shc/tekno/riscv-tekno/bin/riscv32-unknown-elf #/hom
 # Flag: CFLAGS
 #	Use this flag to define compiler options. Note, you can add compiler options from the command line using XCFLAGS="other flags"
 #PORT_CFLAGS = -O2 -static -std=gnu99
-PORT_CFLAGS = -O2 -mcmodel=medany -static -std=gnu99 -fno-common -nostdlib -nostartfiles -fno-builtin -ffunction-sections -lm -lgcc -T $(PORT_DIR)/linkwithbootloader.ld
+PORT_CFLAGS = -O2 -mcmodel=medany -static -std=gnu99 -fno-common -nostdlib -nostartfiles -fno-builtin -ffunction-sections -lm -lgcc -T $(PORT_DIR)/linkwithdram.ld
 # -funroll-all-loops
 # -fno-unroll-loops
 # -Xlinker --defsym=__stack_size=0x800 -Xlinker --defsym=__heap_size=0x1000
@@ -48,7 +48,7 @@ CFLAGS = $(PORT_CFLAGS) -march=rv32imc -mabi=ilp32 -I$(PORT_DIR) -I. -DFLAGS_STR
 LFLAGS_END +=
 # Flag: PORT_SRCS
 # Port specific source files can be added here
-PORT_SRCS = $(PORT_DIR)/core_portme.c $(PORT_DIR)/ee_printf.c $(PORT_DIR)/crt0withbootloader.S $(PORT_DIR)/syscalls.c #$(PORT_DIR)/uart.c #$(PORT_DIR)/init.c #$(PORT_DIR)/syscalls.c #$(PORT_DIR)/crt.S
+PORT_SRCS = $(PORT_DIR)/core_portme.c $(PORT_DIR)/ee_printf.c $(PORT_DIR)/crt0withdram.S $(PORT_DIR)/syscalls.c #$(PORT_DIR)/uart.c #$(PORT_DIR)/init.c #$(PORT_DIR)/syscalls.c #$(PORT_DIR)/crt.S
 ITERATIONS = 2000
 # Flag: LOAD
 #	Define this flag if you need to load to a target, as in a cross compile environment.

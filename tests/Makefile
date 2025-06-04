@@ -10,6 +10,7 @@ ASM = 0
 BOOT ?= 0
 
 WITHBOOTLOADER ?=
+WITHDRAM ?=
 
 USE_COREMARK ?= 0
 
@@ -17,21 +18,34 @@ ifeq ($(BOOT), 1)
     WITHBOOTLOADER := withbootloader
 endif
 
+ifeq ($(DRAM), 1)
+    WITHDRAM := withdram
+endif
+
 COMMON_PATH ?= common
 
-LINKER_SCRIPT ?= $(COMMON_PATH)/link$(WITHBOOTLOADER).ld
+LINKER_SCRIPT ?= $(COMMON_PATH)/link$(WITHBOOTLOADER)$(WITHDRAM).ld
 #coremark/riscv32-baremetal/link.ld
 
-START_ASM ?= $(COMMON_PATH)/crt0$(WITHBOOTLOADER).S
+START_ASM ?= $(COMMON_PATH)/crt0$(WITHBOOTLOADER)$(WITHDRAM).S
 #coremark/riscv32-baremetal/crt0.S
 
 DRIVERS_PATH ?= $(COMMON_PATH)/drivers
 DRIVERS ?= $(DRIVERS_PATH)/uart.c $(DRIVERS_PATH)/timer.c $(DRIVERS_PATH)/qspi.c $(DRIVERS_PATH)/dram.c
 
 ifeq ($(USE_COREMARK), 1)
-	LINKER_SCRIPT := coremark/riscv32-baremetal/link$(WITHBOOTLOADER).ld
-	START_ASM := coremark/riscv32-baremetal/crt0$(WITHBOOTLOADER).S
+	LINKER_SCRIPT := coremark/riscv32-baremetal/link$(WITHBOOTLOADER)$(WITHDRAM).ld
+	START_ASM := coremark/riscv32-baremetal/crt0$(WITHBOOTLOADER)$(WITHDRAM).S
 	DRIVERS += coremark/riscv32-baremetal/syscalls.c coremark/riscv32-baremetal/ee_printf.c
+endif
+
+CFILE ?= demo
+CPATH ?= $(CFILE)/$(CFILE)
+
+ifeq ($(CFILE), bootloader_dram)
+#	LINKER_SCRIPT := $(COMMON_PATH)/link_asm.ld
+#	START_ASM := 
+	DRIVERS := $(DRIVERS_PATH)/timer.c
 endif
 
 CFLAGS ?= -O2 -mcmodel=medany -static -std=gnu99 -fno-common -fno-unroll-loops -nostdlib -nostartfiles -fno-builtin -ffunction-sections -lm -lgcc -T $(LINKER_SCRIPT) -march=rv32im -mabi=ilp32 -I$(COMMON_PATH) -I$(DRIVERS_PATH)
@@ -39,9 +53,6 @@ CFLAGS ?= -O2 -mcmodel=medany -static -std=gnu99 -fno-common -fno-unroll-loops -
 ifeq ($(USE_COREMARK), 1)
 	CFLAGS += -Icoremark -Icoremark/riscv32-baremetal -DITERATIONS=2000 -DUSE_COREMARK_UTILS
 endif
-
-CFILE ?= demo
-CPATH ?= $(CFILE)/$(CFILE)
 
 SRCS ?= $(CPATH).c $(DRIVERS) $(START_ASM)
 
