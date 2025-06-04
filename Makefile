@@ -86,6 +86,10 @@ send:
 		python3 ./tools/uart_send_data.py --port /dev/ttyUSB$(word 2, $(MAKECMDGOALS)) --file $(word 3, $(MAKECMDGOALS)); \
 	fi
 
+.PHONY: sendc
+sendc:
+	python3 ./tools/uart_send_by_chunks.py
+
 .PHONY: pico
 pico:
 	picocom -b 115200 /dev/ttyUSB$(ARGS) --imap lfcrlf
