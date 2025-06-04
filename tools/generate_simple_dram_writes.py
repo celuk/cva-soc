@@ -96,6 +96,9 @@ def generate_files(hex_file):
 
     for i in range(num_chunks):
         chunk = words[i * WORDS_PER_FILE : (i + 1) * WORDS_PER_FILE]
+        if i == num_chunks - 1:
+            chunk.append('FFFFFFFF')
+        
         folder_name = f"simple_dram_write{i}"
         folder_path = os.path.join(BUILD_DIR, folder_name)
         os.makedirs(folder_path, exist_ok=True)
