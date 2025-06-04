@@ -105,7 +105,7 @@ show:
 #-do verification/sim/waveform/wave.do
 
 .PHONY: gen_dramw
-gen_dramw:
+gen_dramw: rmtemp
 	python3 ./tools/generate_simple_dram_writes.py -f $(ARGS)
 
 .PHONY: clean
