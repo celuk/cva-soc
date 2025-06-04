@@ -8,7 +8,7 @@ from cocotb.handle import SimHandleBase
 from cocotb.queue import Queue
 from cocotb.triggers import RisingEdge, FallingEdge, Edge, ClockCycles, Timer
 
-TIMEOUT = 250000
+TIMEOUT = 2500000
 tests = {}
 
 import os
@@ -122,13 +122,13 @@ async def uart_monitor(dut, clk, cpu_clk, baud_rate):
 
         # Print to console like a terminal
         print(char, end='', flush=True)
-        ## reset if Done dram write
-        if(char == 'e'):
-            print()
-            dut.rst_ni.value = 0
-            await RisingEdge(clk)
-            dut.rst_ni.value = 1
-            #break
+        ### reset if Done dram write
+        #if(char == 'e'):
+        #    print()
+        #    dut.rst_ni.value = 0
+        #    await RisingEdge(clk)
+        #    dut.rst_ni.value = 1
+        #    #break
 
 @cocotb.coroutine
 async def main_memory(dut, clock_period_ns, uart_baud_rate, clk):
@@ -160,6 +160,13 @@ async def main_memory(dut, clock_period_ns, uart_baud_rate, clk):
 
         await RisingEdge(clk)
         #dut.rst_ni.value = 1
+
+        ## reset after programmed to get boot again, waiting some time
+        for _ in range(1000):
+            await RisingEdge(clk)
+        dut.rst_ni.value = 0
+        await RisingEdge(clk)
+        dut.rst_ni.value = 1
 
         timeout = 0
         while True:
