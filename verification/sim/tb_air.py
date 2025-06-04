@@ -70,6 +70,13 @@ async def uart_monitor(dut, clk, cpu_clk, baud_rate):
 
         # Print to console like a terminal
         print(char, end='', flush=True)
+        ## reset if Done dram write
+        if(char == 'e'):
+            print()
+            dut.rst_ni.value = 0
+            await RisingEdge(clk)
+            dut.rst_ni.value = 1
+            #break
 
 @cocotb.coroutine
 async def read_instructions():
