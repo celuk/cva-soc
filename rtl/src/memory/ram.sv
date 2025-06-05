@@ -80,10 +80,21 @@ module ram32 #(
       ram_rdata <= ram[mem_addr];
    end
 
+   localparam RESET_SEQUENCE    = "RESETTTTT";
+
+   // Programming state machine signals
+   localparam PROGRAM_SEQUENCE    = "TEKNOFEST";
+   localparam PROG_SEQ_LENGTH     = 9;
+   localparam SEQ_BREAK_THRESHOLD = 32'd1000000;
+   
+   reg [PROG_SEQ_LENGTH*8-1:0] received_sequence;
+
    // Separate register for read valid
    reg rvalid_r;
    always @(posedge clk_i or negedge rst_ni) begin
       if (!rst_ni)
+         rvalid_r <= 1'b0;
+      else if(received_sequence == RESET_SEQUENCE)
          rvalid_r <= 1'b0;
       else
          rvalid_r <= req_i; //req_i && !write_en;
@@ -116,7 +127,18 @@ module ram32 #(
             boot_in_progress <= 1'b0;
             boot_done <= 1'b1;
          end
-      end else begin
+      end
+      else if(received_sequence == RESET_SEQUENCE) begin
+         if (`USE_BOOTROM) begin
+            boot_rom_addr <= 32'd0;
+            boot_in_progress <= 1'b1;  
+            boot_done <= 1'b0;
+         end else begin
+            boot_in_progress <= 1'b0;
+            boot_done <= 1'b1;
+         end
+      end
+      else begin
          if (boot_in_progress) begin
             if (boot_rom_addr < RAM_DEPTH-1) begin
                boot_rom_addr <= boot_rom_addr + 1'b1;
@@ -147,12 +169,6 @@ module ram32 #(
    wire [31:0] ram_prog_data = prog_instruction;
    wire ram_prog_data_valid = prog_inst_valid;
    
-   // Programming state machine signals
-   localparam PROGRAM_SEQUENCE    = "TEKNOFEST";
-   localparam PROG_SEQ_LENGTH     = 9;
-   localparam SEQ_BREAK_THRESHOLD = 32'd1000000;
-   
-   reg [PROG_SEQ_LENGTH*8-1:0] received_sequence;
    reg [3:0] rcv_seq_ctr;
    reg [31:0] sequence_break_ctr;
    wire sequence_break = sequence_break_ctr == SEQ_BREAK_THRESHOLD;
@@ -183,7 +199,11 @@ module ram32 #(
    always @(posedge clk_i or negedge rst_ni) begin
       if (!rst_ni) begin
         state_prog <= SequenceWait;
-      end else begin
+      end
+      else if(received_sequence == RESET_SEQUENCE) begin
+        state_prog <= SequenceWait;
+      end
+      else begin
         state_prog <= state_prog_next;
       end
    end
@@ -244,7 +264,20 @@ module ram32 #(
         prog_inst_valid      <= 1'b0;
         prog_sys_rst_n       <= 1'b1;
         prog_addr            <= 'h0;
-      end else begin
+      end
+      else if(received_sequence == RESET_SEQUENCE) begin
+        instruction_byte_ctr <= 2'b0;
+        prog_instruction     <= 32'h0;
+        prog_intr_number     <= 32'h0;
+        prog_intr_ctr        <= 32'h0;
+        sequence_break_ctr   <= 32'h0;
+        received_sequence    <= 72'h0;
+        rcv_seq_ctr          <= 4'h0;
+        prog_inst_valid      <= 1'b0;
+        prog_sys_rst_n       <= 1'b1;
+        prog_addr            <= 'h0;
+      end
+      else begin
         if(!system_reset_o) begin
           prog_addr <= 'h0;
         end

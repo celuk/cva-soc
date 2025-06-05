@@ -90,6 +90,10 @@ send:
 sendc:
 	python3 ./tools/uart_send_by_chunks.py
 
+.PHONY: reset
+reset:
+	python3 ./tools/uart_send_reset.py --port /dev/ttyUSB$(word 2, $(MAKECMDGOALS));
+
 .PHONY: pico
 pico:
 	picocom -b 115200 /dev/ttyUSB$(ARGS) --imap lfcrlf
