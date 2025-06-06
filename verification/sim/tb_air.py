@@ -105,6 +105,26 @@ def load_verilog_hex_file():
 
     return memory
 
+def load_dram_verilog_hex_file():
+    for test in tests:
+        with open(tests[test]["TEST_FILE"].rsplit("/", 2)[0] + "/coremark/coremark_baremetal.vmem", "r") as file:
+            lines = file.readlines()
+
+        memory = {}
+        current_address = None
+
+        for line in lines:
+            if line.startswith("@"):
+                current_address = int(line[1:], 16) - 0x80000000  # Adjust for DRAM base address
+            else:
+                values = line.strip().split()
+                for value in values:
+                    if current_address is not None:
+                        memory[current_address] = int(value, 16)
+                        current_address += 1
+
+    return memory
+
 timeout = 0
 
 import signal
@@ -134,7 +154,17 @@ async def main_memory(dut, clk, start_address):
                 dut.main_memory.ram[address >> 2].value = word
     
     ## for dram bootloader test
-    #if cfile == "bootloader_dram":
+    if cfile == "bootloader_dram":
+        dram_memory = load_dram_verilog_hex_file()
+        for address, value in dram_memory.items():
+            if address % 4 == 0:
+                word = (
+                    dram_memory.get(address + 3, 0) << 24 |
+                    dram_memory.get(address + 2, 0) << 16 |
+                    dram_memory.get(address + 1, 0) << 8  |
+                    dram_memory.get(address, 0)
+                )
+                dut.ddr3_dut.memory[address >> 2].value = word
     #    for i in range(1024):
     #        dut.ddr3_dut.memory[i].value = 0xDEADBEEF
     #    dut.ddr3_dut.memory[256 + 0].value = 0x00A00293
