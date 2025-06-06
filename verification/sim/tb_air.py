@@ -155,6 +155,9 @@ async def main_memory(dut, clk, start_address):
     
     ## for dram bootloader test
     if cfile == "bootloader_dram":
+        dram_mem_size = len(dut.ddr3_dut.memory)
+        for i in range(dram_mem_size):
+            dut.ddr3_dut.memory[i].value = 0
         dram_memory = load_dram_verilog_hex_file()
         for address, value in dram_memory.items():
             if address % 16 == 0:
