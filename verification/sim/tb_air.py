@@ -157,14 +157,12 @@ async def main_memory(dut, clk, start_address):
     if cfile == "bootloader_dram":
         dram_memory = load_dram_verilog_hex_file()
         for address, value in dram_memory.items():
-            if address % 4 == 0:
-                word = (
-                    dram_memory.get(address + 3, 0) << 24 |
-                    dram_memory.get(address + 2, 0) << 16 |
-                    dram_memory.get(address + 1, 0) << 8  |
-                    dram_memory.get(address, 0)
-                )
-                dut.ddr3_dut.memory[address >> 2].value = word
+            if address % 16 == 0:
+                word128 = 0
+                for i in range(16):
+                    byte_val = dram_memory.get(address + i, 0)
+                    word128 |= byte_val << (i * 8)
+                dut.ddr3_dut.memory[address >> 4].value = word128
     #    for i in range(1024):
     #        dut.ddr3_dut.memory[i].value = 0xDEADBEEF
     #    dut.ddr3_dut.memory[256 + 0].value = 0x00A00293
