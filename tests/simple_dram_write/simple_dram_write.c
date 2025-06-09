@@ -15,6 +15,7 @@ int main()
     for (int i = 0; i < sizeof(data)/sizeof(data[0]); i++) {
         //(*((volatile unsigned int*)(DDR3_AXI_BASE_ADDR + start_address + i*4))) = data[i];
         *((volatile unsigned int*)(DDR3_AXI_CODE_BASE_ADDR + start_address + i*4)) = data[i];
+        *((volatile unsigned int*)(DDR3_AXI_CODE_BASE_ADDR + 0x300 + start_address + i*4)) = data[i];
     }
 
     //init_uart();
