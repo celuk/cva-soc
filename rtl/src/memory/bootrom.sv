@@ -152,8 +152,8 @@ always_comb begin
       144:    rdata_o = 32'h158000EF;
       145:    rdata_o = 32'h800002B7;
       146:    rdata_o = 32'h305292F3;
-      147:    rdata_o = 32'h800002B7;
-      148:    rdata_o = 32'h10028293;
+      147:    rdata_o = 32'h800022B7;
+      148:    rdata_o = 32'h00028293;
       149:    rdata_o = 32'h00028067;
       150:    rdata_o = 32'h00C12083;
       151:    rdata_o = 32'h00000513;

@@ -18,8 +18,8 @@ static inline void update_trap_vector_base_address()
 static inline void jump_to_dram()
 {
     asm volatile (
-        "lui   t0, 0x80000 \n"
-        "addi  t0, t0, 0x100 \n"
+        "lui   t0, 0x80002 \n"
+        "addi  t0, t0, 0x0 \n"
         "jalr  x0, t0, 0 \n"
     );
 }
