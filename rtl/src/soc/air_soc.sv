@@ -384,7 +384,7 @@ module air_soc (
       .req_i   ( ram_req_i      ),
       .we_i    ( ram_we_i       ),
       .be_i    ( ram_be_i       ),
-      .addr_i  ( ram_addr_i[27:0]     ),
+      .addr_i  ( ram_addr_i     ),
       .wdata_i ( ram_wdata_i    ),
       .rvalid_o( ram_rvalid_o   ),
       .rdata_o ( ram_rdata_o    )
