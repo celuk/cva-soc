@@ -13,7 +13,7 @@
 `define ZFINX 1'b0
 `define NUM_MHPMCOUNTERS 1'b1
 
-`define BOOT_ADDR 32'h0000_0080 //32'h00000180
+`define BOOT_ADDR 32'h8000_0080 //32'h00000180
 `define MTVEC_ADDR 32'h0
 `define DM_HALT_ADDR 32'h0000_0000 //32'h1A110800
 
@@ -38,19 +38,19 @@
 `define RAM_FPATH "" //"../../../tests/coremark/coremark_baremetal.hex" //"" //"../../../tests/demo/demo.hex" //"../../../tests/coremark/coremark_baremetal.hex" //"../../../tests/qspi_demo/qspi_demo.hex"
 `define RAM_SIZE 'h8000 //'h3200 //131072 //32'h0002_0000 //131072 //256 * 1024
 
-`define MEM_BASE_ADDR   32'h0000_0000
+`define MEM_BASE_ADDR   32'h8000_0000
 `define MEM_RANGE       32'h0F00_0000
 
 `define USE_BOOTROM 0
 
 //`define BASYS3
 //`define EXT_FLASH
-//`define QSPI_SIM
+`define QSPI_SIM
 
 //`define ZC706
-`define DDR3_AXI
-`define DDR_MHZ 100
-`define DRAM_SIM
+//`define DDR3_AXI
+//`define DDR_MHZ 100
+//`define DRAM_SIM
 
 /*
 PERIPHERALS
@@ -72,5 +72,5 @@ PERIPHERALS
 `define DRAM_BASE_ADDR  32'hFF07_0000
 `define DRAM_RANGE      32'h0000_FFFF
 
-`define DDR3_AXI_BASE_ADDR 32'h8000_0000
-`define DDR3_AXI_RANGE     32'h1F00_0000 //32'h7F00_0000
+`define DDR3_AXI_BASE_ADDR 32'h1F00_0000
+`define DDR3_AXI_RANGE     32'h2F00_0000 //32'h7F00_0000

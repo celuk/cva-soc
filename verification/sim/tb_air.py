@@ -95,7 +95,7 @@ def load_verilog_hex_file():
 
         for line in lines:
             if line.startswith("@"):
-                current_address = int(line[1:], 16)
+                current_address = int(line[1:], 16) - 0x80000000
             else:
                 values = line.strip().split()
                 for value in values:
