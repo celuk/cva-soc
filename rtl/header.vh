@@ -41,7 +41,7 @@
 `define MEM_BASE_ADDR   32'h0000_0000
 `define MEM_RANGE       32'h0F00_0000
 
-`define USE_BOOTROM 0
+`define USE_BOOTROM 1
 
 //`define BASYS3
 //`define EXT_FLASH
@@ -50,7 +50,7 @@
 //`define ZC706
 `define DDR3_AXI
 `define DDR_MHZ 100
-`define DRAM_SIM
+//`define DRAM_SIM
 
 /*
 PERIPHERALS

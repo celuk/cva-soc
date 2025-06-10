@@ -142,13 +142,13 @@ always_comb begin
       134:    rdata_o = 32'h00112623;
       135:    rdata_o = 32'h04C000EF;
       136:    rdata_o = 32'h00C12083;
-      137:    rdata_o = 32'h1F400513;
+      137:    rdata_o = 32'h3E800513;
       138:    rdata_o = 32'h01010113;
       139:    rdata_o = 32'h16C0006F;
       140:    rdata_o = 32'hFF010113;
       141:    rdata_o = 32'h00112623;
       142:    rdata_o = 32'h030000EF;
-      143:    rdata_o = 32'h1F400513;
+      143:    rdata_o = 32'h3E800513;
       144:    rdata_o = 32'h158000EF;
       145:    rdata_o = 32'h800002B7;
       146:    rdata_o = 32'h305292F3;

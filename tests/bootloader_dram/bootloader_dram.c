@@ -1,13 +1,10 @@
 #include <stdint.h>
 #include "timer.h"
 
-#define CODE_RAM_BASE_ADDR 0x00002000
-#define CODE_RAM (*(volatile uint32_t*) (CODE_RAM_BASE_ADDR))
-
 void init()
 {
     init_timer();
-    wait_for_us(500);
+    wait_for_us(1000);
 }
 
 static inline void update_trap_vector_base_address()
