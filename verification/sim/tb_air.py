@@ -153,11 +153,15 @@ async def main_memory(dut, clk, start_address):
                 )
                 dut.main_memory.ram[address >> 2].value = word
     
+    dram_mem_size = 0
     ## for dram bootloader test
     if cfile == "bootloader_dram":
         dram_mem_size = len(dut.ddr3_dut.memory)
+        dut.ddr3_dut.memory_index.value = 0
         for i in range(dram_mem_size):
             dut.ddr3_dut.memory[i].value = 0
+            dut.ddr3_dut.address[i].value = i
+
         dram_memory = load_dram_verilog_hex_file()
         for address, value in dram_memory.items():
             if address % 16 == 0:
@@ -166,6 +170,12 @@ async def main_memory(dut, clk, start_address):
                     byte_val = dram_memory.get(address + i, 0)
                     word128 |= byte_val << (i * 8)
                 dut.ddr3_dut.memory[address >> 4].value = word128
+        
+        #while not dut.ddr3_dut.init_done.value:
+        #    await RisingEdge(clk)
+        #await Edge(dut.ddr3_dut.init_done)
+        #dut.ddr3_dut.memory_used.value = dram_mem_size
+
     #    for i in range(1024):
     #        dut.ddr3_dut.memory[i].value = 0xDEADBEEF
     #    dut.ddr3_dut.memory[256 + 0].value = 0x00A00293
@@ -175,6 +185,10 @@ async def main_memory(dut, clk, start_address):
 
     await RisingEdge(clk)
     dut.rst_ni.value = 1
+
+    if cfile == "bootloader_dram":
+        await Edge(dut.ddr3_dut.init_done)
+        dut.ddr3_dut.memory_used.value = dram_mem_size
 
     global timeout
     while True:

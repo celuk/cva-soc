@@ -38,21 +38,6 @@ int main()
     unsigned int data;
     unsigned int address = DDR3_AXI_CODE_BASE_ADDR;
 
-    *((volatile unsigned int*)(address)) = 0x00A00293;
-    *((volatile unsigned int*)(address+8)) = 0x00B00294;
-    *((volatile unsigned int*)(address+4)) = 0x00C00295;
-    *((volatile unsigned int*)(address+12)) = 0x00D00296;
-
-    *((volatile unsigned int*)(address+32)) = 0x00A00293;
-    *((volatile unsigned int*)(address+36)) = 0x00B00294;
-    *((volatile unsigned int*)(address+40)) = 0x00C00295;
-    *((volatile unsigned int*)(address+44)) = 0x00D00296;
-    *((volatile unsigned int*)(address+48)) = 0x00D00296;
-
-    *((volatile unsigned int*)(DDR3_AXI_BASE_ADDR)) = 0x00D00296;
-    *((volatile unsigned int*)(DDR3_AXI_BASE_ADDR+8)) = 0x00D00296;
-    *((volatile unsigned int*)(DDR3_AXI_BASE_ADDR+60)) = 0x00D00296;
-
     data = *((volatile unsigned int*)(address+4));
     tekno_printf("data: %x address: %x\n", data, address+4);
 
