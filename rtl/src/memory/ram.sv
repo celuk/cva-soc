@@ -263,7 +263,7 @@ module ram32 #(
         rcv_seq_ctr          <= 4'h0;
         prog_inst_valid      <= 1'b0;
         prog_sys_rst_n       <= 1'b1;
-        prog_addr            <= 'h20; //'h0;
+        prog_addr            <= 'h0; //'h0;
       end
       else if(received_sequence == RESET_SEQUENCE) begin
         instruction_byte_ctr <= 2'b0;
@@ -275,11 +275,11 @@ module ram32 #(
         rcv_seq_ctr          <= 4'h0;
         prog_inst_valid      <= 1'b0;
         prog_sys_rst_n       <= 1'b1;
-        prog_addr            <= 'h20; //'h0;
+        prog_addr            <= 'h0; //'h0;
       end
       else begin
         if(!system_reset_o) begin
-          prog_addr <= 'h20; //'h0;
+          prog_addr <= 'h0; //'h0;
         end
         // Increment programming address when valid data
         else if (prog_mode_led_o && ram_prog_data_valid) begin
@@ -422,7 +422,7 @@ module ram32 #(
       boot_rom_addr = 0;
       boot_in_progress = `USE_BOOTROM && (INIT_FILE == "");
       boot_done = ~`USE_BOOTROM || (INIT_FILE != "");
-      prog_addr = 'h20; //0;
+      prog_addr = 'h0; //0;
       state_prog = SequenceWait;
       rvalid_r = 0;
       instruction_byte_ctr = 2'b0;
