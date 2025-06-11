@@ -10,46 +10,46 @@
     .rept 31
     nop
     .endr
-    j exc_wrapper
-
+    la t0, exc_wrapper
+    jr t0
     # the reset vector is redirected to _start
-    j _start
+        .section .vectors, "ax", @progbits
+    la t0, _start
+        .option norvc;
+    jr t0
 
 
-.section .text
-.global _start
-.type   _start, @function
 
+    .section .text
+
+# entry point
+    .global _start
+    .type   _start, @function
 _start:
-    # Initialize stack pointer
+    # initialize stack pointer
     la sp, _stack
 
-    # Set up pointers to clear the .bss section
+    # clear bss
     la t1, _bss_start
     la t2, _bss_end
 
-    # If _bss_start is already >= _bss_end, skip the loop
-    bge t1, t2, bss_clear_end
+    j main
+    1: j 1b
+    #bge t1, t2, bss_clear_end
 
 bss_clear_loop:
-    # Zero out a word at a time
     sw x0, 0(t1)
-    # Move to the next word
     addi t1, t1, 4
-    # Continue if we haven't reached the end
-    blt t1, t2, bss_clear_loop
+    ble t1, t2, bss_clear_loop
 
 bss_clear_end:
-    li a0, 0      # argc = 0
-    li a1, 0      # argv = NULL
+
+    # jump to main (argc = 0, argv = 0, returns to _start)
+    li a0, 0
+    li a1, 0
     la ra, _start
-    # Now BSS is clear, call main
-    call main
-
-# If main returns hang in an infinite loop
-hang:
-    j hang
-
+    j main	
+    #1: j 1b
 
 # default exception handler (infinite loop)
     .weak exception_handler

@@ -70,8 +70,9 @@ ifeq ($(ASM), 1)
 endif
 
 ifeq ($(SIMPLE), 1)
-	SRCS := $(CPATH).c $(START_ASM)
-	CFLAGS := -O0 -mcmodel=medany -static -nostartfiles -nostdlib -march=rv32im -mabi=ilp32 -T $(LINKER_SCRIPT)
+	DRIVERS := $(DRIVERS_PATH)/uart.c
+	SRCS := $(CPATH).c $(START_ASM) $(DRIVERS)
+	CFLAGS := -O0 -mcmodel=medany -static -nostartfiles -nostdlib -march=rv32im -mabi=ilp32 -T $(LINKER_SCRIPT) -I$(COMMON_PATH) -I$(DRIVERS_PATH)
 endif
 
 .PHONY: all

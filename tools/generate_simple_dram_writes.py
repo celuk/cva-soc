@@ -6,7 +6,9 @@ WORDS_PER_FILE = 16384
 START_ADDRESS_STEP = WORDS_PER_FILE * 4 #0x2000  # 2048 * 4
 BUILD_DIR = "temp"
 
-HEADER_TEMPLATE = """static const unsigned int start_address = 0x{start_address:08X};
+HEADER_TEMPLATE = """#include "uart.h"
+
+static const unsigned int start_address = 0x{start_address:08X};
 
 static const unsigned int data[] = {{
 {data_lines}
@@ -65,6 +67,9 @@ int main()
     for (int i = 0; i < sizeof(data)/sizeof(data[0]); i++) {{
         (*((volatile unsigned int*)(DDR3_AXI_BASE_ADDR + start_address + i*4))) = data[i];
     }}
+
+    init_uart();
+    print("Done!");
     
     return 0;
 }}
@@ -78,6 +83,9 @@ int main()
     for (int i = 0; i < sizeof(data)/sizeof(data[0]); i++) {{
         (*((volatile unsigned int*)(DDR3_AXI_BASE_ADDR + start_address + i*4))) = data[i];
     }}
+
+    init_uart();
+    print("Done!");
     
     return 0;
 }}
