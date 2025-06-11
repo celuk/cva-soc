@@ -16,36 +16,39 @@
     j _start
 
 
+.section .text
+.global _start
+.type   _start, @function
 
-    .section .text
-
-# entry point
-    .global _start
-    .type   _start, @function
 _start:
-    # initialize stack pointer
+    # Initialize stack pointer
     la sp, _stack
 
-    # clear bss
+    # Set up pointers to clear the .bss section
     la t1, _bss_start
     la t2, _bss_end
 
-    jal main	
-    1: j 1b
-    #bge t1, t2, bss_clear_end
+    # If _bss_start is already >= _bss_end, skip the loop
+    bge t1, t2, bss_clear_end
 
 bss_clear_loop:
+    # Zero out a word at a time
     sw x0, 0(t1)
+    # Move to the next word
     addi t1, t1, 4
-    ble t1, t2, bss_clear_loop
+    # Continue if we haven't reached the end
+    blt t1, t2, bss_clear_loop
 
 bss_clear_end:
-
-    # jump to main (argc = 0, argv = 0, returns to _start)
-    li a0, 0
-    li a1, 0
+    li a0, 0      # argc = 0
+    li a1, 0      # argv = NULL
     la ra, _start
-    j main
+    # Now BSS is clear, call main
+    call main
+
+# If main returns hang in an infinite loop
+hang:
+    j hang
 
 
 # default exception handler (infinite loop)
