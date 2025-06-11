@@ -45,7 +45,7 @@ CPATH ?= $(CFILE)/$(CFILE)
 ifeq ($(CFILE), bootloader_dram)
 #	LINKER_SCRIPT := $(COMMON_PATH)/link_asm.ld
 #	START_ASM := 
-	DRIVERS := $(DRIVERS_PATH)/timer.c $(DRIVERS_PATH)/uart.c
+	DRIVERS := $(DRIVERS_PATH)/timer.c
 endif
 
 #ifeq ($(CFILE), simple_dram_write)

@@ -107,7 +107,8 @@ def load_verilog_hex_file():
 
 def load_dram_verilog_hex_file():
     for test in tests:
-        with open(tests[test]["TEST_FILE"].rsplit("/", 2)[0] + "/coremark/coremark_baremetal.vmem", "r") as file:
+        #with open(tests[test]["TEST_FILE"].rsplit("/", 2)[0] + "/coremark/coremark_baremetal.vmem", "r") as file:
+        with open(tests[test]["TEST_FILE"].rsplit("/", 2)[0] + "/demo/demo.vmem", "r") as file:
             lines = file.readlines()
 
         memory = {}
@@ -152,8 +153,9 @@ async def main_memory(dut, clk, start_address):
                     memory.get(address, 0)
                 )
                 dut.main_memory.ram[address >> 2].value = word
-    
+        
     dram_mem_size = 0
+    address = 0
     ## for dram bootloader test
     if cfile == "bootloader_dram":
         dram_mem_size = len(dut.ddr3_dut.memory)
@@ -170,7 +172,10 @@ async def main_memory(dut, clk, start_address):
                     byte_val = dram_memory.get(address + i, 0)
                     word128 |= byte_val << (i * 8)
                 dut.ddr3_dut.memory[address >> 4].value = word128
-        
+        #print("ADDRESS: " + list(dram_memory.keys())[-1].__str__())
+        #print("ADDRESS: " + (hex(address >> 4)).__str__())
+    #print("ADDRESS: " + (hex(address >> 4)).__str__())
+
         #while not dut.ddr3_dut.init_done.value:
         #    await RisingEdge(clk)
         #await Edge(dut.ddr3_dut.init_done)
@@ -188,7 +193,9 @@ async def main_memory(dut, clk, start_address):
 
     if cfile == "bootloader_dram":
         await Edge(dut.ddr3_dut.init_done)
-        dut.ddr3_dut.memory_used.value = dram_mem_size
+        #dut.ddr3_dut.memory_used.value = dram_mem_size
+        ## it is used as latest program address of word128
+        dut.ddr3_dut.memory_used.value = address
 
     global timeout
     while True:
