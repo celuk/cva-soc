@@ -10,46 +10,38 @@
     .rept 31
     nop
     .endr
-    la t0, exc_wrapper
-    jr t0
+    j exc_wrapper
+
     # the reset vector is redirected to _start
-        .section .vectors, "ax", @progbits
-    la t0, _start
-        .option norvc;
-    jr t0
+    j _start
 
 
+.section .text
+.global _start
+.type   _start, @function
 
-    .section .text
-
-# entry point
-    .global _start
-    .type   _start, @function
 _start:
-    # initialize stack pointer
     la sp, _stack
 
-    # clear bss
     la t1, _bss_start
     la t2, _bss_end
 
-    j main
-    1: j 1b
-    #bge t1, t2, bss_clear_end
+    bge t1, t2, bss_clear_end
 
 bss_clear_loop:
     sw x0, 0(t1)
     addi t1, t1, 4
-    ble t1, t2, bss_clear_loop
+    blt t1, t2, bss_clear_loop
 
 bss_clear_end:
+    li a0, 0      # argc = 0
+    li a1, 0      # argv = NULL
+    #la ra, _start
+    call main
 
-    # jump to main (argc = 0, argv = 0, returns to _start)
-    li a0, 0
-    li a1, 0
-    la ra, _start
-    j main	
-    #1: j 1b
+hang:
+    j hang
+
 
 # default exception handler (infinite loop)
     .weak exception_handler
