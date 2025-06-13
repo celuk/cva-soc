@@ -126,6 +126,19 @@ def load_dram_verilog_hex_file():
 
     return memory
 
+def axi_to_ddr_map(axi_address, dut):
+    COL_W = dut.i_ddr3_axi.u_core.DDR_COL_W.value
+    BANK_W = dut.i_ddr3_axi.u_core.DDR_BANK_W.value
+    ROW_W = dut.i_ddr3_axi.u_core.DDR_ROW_W.value
+
+    bank = (axi_address >> 11) & 0x7
+
+    row = (axi_address >> 14) & 0x7FFF
+    
+    col = (axi_address >> 4) & ((1 << (COL_W)) - 1)
+
+    return {'bank': bank, 'row': row, 'col': col}
+
 timeout = 0
 
 import signal
@@ -161,12 +174,13 @@ async def main_memory(dut, clk, start_address):
     if cfile == "bootloader_dram":
         dram_mem_size = len(dut.ddr3_dut.memory)
         dut.ddr3_dut.memory_index.value = 0
+        dut.ddr3_dut.memory_used.value = 0
         for i in range(dram_mem_size):
             dut.ddr3_dut.memory[i].value = 0
             dut.ddr3_dut.address[i].value = i
 
         dram_memory = load_dram_verilog_hex_file()
-        
+
         sorted_addresses = sorted(dram_memory.keys())
     
         for address in sorted_addresses:
@@ -175,9 +189,23 @@ async def main_memory(dut, clk, start_address):
                 for i in range(16):
                     byte_val = dram_memory.get(address + i, 0)
                     word128 |= byte_val << (i * 8)
+                
+                addr_map = axi_to_ddr_map(address, dut)
+                bank = addr_map['bank']
+                row = addr_map['row']
+                col = addr_map['col']
+
+                ROW_BITS = dut.ddr3_dut.ROW_BITS.value
+                COL_BITS = dut.ddr3_dut.COL_BITS.value
+                BL_MAX = dut.ddr3_dut.BL_MAX.value
+
+                verilog_internal_addr = (bank << (ROW_BITS + COL_BITS)) | (row << COL_BITS) | col
+                addr_to_store = verilog_internal_addr // BL_MAX
+                
                 dut.ddr3_dut.memory[memory_array_index].value = word128
-                dut.ddr3_dut.address[memory_array_index].value = address >> 4
+                dut.ddr3_dut.address[memory_array_index].value = addr_to_store
                 memory_array_index += 1
+        
         #print("ADDRESS: " + list(dram_memory.keys())[-1].__str__())
         #print("ADDRESS: " + (hex(address >> 4)).__str__())
     #print("ADDRESS: " + (hex(address >> 4)).__str__())
