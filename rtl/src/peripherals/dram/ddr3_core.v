@@ -519,8 +519,6 @@ begin
     default:
         ;
     endcase
-
-    if (ram_req_w) $display("CONTROLLER_MAP: AXI_ADDR=0x%h -> BANK=%d, ROW=0x%h, COL=0x%h", ram_addr_w, addr_bank_w, addr_row_w, addr_col_w);
 end
 
 //-----------------------------------------------------------------
