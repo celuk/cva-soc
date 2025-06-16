@@ -803,21 +803,6 @@ module ddr3 (
         end
     endtask
 
-    // --- Cocotb Backdoor Memory Load Interface ---
-    reg                            cocotb_memory_write_trigger = 0;
-    reg [BA_BITS-1:0]              cocotb_bank_in;
-    reg [ROW_BITS-1:0]             cocotb_row_in;
-    reg [COL_BITS-1:0]             cocotb_col_in;
-    reg [BL_MAX*DQ_BITS-1:0]       cocotb_data_in;
-
-    always @(posedge ck_in) begin
-        if (cocotb_memory_write_trigger) begin
-            $display("COCOTB_BACKDOOR: memory_write triggered at time %t", $time);
-            memory_write(cocotb_bank_in, cocotb_row_in, cocotb_col_in, cocotb_data_in);
-        end
-    end
-    // --- End Cocotb Backdoor Interface ---
-
     task memory_read;
         input  [BA_BITS-1:0]  bank;
         input  [ROW_BITS-1:0] row;

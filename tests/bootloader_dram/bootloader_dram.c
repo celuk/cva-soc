@@ -27,7 +27,6 @@ static inline void jump_to_dram()
 int main()
 {
     init();
-    wait_for_us(500);
     update_trap_vector_base_address();
     jump_to_dram();
     return 0;
