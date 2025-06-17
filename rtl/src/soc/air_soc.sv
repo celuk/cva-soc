@@ -379,7 +379,7 @@ module air_soc (
    // TODO: Handle atomics with wrapper
 
    ram32 #(
-      .SIZE     ('h2F00/4),
+      .SIZE     (`RAM_SIZE / 4),
       .INIT_FILE(`RAM_FPATH)
    ) main_memory (
       .clk_i   (clkwiz_o),

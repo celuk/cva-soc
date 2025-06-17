@@ -36,7 +36,7 @@
 `define DCACHE_WAY_LEN `DCACHE_SZ / (`DCACHE_LINE_W / 8) / 2
 
 `define RAM_FPATH "" //"../../../tests/coremark/coremark_baremetal.hex" //"" //"../../../tests/demo/demo.hex" //"../../../tests/coremark/coremark_baremetal.hex" //"../../../tests/qspi_demo/qspi_demo.hex"
-`define RAM_SIZE 'h4000 //'h3200 //131072 //32'h0002_0000 //131072 //256 * 1024
+`define RAM_SIZE 'h2F00 //'h3200 //131072 //32'h0002_0000 //131072 //256 * 1024
 
 `define MEM_BASE_ADDR   32'h0000_0000
 `define MEM_RANGE       32'h0F00_0000
@@ -51,7 +51,7 @@
 `define DDR3_AXI
 `define DDR_MHZ 100
 //`define DRAM_SIM
-`define USE_SRAM
+//`define USE_SRAM
 
 /*
 PERIPHERALS
