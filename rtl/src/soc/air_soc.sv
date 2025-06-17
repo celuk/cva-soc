@@ -58,6 +58,7 @@ module air_soc (
    ,inout wire [1:0] ddr3_dqs_n
    ,inout wire [15:0] ddr3_dq
    `elsif DDR3_AXI
+   `ifndef USE_SRAM
    ,output wire ddr3_reset_n
    ,output wire ddr3_cke
    ,output wire ddr3_ck_p
@@ -73,6 +74,7 @@ module air_soc (
    ,inout wire [1:0] ddr3_dqs_p
    ,inout wire [1:0] ddr3_dqs_n
    ,inout wire [15:0] ddr3_dq
+   `endif
    `endif
    `endif
 );
@@ -377,7 +379,7 @@ module air_soc (
    // TODO: Handle atomics with wrapper
 
    ram32 #(
-      .SIZE     (`RAM_SIZE / 4),
+      .SIZE     ('h2F00/4),
       .INIT_FILE(`RAM_FPATH)
    ) main_memory (
       .clk_i   (clkwiz_o),
@@ -698,8 +700,81 @@ module air_soc (
        ,.clk_ref(clk_ref)
        ,.clk_ddr_dqs(clk_ddr_dqs)
    );
+   `elsif USE_SRAM
+   adapter_obi_req_t mem8_obi_req;
+   adapter_obi_rsp_t mem8_obi_rsp;
+
+   axi_to_obi #(
+      .ObiCfg         ( AdapterObiCfg          ),
+      .obi_req_t      ( adapter_obi_req_t      ),
+      .obi_rsp_t      ( adapter_obi_rsp_t      ),
+      .obi_a_chan_t   ( adapter_obi_a_chan_t   ),
+      .obi_r_chan_t   ( adapter_obi_r_chan_t   ),
+      .AxiAddrWidth   ( XbarCfg.AxiAddrWidth   ),
+      .AxiDataWidth   ( XbarCfg.AxiDataWidth   ),
+      .AxiIdWidth     ( AXI_ID_WIDTH_XBAR_MST  ),
+      .AxiUserWidth   ( cva6_config_pkg::CVA6ConfigDataUserWidth ),
+      .MaxTrans       ( AXI_MAX_TRANS          ),
+      .axi_req_t      ( ariane_axi::req_t      ),
+      .axi_rsp_t      ( ariane_axi::resp_t     )
+   ) i_axi_to_obi_mem8 (
+      .clk_i        ( clkwiz_o                            ),
+      .rst_ni       ( rst_n                               ),
+      .testmode_i   ( 1'b0                                ),
+      .axi_req_i    ( xbar_mst_ports_req[MASTER_DRAM_IDX]  ),
+      .axi_rsp_o    ( xbar_mst_ports_resp[MASTER_DRAM_IDX] ),
+      .obi_req_o    ( mem8_obi_req                         ),
+      .obi_rsp_i    ( mem8_obi_rsp                         ),
+      .req_aw_id_o (), .req_aw_user_o (), .req_w_user_o (),
+      .req_write_aid_i ('0),.req_write_auser_i ('0),.req_write_wuser_i ('0),
+      .req_ar_id_o (), .req_ar_user_o (),
+      .req_read_aid_i ('0),.req_read_auser_i ('0),
+      .rsp_write_aw_user_o (), .rsp_write_w_user_o (), .rsp_write_bank_strb_o (),
+      .rsp_write_rid_o (), .rsp_write_ruser_o (), .rsp_write_last_o (),
+      .rsp_write_hs_o (), .rsp_b_user_i ('0),
+      .rsp_read_ar_user_o (), .rsp_read_size_enable_o (), .rsp_read_rid_o (),
+      .rsp_read_ruser_o (), .rsp_r_user_i ('0)
+   );
+
+   logic        ram8_req_i;
+   logic        ram8_we_i;
+   logic [AdapterObiCfg.DataWidth/8-1:0] ram8_be_i;
+   logic [AdapterObiCfg.AddrWidth-1:0] ram8_addr_i;
+   logic [AdapterObiCfg.DataWidth-1:0] ram8_wdata_i;
+   logic        ram8_rvalid_o;
+   logic [AdapterObiCfg.DataWidth-1:0] ram8_rdata_o;
+
+   assign ram8_req_i   = mem8_obi_req.req;
+   assign ram8_we_i    = mem8_obi_req.a.we;
+   assign ram8_addr_i  = mem8_obi_req.a.addr[27:0];
+   assign ram8_wdata_i = mem8_obi_req.a.wdata;
+   assign ram8_be_i    = mem8_obi_req.a.be;
+
+   assign mem8_obi_rsp.gnt    = 1;
+   assign mem8_obi_rsp.rvalid = ram8_rvalid_o;
+   assign mem8_obi_rsp.r.rdata = ram8_rdata_o;
+   assign mem8_obi_rsp.r.rid   = mem8_obi_req.a.aid;
+   assign mem8_obi_rsp.r.err  = 1'b0;
+
+   ram32 #(
+      .SIZE     (`RAM_SIZE / 4),
+      .INIT_FILE(`RAM_FPATH)
+   ) main_memory8 (
+      .clk_i   (clkwiz_o),
+      .rst_ni  (rst_n),
+      .req_i   ( ram8_req_i      ),
+      .we_i    ( ram8_we_i       ),
+      .be_i    ( ram8_be_i       ),
+      .addr_i  ( ram8_addr_i     ),
+      .wdata_i ( ram8_wdata_i    ),
+      .rvalid_o( ram8_rvalid_o   ),
+      .rdata_o ( ram8_rdata_o    )
+
+      ,.program_rx_i   (    )
+      ,.system_reset_o (  )
+      ,.prog_mode_led_o( )
+   );
    `elsif DDR3_AXI
-   /*
    logic                            dram_axi_awvalid;
    logic                            dram_axi_awready;
    logic [XbarCfg.AxiAddrWidth-1:0] dram_axi_awaddr;
@@ -892,81 +967,6 @@ module air_soc (
        .ddr3_dqs_p_io ( ddr3_dqs_p  ),
        .ddr3_dqs_n_io ( ddr3_dqs_n  ),
        .ddr3_dq_io    ( ddr3_dq     )
-   );
-   */
-
-   adapter_obi_req_t mem8_obi_req;
-   adapter_obi_rsp_t mem8_obi_rsp;
-
-   axi_to_obi #(
-      .ObiCfg         ( AdapterObiCfg          ),
-      .obi_req_t      ( adapter_obi_req_t      ),
-      .obi_rsp_t      ( adapter_obi_rsp_t      ),
-      .obi_a_chan_t   ( adapter_obi_a_chan_t   ),
-      .obi_r_chan_t   ( adapter_obi_r_chan_t   ),
-      .AxiAddrWidth   ( XbarCfg.AxiAddrWidth   ),
-      .AxiDataWidth   ( XbarCfg.AxiDataWidth   ),
-      .AxiIdWidth     ( AXI_ID_WIDTH_XBAR_MST  ),
-      .AxiUserWidth   ( cva6_config_pkg::CVA6ConfigDataUserWidth ),
-      .MaxTrans       ( AXI_MAX_TRANS          ),
-      .axi_req_t      ( ariane_axi::req_t      ),
-      .axi_rsp_t      ( ariane_axi::resp_t     )
-   ) i_axi_to_obi_mem8 (
-      .clk_i        ( clkwiz_o                            ),
-      .rst_ni       ( rst_n                               ),
-      .testmode_i   ( 1'b0                                ),
-      .axi_req_i    ( xbar_mst_ports_req[MASTER_DRAM_IDX]  ),
-      .axi_rsp_o    ( xbar_mst_ports_resp[MASTER_DRAM_IDX] ),
-      .obi_req_o    ( mem8_obi_req                         ),
-      .obi_rsp_i    ( mem8_obi_rsp                         ),
-      .req_aw_id_o (), .req_aw_user_o (), .req_w_user_o (),
-      .req_write_aid_i ('0),.req_write_auser_i ('0),.req_write_wuser_i ('0),
-      .req_ar_id_o (), .req_ar_user_o (),
-      .req_read_aid_i ('0),.req_read_auser_i ('0),
-      .rsp_write_aw_user_o (), .rsp_write_w_user_o (), .rsp_write_bank_strb_o (),
-      .rsp_write_rid_o (), .rsp_write_ruser_o (), .rsp_write_last_o (),
-      .rsp_write_hs_o (), .rsp_b_user_i ('0),
-      .rsp_read_ar_user_o (), .rsp_read_size_enable_o (), .rsp_read_rid_o (),
-      .rsp_read_ruser_o (), .rsp_r_user_i ('0)
-   );
-
-   logic        ram8_req_i;
-   logic        ram8_we_i;
-   logic [AdapterObiCfg.DataWidth/8-1:0] ram8_be_i;
-   logic [AdapterObiCfg.AddrWidth-1:0] ram8_addr_i;
-   logic [AdapterObiCfg.DataWidth-1:0] ram8_wdata_i;
-   logic        ram8_rvalid_o;
-   logic [AdapterObiCfg.DataWidth-1:0] ram8_rdata_o;
-
-   assign ram8_req_i   = mem8_obi_req.req;
-   assign ram8_we_i    = mem8_obi_req.a.we;
-   assign ram8_addr_i  = mem8_obi_req.a.addr[27:0];
-   assign ram8_wdata_i = mem8_obi_req.a.wdata;
-   assign ram8_be_i    = mem8_obi_req.a.be;
-
-   assign mem8_obi_rsp.gnt    = 1;
-   assign mem8_obi_rsp.rvalid = ram8_rvalid_o;
-   assign mem8_obi_rsp.r.rdata = ram8_rdata_o;
-   assign mem8_obi_rsp.r.rid   = mem8_obi_req.a.aid;
-   assign mem8_obi_rsp.r.err  = 1'b0;
-
-   ram32 #(
-      .SIZE     (`RAM_SIZE / 4),
-      .INIT_FILE(`RAM_FPATH)
-   ) main_memory8 (
-      .clk_i   (clkwiz_o),
-      .rst_ni  (rst_n),
-      .req_i   ( ram8_req_i      ),
-      .we_i    ( ram8_we_i       ),
-      .be_i    ( ram8_be_i       ),
-      .addr_i  ( ram8_addr_i     ),
-      .wdata_i ( ram8_wdata_i    ),
-      .rvalid_o( ram8_rvalid_o   ),
-      .rdata_o ( ram8_rdata_o    )
-
-      ,.program_rx_i   (    )
-      ,.system_reset_o (  )
-      ,.prog_mode_led_o( )
    );
    `endif
 

@@ -48,6 +48,11 @@ ifeq ($(CFILE), bootloader_dram)
 	DRIVERS := $(DRIVERS_PATH)/timer.c
 endif
 
+ifeq ($(CFILE), bootloader_sram)
+	DRIVERS := $(DRIVERS_PATH)/timer.c
+endif
+
+
 #ifeq ($(CFILE), simple_dram_write)
 #	LINKER_SCRIPT := $(COMMON_PATH)/link_asm.ld
 #	START_ASM := 
@@ -99,6 +104,10 @@ ifeq ($(CFILE), bootloader)
 endif
 
 ifeq ($(CFILE), bootloader_dram)
+	python3 ../tools/generate_bootrom.py -f $(CPATH).hex --addr_width 14 > ../rtl/src/memory/bootrom.sv
+endif
+
+ifeq ($(CFILE), bootloader_sram)
 	python3 ../tools/generate_bootrom.py -f $(CPATH).hex --addr_width 14 > ../rtl/src/memory/bootrom.sv
 endif
 
