@@ -13,6 +13,7 @@ module ddr3_controller
     
     input [31:0] ram_addr,
     input wr_en,
+    input [15:0] wr_sel,
     input [127:0] wr_data,
     input rd_en,
     output [127:0] rd_data,
@@ -109,7 +110,7 @@ u_phy
     ,.ddr3_dq_io(ddr3_dq)
 );
 
-wire  [ 15:0]  ram_wr = {16{wr_en}};
+wire  [ 15:0]  ram_wr = {16{wr_en}} & wr_sel;
 wire           ram_rd = rd_en;
 
 wire  [127:0]  ram_write_data = wr_data;

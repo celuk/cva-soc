@@ -83,7 +83,7 @@ module dram_controller_axi #(
     logic                            reg_is_write;
     logic [AXI_ID_WIDTH-1:0]         reg_axi_id; // Register to hold ID for current transaction
 
-    dram_controller dram_iface_dut (
+    dram_controller_wb dram_iface_dut (
        .clk_i   (clk_i),
        .rst_i   (~rst_ni),
        .wb_adr_i(wb_adr_reg[WB_ADDR_WIDTH-1:0]),

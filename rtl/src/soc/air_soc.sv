@@ -623,14 +623,14 @@ module air_soc (
    logic [1:0]                      dram_axi_rresp;
 
    assign dram_axi_awvalid = xbar_mst_ports_req[MASTER_DRAM_IDX].aw_valid;
-   assign dram_axi_awaddr  = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.addr;
+   assign dram_axi_awaddr  = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.addr[30:0];
    assign dram_axi_awid    = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.id;
    assign dram_axi_awprot  = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.prot;
    assign dram_axi_wvalid  = xbar_mst_ports_req[MASTER_DRAM_IDX].w_valid;
    assign dram_axi_wdata   = xbar_mst_ports_req[MASTER_DRAM_IDX].w.data;
    assign dram_axi_wstrb   = xbar_mst_ports_req[MASTER_DRAM_IDX].w.strb;
    assign dram_axi_arvalid = xbar_mst_ports_req[MASTER_DRAM_IDX].ar_valid;
-   assign dram_axi_araddr  = xbar_mst_ports_req[MASTER_DRAM_IDX].ar.addr;
+   assign dram_axi_araddr  = xbar_mst_ports_req[MASTER_DRAM_IDX].ar.addr[30:0];
    assign dram_axi_arid    = xbar_mst_ports_req[MASTER_DRAM_IDX].ar.id;
    assign dram_axi_arprot  = xbar_mst_ports_req[MASTER_DRAM_IDX].ar.prot;
    assign dram_axi_bready  = xbar_mst_ports_req[MASTER_DRAM_IDX].b_ready;
