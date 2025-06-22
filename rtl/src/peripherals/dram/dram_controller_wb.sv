@@ -1,3 +1,4 @@
+// dram_controller_wb.sv
 `timescale 1ns / 1ps
 
 `include "header.vh"
@@ -37,47 +38,68 @@ module dram_controller_wb (
    ,input clk_ddr_dqs
 );
 
-    localparam S_IDLE             = 4'b0000;
-    localparam S_START_READ       = 4'b0001;
-    localparam S_WAIT_READ_ACK    = 4'b0010;
-    localparam S_MODIFY_AND_WRITE = 4'b0100;
-    localparam S_WAIT_WRITE_ACK   = 4'b0101;
-    localparam S_DONE             = 4'b1000;
-
-    reg [3:0] state_r, state_next_r;
-    
-    reg        wb_we_r; 
-    reg [31:0] wb_adr_r;
-    reg [31:0] wb_dat_r;
-    reg [3:0]  wb_sel_r;
-    reg [31:0] aligned_adr_r;
-
     reg [31:0] wb_read_data_r;
+    reg [31:0] wb_read_data_next_r;
     assign wb_dat_o = wb_read_data_r;
 
     reg wb_ack_r;
+    reg wb_ack_next_r;
     assign wb_ack_o = wb_ack_r;
 
-    reg [127:0] DRAM_DATA_WRITE;
-    reg [127:0] DRAM_DATA_READ;
+    reg [31:0] DRAM_ADDRESS;
+    reg [31:0] DRAM_ADDRESS_NEXT;
+    reg [31:0] DRAM_DATA_WRITE0;
+    reg [31:0] DRAM_DATA_WRITE0_NEXT;
+    reg [31:0] DRAM_DATA_WRITE1;
+    reg [31:0] DRAM_DATA_WRITE1_NEXT;
+    reg [31:0] DRAM_DATA_WRITE2;
+    reg [31:0] DRAM_DATA_WRITE2_NEXT;
+    reg [31:0] DRAM_DATA_WRITE3;
+    reg [31:0] DRAM_DATA_WRITE3_NEXT;
     reg DRAM_RE;
+    reg DRAM_RE_NEXT;
     reg DRAM_WE;
-    reg [31:0]  DRAM_WDG;
-    reg [15:0]  ram_wr_sel;
+    reg DRAM_WE_NEXT;
+    reg [31:0] DRAM_WDG;
+    reg [31:0] DRAM_WDG_NEXT;
 
+    typedef enum logic [2:0] {
+        IDLE,
+        READ_START,
+        READ_WAIT_ACK,
+        WRITE_RMW_START,
+        WRITE_RMW_WAIT_ACK,
+        WRITE_START,
+        WRITE_WAIT_ACK
+    } state_t;
+
+    state_t state_r, state_next_r;
+
+    reg [31:0] wb_adr_r, wb_adr_next_r;
+    reg [31:0] wb_dat_r, wb_dat_next_r;
+    reg [3:0]  wb_sel_r, wb_sel_next_r;
+
+    wire [31:0] data_read_w0;
+    wire [31:0] data_read_w1;
+    wire [31:0] data_read_w2;
+    wire [31:0] data_read_w3;
+
+    logic [127:0] modified_rmw_data;
+ 
+    reg ram_accept_r, ram_accept_next_r;
+    reg ram_ack_r, ram_ack_next_r;
+
+    `ifdef ZC706
+    wire [31:0]  ram_addr = DRAM_ADDRESS;
+    wire         ram_wr = DRAM_WE;
+    wire [127:0] ram_wr_data = {DRAM_DATA_WRITE3, DRAM_DATA_WRITE2, DRAM_DATA_WRITE1, DRAM_DATA_WRITE0};
+    wire         ram_rd = DRAM_RE;
     wire [127:0] ram_rd_data;
     wire         ram_accept;
     wire         ram_ack;
  
-    wire [31:0] write_mask;
-    assign write_mask = {{8{wb_sel_r[3]}}, {8{wb_sel_r[2]}}, {8{wb_sel_r[1]}}, {8{wb_sel_r[0]}}};
+    reg [15:0] ram_req_id = 0;
 
-    `ifdef ZC706
-    wire [31:0]  ram_addr = aligned_adr_r;
-    wire         ram_wr = DRAM_WE;
-    wire [127:0] ram_wr_data = DRAM_DATA_WRITE;
-    wire         ram_rd = DRAM_RE;
- 
     wire ddr3_reset_i = (DRAM_WDG != 0);
  
     ddr3_controller 
@@ -85,6 +107,7 @@ module dram_controller_wb (
        .DDR_MHZ(`DDR_MHZ)
     )
     ddr3_controller_inst(
+       // user ports
        .rst_i(ddr3_reset_i),
        `ifdef DDR_100MHZ
        .clk(clk100),
@@ -96,13 +119,13 @@ module dram_controller_wb (
        .clk_ddr_dqs(clk_ddr_dqs),
        .ram_addr(ram_addr),
        .wr_en(ram_wr),
-       .wr_sel(ram_wr_sel),
+       .wr_sel('h1111),
        .wr_data(ram_wr_data),
        .rd_en(ram_rd),
        .rd_data(ram_rd_data),
        .accepted(ram_accept),
        .acked(ram_ack),
-       .ram_req_id(0),
+       // io ports
        .ddr3_reset_n(ddr3_reset_n),
        .ddr3_cke(ddr3_cke),
        .ddr3_ck_p(ddr3_ck_p),
@@ -118,119 +141,173 @@ module dram_controller_wb (
        .ddr3_dqs_n(ddr3_dqs_n),
        .ddr3_dq(ddr3_dq),
        .ddr3_cs_n(ddr3_cs_n)
+ 
+       ,.ram_req_id(0)
     );
     `else
-    assign ram_rd_data = 0;
-    assign ram_accept = 1;
-    assign ram_ack = 1;
+    wire [127:0] ram_rd_data = 0;
+    wire         ram_accept = 1;
+    wire         ram_ack = 1;
     `endif
- 
+
     always @* begin
         state_next_r = state_r;
-        DRAM_RE = 1'b0;
-        DRAM_WE = 1'b0;
-        ram_wr_sel = 16'h0;
-        DRAM_DATA_WRITE = DRAM_DATA_READ; 
+        wb_ack_next_r = 0;
+        wb_read_data_next_r = wb_read_data_r;
+        wb_adr_next_r = wb_adr_r;
+        wb_dat_next_r = wb_dat_r;
+        wb_sel_next_r = wb_sel_r;
 
-        case(state_r)
-            S_IDLE: begin
-                if(wb_cyc_i && wb_stb_i) begin
-                    state_next_r = S_START_READ;
-                end
-            end
-            
-            S_START_READ: begin
-                DRAM_RE = 1'b1;
-                if (ram_accept) begin
-                    state_next_r = S_WAIT_READ_ACK;
-                end
-            end
+        DRAM_ADDRESS_NEXT = DRAM_ADDRESS;
+        DRAM_DATA_WRITE0_NEXT = DRAM_DATA_WRITE0;
+        DRAM_DATA_WRITE1_NEXT = DRAM_DATA_WRITE1;
+        DRAM_DATA_WRITE2_NEXT = DRAM_DATA_WRITE2;
+        DRAM_DATA_WRITE3_NEXT = DRAM_DATA_WRITE3;
+        DRAM_RE_NEXT = 0;
+        DRAM_WE_NEXT = 0;
+        DRAM_WDG_NEXT = DRAM_WDG;
 
-            S_WAIT_READ_ACK: begin
-                if (ram_ack) begin
-                    if (wb_we_r) begin
-                        state_next_r = S_MODIFY_AND_WRITE;
+        ram_accept_next_r = ram_accept_r;
+        ram_ack_next_r = ram_ack_r;
+
+        if (ram_accept) begin
+            ram_accept_next_r = 1'b1;
+        end
+        if (ram_ack) begin
+            ram_ack_next_r = 1'b1;
+        end
+
+        case (state_r)
+            IDLE: begin
+                if (wb_cyc_i && wb_stb_i && !wb_ack_r) begin
+                    wb_adr_next_r = wb_adr_i;
+                    DRAM_ADDRESS_NEXT = wb_adr_i & ~32'hF;
+                    if (wb_we_i) begin
+                        wb_dat_next_r = wb_dat_i;
+                        wb_sel_next_r = wb_sel_i;
+                        DRAM_RE_NEXT = 1;
+                        state_next_r = WRITE_RMW_START;
                     end else begin
-                        state_next_r = S_DONE;
+                        DRAM_RE_NEXT = 1;
+                        state_next_r = READ_START;
                     end
                 end
             end
 
-            S_MODIFY_AND_WRITE: begin
-                case (wb_adr_r[3:2])
-                    2'b00: DRAM_DATA_WRITE[31:0]   = (wb_dat_r & write_mask) | (DRAM_DATA_READ[31:0]   & ~write_mask);
-                    2'b01: DRAM_DATA_WRITE[63:32]  = (wb_dat_r & write_mask) | (DRAM_DATA_READ[63:32]  & ~write_mask);
-                    2'b10: DRAM_DATA_WRITE[95:64]  = (wb_dat_r & write_mask) | (DRAM_DATA_READ[95:64]  & ~write_mask);
-                    2'b11: DRAM_DATA_WRITE[127:96] = (wb_dat_r & write_mask) | (DRAM_DATA_READ[127:96] & ~write_mask);
-                endcase
-
-                case(wb_adr_r[3:2])
-                    2'b00:  ram_wr_sel = {12'h000, wb_sel_r};
-                    2'b01:  ram_wr_sel = {8'h00, wb_sel_r, 4'h0};
-                    2'b10:  ram_wr_sel = {4'h0, wb_sel_r, 8'h0};
-                    2'b11:  ram_wr_sel = {wb_sel_r, 12'h000};
-                endcase
-
-                DRAM_WE = 1'b1;
-                if (ram_accept) begin
-                    state_next_r = S_WAIT_WRITE_ACK;
-                end
-            end
-            
-            S_WAIT_WRITE_ACK: begin
-                if (ram_ack) begin
-                    state_next_r = S_DONE;
+            READ_START: begin
+                if (ram_accept_r) begin
+                    state_next_r = READ_WAIT_ACK;
+                    ram_accept_next_r = 1'b0;
                 end
             end
 
-            S_DONE: begin
-                state_next_r = S_IDLE;
+            READ_WAIT_ACK: begin
+                if (ram_ack_r) begin
+                    case (wb_adr_r[3:2])
+                        2'b00: wb_read_data_next_r = ram_rd_data[31:0];
+                        2'b01: wb_read_data_next_r = ram_rd_data[63:32];
+                        2'b10: wb_read_data_next_r = ram_rd_data[95:64];
+                        2'b11: wb_read_data_next_r = ram_rd_data[127:96];
+                    endcase
+                    wb_ack_next_r = 1;
+                    state_next_r = IDLE;
+                    ram_ack_next_r = 1'b0;
+                end
+            end
+
+            WRITE_RMW_START: begin
+                if (ram_accept_r) begin
+                    state_next_r = WRITE_RMW_WAIT_ACK;
+                    ram_accept_next_r = 1'b0;
+                end
+            end
+
+            WRITE_RMW_WAIT_ACK: begin
+                if (ram_ack_r) begin
+                    modified_rmw_data = ram_rd_data;
+                    case (wb_adr_r[3:2])
+                        2'b00: begin
+                            if(wb_sel_r[0]) modified_rmw_data[7:0]   = wb_dat_r[7:0];
+                            if(wb_sel_r[1]) modified_rmw_data[15:8]  = wb_dat_r[15:8];
+                            if(wb_sel_r[2]) modified_rmw_data[23:16] = wb_dat_r[23:16];
+                            if(wb_sel_r[3]) modified_rmw_data[31:24] = wb_dat_r[31:24];
+                        end
+                        2'b01: begin
+                            if(wb_sel_r[0]) modified_rmw_data[39:32] = wb_dat_r[7:0];
+                            if(wb_sel_r[1]) modified_rmw_data[47:40] = wb_dat_r[15:8];
+                            if(wb_sel_r[2]) modified_rmw_data[55:48] = wb_dat_r[23:16];
+                            if(wb_sel_r[3]) modified_rmw_data[63:56] = wb_dat_r[31:24];
+                        end
+                        2'b10: begin
+                            if(wb_sel_r[0]) modified_rmw_data[71:64] = wb_dat_r[7:0];
+                            if(wb_sel_r[1]) modified_rmw_data[79:72] = wb_dat_r[15:8];
+                            if(wb_sel_r[2]) modified_rmw_data[87:80] = wb_dat_r[23:16];
+                            if(wb_sel_r[3]) modified_rmw_data[95:88] = wb_dat_r[31:24];
+                        end
+                        2'b11: begin
+                            if(wb_sel_r[0]) modified_rmw_data[103:96]  = wb_dat_r[7:0];
+                            if(wb_sel_r[1]) modified_rmw_data[111:104] = wb_dat_r[15:8];
+                            if(wb_sel_r[2]) modified_rmw_data[119:112] = wb_dat_r[23:16];
+                            if(wb_sel_r[3]) modified_rmw_data[127:120] = wb_dat_r[31:24];
+                        end
+                    endcase
+                    DRAM_DATA_WRITE0_NEXT = modified_rmw_data[31:0];
+                    DRAM_DATA_WRITE1_NEXT = modified_rmw_data[63:32];
+                    DRAM_DATA_WRITE2_NEXT = modified_rmw_data[95:64];
+                    DRAM_DATA_WRITE3_NEXT = modified_rmw_data[127:96];
+                    DRAM_WE_NEXT = 1;
+                    state_next_r = WRITE_START;
+                end
             end
         endcase
+
+        if (DRAM_WDG > 0) begin
+            DRAM_WDG_NEXT = DRAM_WDG - 1;
+        end
     end
-    
+
     always_ff @(posedge clk_i) begin
         if (rst_i) begin
-            state_r <= S_IDLE;
-            wb_ack_r <= 1'b0;
-            wb_read_data_r <= 32'b0;
-            wb_we_r <= 1'b0;
-            wb_adr_r <= 32'b0;
-            wb_dat_r <= 32'b0;
-            wb_sel_r <= 4'b0;
-            aligned_adr_r <= 32'b0;
-            DRAM_DATA_READ <= 128'b0;
+            wb_ack_r <= 0;
+            wb_read_data_r <= 0;
+    
+            DRAM_ADDRESS <= 0;
+            DRAM_DATA_WRITE0 <= 0;
+            DRAM_DATA_WRITE1 <= 0;
+            DRAM_DATA_WRITE2 <= 0;
+            DRAM_DATA_WRITE3 <= 0;
+            DRAM_RE <= 0;
+            DRAM_WE <= 0;
             DRAM_WDG <= `CPU_CLK / 5000;
+
+            state_r <= IDLE;
+            wb_adr_r <= 0;
+            wb_dat_r <= 0;
+            wb_sel_r <= 0;
+
+            ram_accept_r <= 1'b0;
+            ram_ack_r <= 1'b0;
         end
         else begin
+            wb_ack_r <= wb_ack_next_r;
+            wb_read_data_r <= wb_read_data_next_r;
+    
+            DRAM_ADDRESS <= DRAM_ADDRESS_NEXT;
+            DRAM_DATA_WRITE0 <= DRAM_DATA_WRITE0_NEXT;
+            DRAM_DATA_WRITE1 <= DRAM_DATA_WRITE1_NEXT;
+            DRAM_DATA_WRITE2 <= DRAM_DATA_WRITE2_NEXT;
+            DRAM_DATA_WRITE3 <= DRAM_DATA_WRITE3_NEXT;
+            DRAM_RE <= DRAM_RE_NEXT;
+            DRAM_WE <= DRAM_WE_NEXT;
+            DRAM_WDG <= DRAM_WDG_NEXT;
+
             state_r <= state_next_r;
-            wb_ack_r <= (state_r == S_DONE);
+            wb_adr_r <= wb_adr_next_r;
+            wb_dat_r <= wb_dat_next_r;
+            wb_sel_r <= wb_sel_next_r;
 
-            if (DRAM_WDG > 0) begin
-                DRAM_WDG <= DRAM_WDG - 1;
-            end
-
-            if(state_r == S_IDLE && state_next_r == S_START_READ) begin
-                wb_we_r <= wb_we_i;
-                wb_adr_r <= wb_adr_i;
-                wb_dat_r <= wb_dat_i;
-                wb_sel_r <= wb_sel_i;
-                aligned_adr_r <= wb_adr_i & 32'hFFFFFFF0;
-            end
-
-            if(state_r == S_WAIT_READ_ACK && ram_ack) begin
-                DRAM_DATA_READ <= ram_rd_data;
-            end
-            
-            if(state_r == S_DONE && !wb_we_r) begin
-                case(wb_adr_r[3:2])
-                    2'b00: wb_read_data_r <= DRAM_DATA_READ[31:0];
-                    2'b01: wb_read_data_r <= DRAM_DATA_READ[63:32];
-                    2'b10: wb_read_data_r <= DRAM_DATA_READ[95:64];
-                    2'b11: wb_read_data_r <= DRAM_DATA_READ[127:96];
-                endcase
-            end
+            ram_accept_r <= ram_accept_next_r;
+            ram_ack_r <= ram_ack_next_r;
         end
     end
-
 endmodule
