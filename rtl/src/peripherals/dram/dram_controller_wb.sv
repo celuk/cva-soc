@@ -163,8 +163,8 @@ module dram_controller_wb (
         DRAM_DATA_WRITE1_NEXT = DRAM_DATA_WRITE1;
         DRAM_DATA_WRITE2_NEXT = DRAM_DATA_WRITE2;
         DRAM_DATA_WRITE3_NEXT = DRAM_DATA_WRITE3;
-        DRAM_RE_NEXT = 0;
-        DRAM_WE_NEXT = 0;
+        DRAM_RE_NEXT = DRAM_RE;
+        DRAM_WE_NEXT = DRAM_WE;
         DRAM_WDG_NEXT = DRAM_WDG;
 
         ram_accept_next_r = ram_accept_r;
@@ -198,6 +198,7 @@ module dram_controller_wb (
                 if (ram_accept_r) begin
                     state_next_r = READ_WAIT_ACK;
                     ram_accept_next_r = 1'b0;
+                    DRAM_RE_NEXT = 0;
                 end
             end
 
@@ -219,6 +220,7 @@ module dram_controller_wb (
                 if (ram_accept_r) begin
                     state_next_r = WRITE_RMW_WAIT_ACK;
                     ram_accept_next_r = 1'b0;
+                    DRAM_RE_NEXT = 0;
                 end
             end
 
@@ -257,6 +259,22 @@ module dram_controller_wb (
                     DRAM_DATA_WRITE3_NEXT = modified_rmw_data[127:96];
                     DRAM_WE_NEXT = 1;
                     state_next_r = WRITE_START;
+                end
+            end
+
+            WRITE_START: begin
+                if (ram_accept_r) begin
+                    state_next_r = WRITE_WAIT_ACK;
+                    ram_accept_next_r = 1'b0;
+                    DRAM_WE_NEXT = 0;
+                end
+            end
+
+            WRITE_WAIT_ACK: begin
+                if (ram_ack_r) begin
+                    wb_ack_next_r = 1;
+                    state_next_r = IDLE;
+                    ram_ack_next_r = 1'b0;
                 end
             end
         endcase
