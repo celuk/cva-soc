@@ -300,6 +300,7 @@ module dram_controller_wb (
                     DRAM_DATA_WRITE2_NEXT = modified_rmw_data[95:64];
                     DRAM_DATA_WRITE3_NEXT = modified_rmw_data[127:96];
                     state_next_r = WAIT_RMW;
+                    ram_ack_next_r = 1'b0;
                     DRAM_RE_NEXT = 0;
                 end
             end
