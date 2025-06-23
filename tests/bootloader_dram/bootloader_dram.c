@@ -1,9 +1,16 @@
 #include <stdint.h>
 #include "timer.h"
 
-static const unsigned int start_address = 0x00000000;
+static const unsigned int start_address = 0x00000100;
 
-static const unsigned int data[] = {
+static const unsigned int data[] = 
+{
+0x00A00293,
+0xFFF28293,
+0xFE029EE3,
+0x0000006F,
+};
+/*{
     0x00000013,
     0x00000013,
     0x00000013,
@@ -4215,7 +4222,7 @@ static const unsigned int data[] = {
     0x00000000,
     0x00000000,
     0xFFFFFFFF
-};
+};*/
 
 #define DDR3_AXI_BASE_ADDR 0x80000000
 

@@ -158,7 +158,7 @@ async def main_memory(dut, clk, start_address):
     address = 0
     memory_array_index = 0
     ## for dram bootloader test
-    if cfile == "bootloader_dram":
+    if cfile != "bootloader_dram":
         dram_mem_size = len(dut.ddr3_dut.memory)
         dut.ddr3_dut.memory_index.value = 0
         for i in range(dram_mem_size):
@@ -197,7 +197,7 @@ async def main_memory(dut, clk, start_address):
     await RisingEdge(clk)
     dut.rst_ni.value = 1
 
-    if cfile == "bootloader_dram":
+    if cfile != "bootloader_dram":
         await Edge(dut.ddr3_dut.init_done)
         #dut.ddr3_dut.memory_used.value = dram_mem_size
         ## it is used as latest program address of word128
