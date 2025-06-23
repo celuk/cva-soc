@@ -134,7 +134,7 @@ module dram_controller (
        .clk_ddr_dqs(clk_ddr_dqs),
        .ram_addr(ram_addr),
        .wr_en(ram_wr),
-       .wr_sel(4'b1111),
+       .wr_sel(16'b1111111111111111),
        .wr_data(ram_wr_data),
        .rd_en(ram_rd),
        .rd_data(ram_rd_data),

@@ -70,7 +70,8 @@ module dram_controller_wb (
         WRITE_RMW_START,
         WRITE_RMW_WAIT_ACK,
         WRITE_START,
-        WRITE_WAIT_ACK
+        WRITE_WAIT_ACK,
+        WAIT
     } state_t;
 
     state_t state_r, state_next_r;
@@ -119,7 +120,7 @@ module dram_controller_wb (
        .clk_ddr_dqs(clk_ddr_dqs),
        .ram_addr(ram_addr),
        .wr_en(ram_wr),
-       .wr_sel('h1111),
+       .wr_sel(16'b1111111111111111),
        .wr_data(ram_wr_data),
        .rd_en(ram_rd),
        .rd_data(ram_rd_data),
@@ -150,6 +151,9 @@ module dram_controller_wb (
     wire         ram_ack = 1;
     `endif
 
+    reg [31:0] counter;
+    reg [31:0] counter_next;
+
     always @* begin
         state_next_r = state_r;
         wb_ack_next_r = 0;
@@ -167,6 +171,8 @@ module dram_controller_wb (
         DRAM_WE_NEXT = DRAM_WE;
         DRAM_WDG_NEXT = DRAM_WDG;
 
+        counter_next = counter;
+
         ram_accept_next_r = ram_accept_r;
         ram_ack_next_r = ram_ack_r;
 
@@ -181,16 +187,25 @@ module dram_controller_wb (
             IDLE: begin
                 if (wb_cyc_i && wb_stb_i && !wb_ack_r) begin
                     wb_adr_next_r = wb_adr_i;
-                    DRAM_ADDRESS_NEXT = wb_adr_i & ~32'hF;
+                    DRAM_ADDRESS_NEXT = wb_adr_i & 32'hFFFFFFF0;
                     if (wb_we_i) begin
                         wb_dat_next_r = wb_dat_i;
                         wb_sel_next_r = wb_sel_i;
                         DRAM_RE_NEXT = 1;
                         state_next_r = WRITE_RMW_START;
-                    end else begin
+                    end
+                    else begin
                         DRAM_RE_NEXT = 1;
                         state_next_r = READ_START;
                     end
+                end
+            end
+
+            WAIT: begin
+                counter_next = counter + 1;
+                if(counter >= 10) begin
+                    state_next_r = IDLE;
+                    counter_next = 0;
                 end
             end
 
@@ -211,7 +226,7 @@ module dram_controller_wb (
                         2'b11: wb_read_data_next_r = ram_rd_data[127:96];
                     endcase
                     wb_ack_next_r = 1;
-                    state_next_r = IDLE;
+                    state_next_r = WAIT;
                     ram_ack_next_r = 1'b0;
                 end
             end
@@ -273,7 +288,7 @@ module dram_controller_wb (
             WRITE_WAIT_ACK: begin
                 if (ram_ack_r) begin
                     wb_ack_next_r = 1;
-                    state_next_r = IDLE;
+                    state_next_r = WAIT;
                     ram_ack_next_r = 1'b0;
                 end
             end
@@ -305,6 +320,8 @@ module dram_controller_wb (
 
             ram_accept_r <= 1'b0;
             ram_ack_r <= 1'b0;
+
+            counter <= 0;
         end
         else begin
             wb_ack_r <= wb_ack_next_r;
@@ -326,6 +343,8 @@ module dram_controller_wb (
 
             ram_accept_r <= ram_accept_next_r;
             ram_ack_r <= ram_ack_next_r;
+
+            counter <= counter_next;
         end
     end
 endmodule
