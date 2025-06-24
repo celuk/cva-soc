@@ -19,6 +19,7 @@ module ddr3_controller
     output [127:0] rd_data,
     output accepted,
     output acked,
+    output ram_ready,
     
     input [ 15:0] ram_req_id,
     
@@ -127,6 +128,9 @@ assign rd_data = ram_read_data;
 wire          ram_error;
 wire [ 15:0]  ram_resp_id;
 
+wire          core_stall;
+assign ram_ready = !core_stall;
+
 // TODO: write read latencies
 ddr3_core
 #(
@@ -143,7 +147,7 @@ u_ddr_core
     ,.cfg_enable_i(1'b1)
     ,.cfg_stb_i(1'b0)
     ,.cfg_data_i(32'b0)
-    ,.cfg_stall_o()
+    ,.cfg_stall_o(core_stall)
 
     ,.inport_wr_i(ram_wr)
     ,.inport_rd_i(ram_rd)

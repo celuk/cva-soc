@@ -66,13 +66,14 @@ module dram_controller_wb (
     typedef enum logic [3:0] {
         IDLE,
         READ_START,
+        READ_WAIT_ACCEPT,
         READ_WAIT_ACK,
         WRITE_RMW_START,
+        WRITE_RMW_WAIT_ACCEPT,
         WRITE_RMW_WAIT_ACK,
         WRITE_START,
-        WRITE_WAIT_ACK,
-        WAIT,
-        WAIT_RMW
+        WRITE_WAIT_ACCEPT,
+        WRITE_WAIT_ACK
     } state_t;
 
     state_t state_r, state_next_r;
@@ -83,8 +84,6 @@ module dram_controller_wb (
 
     logic [127:0] modified_rmw_data;
  
-    reg ram_accept_r, ram_accept_next_r;
-
     `ifdef ZC706
     wire [31:0]  ram_addr = DRAM_ADDRESS;
     wire         ram_wr = DRAM_WE;
@@ -93,6 +92,7 @@ module dram_controller_wb (
     wire [127:0] ram_rd_data;
     wire         ram_accept;
     wire         ram_ack;
+    wire         ram_ready;
  
     reg [15:0] ram_req_id = 0;
 
@@ -121,6 +121,7 @@ module dram_controller_wb (
        .rd_data(ram_rd_data),
        .accepted(ram_accept),
        .acked(ram_ack),
+       .ram_ready(ram_ready),
        // io ports
        .ddr3_reset_n(ddr3_reset_n),
        .ddr3_cke(ddr3_cke),
@@ -144,10 +145,8 @@ module dram_controller_wb (
     wire [127:0] ram_rd_data = 0;
     wire         ram_accept = 1;
     wire         ram_ack = 1;
+    wire         ram_ready = 1;
     `endif
-
-    reg [31:0] counter;
-    reg [31:0] counter_next;
 
     always @* begin
         state_next_r = state_r;
@@ -166,52 +165,34 @@ module dram_controller_wb (
         DRAM_WE_NEXT = DRAM_WE;
         DRAM_WDG_NEXT = DRAM_WDG;
 
-        counter_next = counter;
-
-        ram_accept_next_r = ram_accept_r;
-
-        if (ram_accept) begin
-            ram_accept_next_r = 1'b1;
-        end
-
         case (state_r)
             IDLE: begin
+                DRAM_RE_NEXT = 0;
+                DRAM_WE_NEXT = 0;
                 if (wb_cyc_i && wb_stb_i && !wb_ack_r) begin
                     wb_adr_next_r = wb_adr_i;
                     DRAM_ADDRESS_NEXT = wb_adr_i & 32'hFFFFFFF0;
                     if (wb_we_i) begin
                         wb_dat_next_r = wb_dat_i;
                         wb_sel_next_r = wb_sel_i;
-                        DRAM_RE_NEXT = 1;
                         state_next_r = WRITE_RMW_START;
                     end
                     else begin
-                        DRAM_RE_NEXT = 1;
                         state_next_r = READ_START;
                     end
                 end
             end
 
-            WAIT: begin
-                counter_next = counter + 1;
-                if(counter >= 10) begin
-                    state_next_r = IDLE;
-                    counter_next = 0;
-                end
-            end
-
-            WAIT_RMW: begin
-                counter_next = counter + 1;
-                if(counter >= 10) begin
-                    state_next_r = WRITE_START;
-                    counter_next = 0;
-                end
-            end
-
             READ_START: begin
-                if (ram_accept_r) begin
+                if (ram_ready) begin
+                    DRAM_RE_NEXT = 1;
+                    state_next_r = READ_WAIT_ACCEPT;
+                end
+            end
+
+            READ_WAIT_ACCEPT: begin
+                if (ram_accept) begin
                     state_next_r = READ_WAIT_ACK;
-                    ram_accept_next_r = 1'b0;
                 end
             end
 
@@ -224,20 +205,27 @@ module dram_controller_wb (
                         2'b11: wb_read_data_next_r = ram_rd_data[127:96];
                     endcase
                     wb_ack_next_r = 1;
-                    state_next_r = WAIT;
+                    state_next_r = IDLE;
                     DRAM_RE_NEXT = 0;
                 end
             end
 
             WRITE_RMW_START: begin
-                if (ram_accept_r) begin
+                if (ram_ready) begin
+                    DRAM_RE_NEXT = 1;
+                    state_next_r = WRITE_RMW_WAIT_ACCEPT;
+                end
+            end
+
+            WRITE_RMW_WAIT_ACCEPT: begin
+                if (ram_accept) begin
                     state_next_r = WRITE_RMW_WAIT_ACK;
-                    ram_accept_next_r = 1'b0;
                 end
             end
 
             WRITE_RMW_WAIT_ACK: begin
                 if (ram_ack) begin
+                    DRAM_RE_NEXT = 0;
                     modified_rmw_data = ram_rd_data;
                     case (wb_adr_r[3:2])
                         2'b00: begin
@@ -269,23 +257,27 @@ module dram_controller_wb (
                     DRAM_DATA_WRITE1_NEXT = modified_rmw_data[63:32];
                     DRAM_DATA_WRITE2_NEXT = modified_rmw_data[95:64];
                     DRAM_DATA_WRITE3_NEXT = modified_rmw_data[127:96];
-                    state_next_r = WAIT_RMW;
-                    DRAM_RE_NEXT = 0;
-                    DRAM_WE_NEXT = 1;
+                    state_next_r = WRITE_START;
                 end
             end
 
             WRITE_START: begin
-                if (ram_accept_r) begin
+                if (ram_ready) begin
+                    DRAM_WE_NEXT = 1;
+                    state_next_r = WRITE_WAIT_ACCEPT;
+                end
+            end
+
+            WRITE_WAIT_ACCEPT: begin
+                if (ram_accept) begin
                     state_next_r = WRITE_WAIT_ACK;
-                    ram_accept_next_r = 1'b0;
                 end
             end
 
             WRITE_WAIT_ACK: begin
                 if (ram_ack) begin
                     wb_ack_next_r = 1;
-                    state_next_r = WAIT;
+                    state_next_r = IDLE;
                     DRAM_WE_NEXT = 0;
                 end
             end
@@ -314,10 +306,6 @@ module dram_controller_wb (
             wb_adr_r <= 0;
             wb_dat_r <= 0;
             wb_sel_r <= 0;
-
-            ram_accept_r <= 1'b0;
-
-            counter <= 0;
         end
         else begin
             wb_ack_r <= wb_ack_next_r;
@@ -336,10 +324,6 @@ module dram_controller_wb (
             wb_adr_r <= wb_adr_next_r;
             wb_dat_r <= wb_dat_next_r;
             wb_sel_r <= wb_sel_next_r;
-
-            ram_accept_r <= ram_accept_next_r;
-
-            counter <= counter_next;
         end
     end
 endmodule
