@@ -56,14 +56,6 @@ module dram_controller_wb (
     reg [31:0] DRAM_DATA_WRITE2_NEXT;
     reg [31:0] DRAM_DATA_WRITE3;
     reg [31:0] DRAM_DATA_WRITE3_NEXT;
-    reg [31:0] DRAM_DATA_READ0;
-    reg [31:0] DRAM_DATA_READ0_NEXT;
-    reg [31:0] DRAM_DATA_READ1;
-    reg [31:0] DRAM_DATA_READ1_NEXT;
-    reg [31:0] DRAM_DATA_READ2;
-    reg [31:0] DRAM_DATA_READ2_NEXT;
-    reg [31:0] DRAM_DATA_READ3;
-    reg [31:0] DRAM_DATA_READ3_NEXT;
     reg DRAM_RE;
     reg DRAM_RE_NEXT;
     reg DRAM_WE;
@@ -89,15 +81,9 @@ module dram_controller_wb (
     reg [31:0] wb_dat_r, wb_dat_next_r;
     reg [3:0]  wb_sel_r, wb_sel_next_r;
 
-    wire [31:0] data_read_w0;
-    wire [31:0] data_read_w1;
-    wire [31:0] data_read_w2;
-    wire [31:0] data_read_w3;
-
     logic [127:0] modified_rmw_data;
  
     reg ram_accept_r, ram_accept_next_r;
-    reg ram_ack_r, ram_ack_next_r;
 
     `ifdef ZC706
     wire [31:0]  ram_addr = DRAM_ADDRESS;
@@ -176,10 +162,6 @@ module dram_controller_wb (
         DRAM_DATA_WRITE1_NEXT = DRAM_DATA_WRITE1;
         DRAM_DATA_WRITE2_NEXT = DRAM_DATA_WRITE2;
         DRAM_DATA_WRITE3_NEXT = DRAM_DATA_WRITE3;
-        DRAM_DATA_READ0_NEXT = DRAM_DATA_READ0;
-        DRAM_DATA_READ1_NEXT = DRAM_DATA_READ1;
-        DRAM_DATA_READ2_NEXT = DRAM_DATA_READ2;
-        DRAM_DATA_READ3_NEXT = DRAM_DATA_READ3;
         DRAM_RE_NEXT = DRAM_RE;
         DRAM_WE_NEXT = DRAM_WE;
         DRAM_WDG_NEXT = DRAM_WDG;
@@ -187,19 +169,9 @@ module dram_controller_wb (
         counter_next = counter;
 
         ram_accept_next_r = ram_accept_r;
-        ram_ack_next_r = ram_ack_r;
 
         if (ram_accept) begin
             ram_accept_next_r = 1'b1;
-        end
-        if (ram_ack) begin
-            ram_ack_next_r = 1'b1;
-            if(DRAM_RE) begin
-                DRAM_DATA_READ0_NEXT = ram_rd_data[31:0];
-                DRAM_DATA_READ1_NEXT = ram_rd_data[63:32];
-                DRAM_DATA_READ2_NEXT = ram_rd_data[95:64];
-                DRAM_DATA_READ3_NEXT = ram_rd_data[127:96];
-            end
         end
 
         case (state_r)
@@ -231,7 +203,6 @@ module dram_controller_wb (
             WAIT_RMW: begin
                 counter_next = counter + 1;
                 if(counter >= 10) begin
-                    DRAM_WE_NEXT = 1;
                     state_next_r = WRITE_START;
                     counter_next = 0;
                 end
@@ -245,16 +216,15 @@ module dram_controller_wb (
             end
 
             READ_WAIT_ACK: begin
-                if (ram_ack_r) begin
+                if (ram_ack) begin
                     case (wb_adr_r[3:2])
-                        2'b00: wb_read_data_next_r = DRAM_DATA_READ0; //ram_rd_data[31:0];
-                        2'b01: wb_read_data_next_r = DRAM_DATA_READ1; //ram_rd_data[63:32];
-                        2'b10: wb_read_data_next_r = DRAM_DATA_READ2; //ram_rd_data[95:64];
-                        2'b11: wb_read_data_next_r = DRAM_DATA_READ3; //ram_rd_data[127:96];
+                        2'b00: wb_read_data_next_r = ram_rd_data[31:0];
+                        2'b01: wb_read_data_next_r = ram_rd_data[63:32];
+                        2'b10: wb_read_data_next_r = ram_rd_data[95:64];
+                        2'b11: wb_read_data_next_r = ram_rd_data[127:96];
                     endcase
                     wb_ack_next_r = 1;
                     state_next_r = WAIT;
-                    ram_ack_next_r = 1'b0;
                     DRAM_RE_NEXT = 0;
                 end
             end
@@ -267,8 +237,8 @@ module dram_controller_wb (
             end
 
             WRITE_RMW_WAIT_ACK: begin
-                if (ram_ack_r) begin
-                    modified_rmw_data = {DRAM_DATA_READ3, DRAM_DATA_READ2, DRAM_DATA_READ1, DRAM_DATA_READ0}; //ram_rd_data;
+                if (ram_ack) begin
+                    modified_rmw_data = ram_rd_data;
                     case (wb_adr_r[3:2])
                         2'b00: begin
                             if(wb_sel_r[0]) modified_rmw_data[7:0]   = wb_dat_r[7:0];
@@ -300,8 +270,8 @@ module dram_controller_wb (
                     DRAM_DATA_WRITE2_NEXT = modified_rmw_data[95:64];
                     DRAM_DATA_WRITE3_NEXT = modified_rmw_data[127:96];
                     state_next_r = WAIT_RMW;
-                    ram_ack_next_r = 1'b0;
                     DRAM_RE_NEXT = 0;
+                    DRAM_WE_NEXT = 1;
                 end
             end
 
@@ -313,10 +283,9 @@ module dram_controller_wb (
             end
 
             WRITE_WAIT_ACK: begin
-                if (ram_ack_r) begin
+                if (ram_ack) begin
                     wb_ack_next_r = 1;
                     state_next_r = WAIT;
-                    ram_ack_next_r = 1'b0;
                     DRAM_WE_NEXT = 0;
                 end
             end
@@ -337,10 +306,6 @@ module dram_controller_wb (
             DRAM_DATA_WRITE1 <= 0;
             DRAM_DATA_WRITE2 <= 0;
             DRAM_DATA_WRITE3 <= 0;
-            DRAM_DATA_READ0 <= 0;
-            DRAM_DATA_READ1 <= 0;
-            DRAM_DATA_READ2 <= 0;
-            DRAM_DATA_READ3 <= 0;
             DRAM_RE <= 0;
             DRAM_WE <= 0;
             DRAM_WDG <= `CPU_CLK / 5000;
@@ -351,7 +316,6 @@ module dram_controller_wb (
             wb_sel_r <= 0;
 
             ram_accept_r <= 1'b0;
-            ram_ack_r <= 1'b0;
 
             counter <= 0;
         end
@@ -364,10 +328,6 @@ module dram_controller_wb (
             DRAM_DATA_WRITE1 <= DRAM_DATA_WRITE1_NEXT;
             DRAM_DATA_WRITE2 <= DRAM_DATA_WRITE2_NEXT;
             DRAM_DATA_WRITE3 <= DRAM_DATA_WRITE3_NEXT;
-            DRAM_DATA_READ0 <= DRAM_DATA_READ0_NEXT;
-            DRAM_DATA_READ1 <= DRAM_DATA_READ1_NEXT;
-            DRAM_DATA_READ2 <= DRAM_DATA_READ2_NEXT;
-            DRAM_DATA_READ3 <= DRAM_DATA_READ3_NEXT;
             DRAM_RE <= DRAM_RE_NEXT;
             DRAM_WE <= DRAM_WE_NEXT;
             DRAM_WDG <= DRAM_WDG_NEXT;
@@ -378,7 +338,6 @@ module dram_controller_wb (
             wb_sel_r <= wb_sel_next_r;
 
             ram_accept_r <= ram_accept_next_r;
-            ram_ack_r <= ram_ack_next_r;
 
             counter <= counter_next;
         end
