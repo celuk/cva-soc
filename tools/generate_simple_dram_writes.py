@@ -2,7 +2,7 @@ import os
 import subprocess
 import argparse
 
-WORDS_PER_FILE = 16384
+WORDS_PER_FILE = 2048 #16384
 START_ADDRESS_STEP = WORDS_PER_FILE * 4 #0x2000  # 2048 * 4
 BUILD_DIR = "temp"
 
