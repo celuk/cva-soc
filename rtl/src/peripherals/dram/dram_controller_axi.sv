@@ -49,28 +49,35 @@ module dram_controller_axi #(
     output logic [AXI_ID_WIDTH-1:0]         s_axi_rid,
     output logic [AXI_DATA_WIDTH-1:0]       s_axi_rdata,
     output logic [1:0]                      s_axi_rresp,
-    output logic                            s_axi_rlast
+    output logic                            s_axi_rlast,
 
-    ,output ddr3_reset_n
-    ,output ddr3_cke
-    ,output ddr3_ck_p
-    ,output ddr3_ck_n
-    ,output ddr3_cs_n
-    ,output ddr3_ras_n
-    ,output ddr3_cas_n
-    ,output ddr3_we_n
-    ,output [2:0] ddr3_ba
-    ,output [13:0] ddr3_addr
-    ,output ddr3_odt
-    ,output [1:0] ddr3_dm
-    ,inout [1:0] ddr3_dqs_p
-    ,inout [1:0] ddr3_dqs_n
-    ,inout [15:0] ddr3_dq
- 
-    ,input clk100
-    ,input clk_ddr
-    ,input clk_ref
-    ,input clk_ddr_dqs
+    // DRAMWRITE Programming Interface
+    input  logic                            dramwrite_mode,
+    input  logic [31:0]                     dramwrite_write_data,
+    input  logic [31:0]                     dramwrite_write_addr,
+    input  logic                            dramwrite_write_en,
+
+    // DDR3 Physical Interface
+    output ddr3_reset_n,
+    output ddr3_cke,
+    output ddr3_ck_p,
+    output ddr3_ck_n,
+    output ddr3_cs_n,
+    output ddr3_ras_n,
+    output ddr3_cas_n,
+    output ddr3_we_n,
+    output [2:0] ddr3_ba,
+    output [13:0] ddr3_addr,
+    output ddr3_odt,
+    output [1:0] ddr3_dm,
+    inout [1:0] ddr3_dqs_p,
+    inout [1:0] ddr3_dqs_n,
+    inout [15:0] ddr3_dq,
+
+    input clk100,
+    input clk_ddr,
+    input clk_ref,
+    input clk_ddr_dqs
 );
 
     localparam logic [1:0] AXI_BURST_FIXED = 2'b00;
@@ -79,7 +86,7 @@ module dram_controller_axi #(
 
     localparam DATA_BYTES = AXI_DATA_WIDTH / 8;
 
-    typedef enum logic [2:0] {
+    typedef enum logic [3:0] {
         S_IDLE,
         S_READ_REQ_WB,
         S_READ_WAIT_WB,
@@ -87,7 +94,9 @@ module dram_controller_axi #(
         S_WRITE_WAIT_DATA,
         S_WRITE_REQ_WB,
         S_WRITE_WAIT_WB,
-        S_WRITE_RESP_AXI
+        S_WRITE_RESP_AXI,
+        S_DRAMWRITE_REQ,
+        S_DRAMWRITE_WAIT
     } state_e;
 
     state_e current_state, next_state;
@@ -112,6 +121,38 @@ module dram_controller_axi #(
     logic                            is_write;
     logic [AXI_DATA_WIDTH-1:0]       reg_rdata;
 
+    // DRAMWRITE FSM registers
+    logic                            dramwrite_pending;
+    logic [31:0]                     dramwrite_addr_q;
+    logic [31:0]                     dramwrite_data_q;
+    logic                            dramwrite_handled;
+
+    // DRAMWRITE FSM: Latch request
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+        if (!rst_ni) begin
+            dramwrite_pending <= 1'b0;
+            dramwrite_addr_q  <= 32'b0;
+            dramwrite_data_q  <= 32'b0;
+            dramwrite_handled <= 1'b0;
+        end else begin
+            // Latch new DRAMWRITE request if not already pending
+            if (dramwrite_write_en && !dramwrite_pending) begin
+                dramwrite_addr_q  <= dramwrite_write_addr;
+                dramwrite_data_q  <= dramwrite_write_data;
+                dramwrite_pending <= 1'b1;
+                dramwrite_handled <= 1'b0;
+            end
+            // Clear pending after handled
+            if (current_state == S_DRAMWRITE_WAIT && wb_ack) begin
+                dramwrite_pending <= 1'b0;
+                dramwrite_handled <= 1'b1;
+            end
+            // Reset handled flag when not in DRAMWRITE
+            if (current_state != S_DRAMWRITE_WAIT)
+                dramwrite_handled <= 1'b0;
+        end
+    end
+
     dram_controller_wb dram_iface_dut (
        .clk_i   (clk_i),
        .rst_i   (~rst_ni),
@@ -122,33 +163,33 @@ module dram_controller_axi #(
        .wb_sel_i(wb_sel),
        .wb_cyc_i(wb_cyc),
        .wb_ack_o(wb_ack),
-       .wb_dat_o(wb_dat_r)
+       .wb_dat_o(wb_dat_r),
 
-      ,.ddr3_reset_n(ddr3_reset_n)
-      ,.ddr3_cke(ddr3_cke)
-      ,.ddr3_ck_p(ddr3_ck_p)
-      ,.ddr3_ck_n(ddr3_ck_n)
-      ,.ddr3_cs_n(ddr3_cs_n)
-      ,.ddr3_ras_n(ddr3_ras_n)
-      ,.ddr3_cas_n(ddr3_cas_n)
-      ,.ddr3_we_n(ddr3_we_n)
-      ,.ddr3_ba(ddr3_ba)
-      ,.ddr3_addr(ddr3_addr)
-      ,.ddr3_odt(ddr3_odt)
-      ,.ddr3_dm(ddr3_dm)
-      ,.ddr3_dqs_p(ddr3_dqs_p)
-      ,.ddr3_dqs_n(ddr3_dqs_n)
-      ,.ddr3_dq(ddr3_dq)
+       .ddr3_reset_n(ddr3_reset_n),
+       .ddr3_cke(ddr3_cke),
+       .ddr3_ck_p(ddr3_ck_p),
+       .ddr3_ck_n(ddr3_ck_n),
+       .ddr3_cs_n(ddr3_cs_n),
+       .ddr3_ras_n(ddr3_ras_n),
+       .ddr3_cas_n(ddr3_cas_n),
+       .ddr3_we_n(ddr3_we_n),
+       .ddr3_ba(ddr3_ba),
+       .ddr3_addr(ddr3_addr),
+       .ddr3_odt(ddr3_odt),
+       .ddr3_dm(ddr3_dm),
+       .ddr3_dqs_p(ddr3_dqs_p),
+       .ddr3_dqs_n(ddr3_dqs_n),
+       .ddr3_dq(ddr3_dq),
 
-      ,.clk100(clk100)
-      ,.clk_ddr(clk_ddr)
-      ,.clk_ref(clk_ref)
-      ,.clk_ddr_dqs(clk_ddr_dqs)
+       .clk100(clk100),
+       .clk_ddr(clk_ddr),
+       .clk_ref(clk_ref),
+       .clk_ddr_dqs(clk_ddr_dqs)
    );
 
     // AXI Ready Signal Logic
-    assign s_axi_awready = (current_state == S_IDLE);
-    assign s_axi_arready = (current_state == S_IDLE);
+    assign s_axi_awready = (current_state == S_IDLE) && !dramwrite_pending;
+    assign s_axi_arready = (current_state == S_IDLE) && !dramwrite_pending;
     assign s_axi_wready  = (current_state == S_WRITE_WAIT_DATA);
 
     // AXI Response Signal Logic
@@ -164,10 +205,16 @@ module dram_controller_axi #(
 
     // Wishbone Control Signals
     assign wb_cyc = (current_state == S_READ_REQ_WB) || (current_state == S_WRITE_REQ_WB) ||
-                    (current_state == S_READ_WAIT_WB) || (current_state == S_WRITE_WAIT_WB);
+                    (current_state == S_READ_WAIT_WB) || (current_state == S_WRITE_WAIT_WB) ||
+                    (current_state == S_DRAMWRITE_REQ) || (current_state == S_DRAMWRITE_WAIT);
     assign wb_stb = wb_cyc;
-    assign wb_we  = is_write;
-    assign wb_adr = current_addr;
+    assign wb_we  = (current_state == S_WRITE_REQ_WB) || (current_state == S_WRITE_WAIT_WB) ||
+                    (current_state == S_DRAMWRITE_REQ) || (current_state == S_DRAMWRITE_WAIT);
+    assign wb_adr = (current_state == S_DRAMWRITE_REQ || current_state == S_DRAMWRITE_WAIT) ? dramwrite_addr_q : current_addr;
+
+    // Write data and byte enable
+    assign wb_dat_w = (current_state == S_DRAMWRITE_REQ || current_state == S_DRAMWRITE_WAIT) ? dramwrite_data_q : s_axi_wdata;
+    assign wb_sel   = (current_state == S_DRAMWRITE_REQ || current_state == S_DRAMWRITE_WAIT) ? 4'b1111 : s_axi_wstrb;
 
     // State Register
     always_ff @(posedge clk_i or negedge rst_ni) begin
@@ -189,12 +236,10 @@ module dram_controller_axi #(
             beat_count <= '0;
             is_write <= 1'b0;
             reg_rdata <= '0;
-            wb_dat_w <= '0;
-            wb_sel <= '0;
         end else begin
             case (current_state)
                 S_IDLE: begin
-                    if (s_axi_awvalid) begin
+                    if (s_axi_awvalid && !dramwrite_pending) begin
                         reg_id       <= s_axi_awid;
                         current_addr <= s_axi_awaddr;
                         reg_len      <= s_axi_awlen;
@@ -202,7 +247,7 @@ module dram_controller_axi #(
                         reg_burst    <= s_axi_awburst;
                         is_write     <= 1'b1;
                         beat_count   <= '0;
-                    end else if (s_axi_arvalid) begin
+                    end else if (s_axi_arvalid && !dramwrite_pending) begin
                         reg_id       <= s_axi_arid;
                         current_addr <= s_axi_araddr;
                         reg_len      <= s_axi_arlen;
@@ -213,10 +258,7 @@ module dram_controller_axi #(
                     end
                 end
                 S_WRITE_WAIT_DATA: begin
-                    if (s_axi_wvalid) begin
-                        wb_dat_w <= s_axi_wdata;
-                        wb_sel   <= s_axi_wstrb;
-                    end
+                    // nothing to do
                 end
                 S_READ_WAIT_WB: begin
                     if (wb_ack) begin
@@ -239,6 +281,7 @@ module dram_controller_axi #(
                         end
                     end
                 end
+                default:;
             endcase
         end
     end
@@ -248,10 +291,20 @@ module dram_controller_axi #(
         next_state = current_state;
         case (current_state)
             S_IDLE: begin
-                if (s_axi_awvalid) begin
+                if (dramwrite_pending) begin
+                    next_state = S_DRAMWRITE_REQ;
+                end else if (s_axi_awvalid) begin
                     next_state = S_WRITE_WAIT_DATA;
                 end else if (s_axi_arvalid) begin
                     next_state = S_READ_REQ_WB;
+                end
+            end
+            S_DRAMWRITE_REQ: begin
+                next_state = S_DRAMWRITE_WAIT;
+            end
+            S_DRAMWRITE_WAIT: begin
+                if (wb_ack) begin
+                    next_state = S_IDLE;
                 end
             end
             S_READ_REQ_WB: begin
@@ -296,5 +349,4 @@ module dram_controller_axi #(
             default: next_state = S_IDLE;
         endcase
     end
-
 endmodule

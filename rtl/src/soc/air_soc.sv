@@ -378,7 +378,12 @@ module air_soc (
 
    // TODO: Handle atomics with wrapper
 
-   ram32 #(
+   logic dramwrite_mode;
+   logic [31:0] dramwrite_write_data;
+   logic [31:0] dramwrite_write_addr;
+   logic dramwrite_write_en;
+
+   ram32_dwr #(
       .SIZE     (`RAM_SIZE / 4),
       .INIT_FILE(`RAM_FPATH)
    ) main_memory (
@@ -395,6 +400,11 @@ module air_soc (
       ,.program_rx_i   ( program_rx_i   )
       ,.system_reset_o ( system_reset_o )
       ,.prog_mode_led_o( prog_mode_led_o)
+
+      ,.dramwrite_mode_o ( dramwrite_mode )
+      ,.dramwrite_write_data ( dramwrite_write_data )
+      ,.dramwrite_write_addr ( dramwrite_write_addr )
+      ,.dramwrite_write_en   ( dramwrite_write_en   )
    );
 
    logic                            uart_axi_awvalid;
@@ -727,6 +737,11 @@ module air_soc (
        .clk_ddr     ( clk_ddr      ),
        .clk_ref     ( clk_ref      ),
        .clk_ddr_dqs ( clk_ddr_dqs  )
+
+       ,.dramwrite_mode ( dramwrite_mode ),
+       .dramwrite_write_data ( dramwrite_write_data ),
+       .dramwrite_write_addr ( dramwrite_write_addr ),
+       .dramwrite_write_en   ( dramwrite_write_en   )
    );
    `elsif USE_SRAM
    adapter_obi_req_t mem8_obi_req;
