@@ -7,7 +7,7 @@ module dram_controller_axi #(
     parameter int unsigned AXI_ID_WIDTH   = 4, // Example ID width - **MUST MATCH XBAR MASTER PORT ID WIDTH**
     parameter int unsigned AXI_ADDR_WIDTH = 32,
     parameter int unsigned AXI_DATA_WIDTH = 32,
-    parameter int unsigned WB_ADDR_WIDTH  = 8
+    parameter int unsigned WB_ADDR_WIDTH  = 32
 ) (
     // Clock and Reset
     input  logic clk_i,

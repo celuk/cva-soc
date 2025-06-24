@@ -69,10 +69,10 @@ package cva6_config_pkg;
       NonIdempotentLength: 1024'({64'b0, 64'b0}),
       NrExecuteRegionRules: unsigned'(0),
       ExecuteRegionAddrBase: 1024'({64'h0000_0000}),
-      ExecuteRegionLength: 1024'({64'hFF00_0000}),
+      ExecuteRegionLength: 1024'({64'hFEFF_FFFF}),
       NrCachedRegionRules: unsigned'(1),
       CachedRegionAddrBase: 1024'({64'h0000_0000}),
-      CachedRegionLength: 1024'({64'hFF00_0000}),
+      CachedRegionLength: 1024'({64'hFEFF_FFFF}), // FEFFFFFF = FF000000 - 1
       MaxOutstandingStores: unsigned'(0),
       DebugEn: bit'(1),
       AxiBurstWriteEn: bit'(0),
