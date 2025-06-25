@@ -243,7 +243,7 @@ module air_soc (
    // Instantiate AXI XBAR
    axi_xbar #(
       .Cfg          ( XbarCfg ),
-      .ATOPs        ( 1'b1 ),
+      .ATOPs        ( 1'b0 ), // Disable ATOPs if CVA6/peripherals don't use them
       // Pass AXI type definitions for slave port (matches CVA6)
       .slv_aw_chan_t( ariane_axi::aw_chan_t ),
       .slv_ar_chan_t( ariane_axi::ar_chan_t ),
@@ -294,7 +294,7 @@ module air_soc (
        CombGnt:   1'b0,
        Integrity: 1'b0,
        BeFull:    1'b1,
-       OptionalCfg: '{ UseAtop: 1'b0, UseProt: 1'b0, UseMemtype: 1'b0, UseDbg: 1'b0, // UseAtop: 1'b1,
+       OptionalCfg: '{ UseAtop: 1'b0, UseProt: 1'b0, UseMemtype: 1'b0, UseDbg: 1'b0,
                       AUserWidth: 0, WUserWidth: 0, RUserWidth: 1, // Adjust if needed
                       MidWidth: 0, AChkWidth: 0, RChkWidth: 0 }
    };
@@ -315,115 +315,6 @@ module air_soc (
    // OBI signals between bridges and peripherals
    adapter_obi_req_t mem_obi_req;
    adapter_obi_rsp_t mem_obi_rsp;
-
-   /*
-   ariane_axi::req_t  ram_req_from_atomics;
-   ariane_axi::resp_t ram_resp_to_atomics;
-
-   axi_riscv_atomics #(
-       .AXI_ADDR_WIDTH     (XbarCfg.AxiAddrWidth),
-       .AXI_DATA_WIDTH     (XbarCfg.AxiDataWidth),
-       .AXI_ID_WIDTH       (AXI_ID_WIDTH_XBAR_MST),
-       .AXI_USER_WIDTH     (cva6_config_pkg::CVA6ConfigDataUserWidth),
-       .AXI_MAX_WRITE_TXNS (AXI_MAX_TRANS),
-       .RISCV_WORD_WIDTH   (32)
-   ) i_axi_riscv_atomics_ram (
-       .clk_i           ( clkwiz_o ),
-       .rst_ni          ( rst_n    ),
-       // Slave interface from XBAR
-       .slv_aw_valid_i  ( xbar_mst_ports_req[MASTER_RAM_IDX].aw_valid ),
-       .slv_aw_ready_o  ( xbar_mst_ports_resp[MASTER_RAM_IDX].aw_ready ),
-       .slv_aw_addr_i   ( xbar_mst_ports_req[MASTER_RAM_IDX].aw.addr ),
-       .slv_aw_prot_i   ( xbar_mst_ports_req[MASTER_RAM_IDX].aw.prot ),
-       .slv_aw_region_i ( '0 ),
-       .slv_aw_atop_i   ( xbar_mst_ports_req[MASTER_RAM_IDX].aw.atop ),
-       .slv_aw_len_i    ( xbar_mst_ports_req[MASTER_RAM_IDX].aw.len ),
-       .slv_aw_size_i   ( xbar_mst_ports_req[MASTER_RAM_IDX].aw.size ),
-       .slv_aw_burst_i  ( xbar_mst_ports_req[MASTER_RAM_IDX].aw.burst ),
-       .slv_aw_lock_i   ( xbar_mst_ports_req[MASTER_RAM_IDX].aw.lock ),
-       .slv_aw_cache_i  ( xbar_mst_ports_req[MASTER_RAM_IDX].aw.cache ),
-       .slv_aw_qos_i    ( xbar_mst_ports_req[MASTER_RAM_IDX].aw.qos ),
-       .slv_aw_id_i     ( xbar_mst_ports_req[MASTER_RAM_IDX].aw.id ),
-       .slv_aw_user_i   ( xbar_mst_ports_req[MASTER_RAM_IDX].aw.user ),
-       .slv_w_valid_i   ( xbar_mst_ports_req[MASTER_RAM_IDX].w_valid ),
-       .slv_w_ready_o   ( xbar_mst_ports_resp[MASTER_RAM_IDX].w_ready ),
-       .slv_w_data_i    ( xbar_mst_ports_req[MASTER_RAM_IDX].w.data ),
-       .slv_w_strb_i    ( xbar_mst_ports_req[MASTER_RAM_IDX].w.strb ),
-       .slv_w_user_i    ( xbar_mst_ports_req[MASTER_RAM_IDX].w.user ),
-       .slv_w_last_i    ( xbar_mst_ports_req[MASTER_RAM_IDX].w.last ),
-       .slv_b_valid_o   ( xbar_mst_ports_resp[MASTER_RAM_IDX].b_valid ),
-       .slv_b_ready_i   ( xbar_mst_ports_req[MASTER_RAM_IDX].b_ready ),
-       .slv_b_resp_o    ( xbar_mst_ports_resp[MASTER_RAM_IDX].b.resp ),
-       .slv_b_id_o      ( xbar_mst_ports_resp[MASTER_RAM_IDX].b.id ),
-       .slv_b_user_o    ( xbar_mst_ports_resp[MASTER_RAM_IDX].b.user ),
-       .slv_ar_valid_i  ( xbar_mst_ports_req[MASTER_RAM_IDX].ar_valid ),
-       .slv_ar_ready_o  ( xbar_mst_ports_resp[MASTER_RAM_IDX].ar_ready ),
-       .slv_ar_addr_i   ( xbar_mst_ports_req[MASTER_RAM_IDX].ar.addr ),
-       .slv_ar_prot_i   ( xbar_mst_ports_req[MASTER_RAM_IDX].ar.prot ),
-       .slv_ar_region_i ( '0 ),
-       .slv_ar_len_i    ( xbar_mst_ports_req[MASTER_RAM_IDX].ar.len ),
-       .slv_ar_size_i   ( xbar_mst_ports_req[MASTER_RAM_IDX].ar.size ),
-       .slv_ar_burst_i  ( xbar_mst_ports_req[MASTER_RAM_IDX].ar.burst ),
-       .slv_ar_lock_i   ( xbar_mst_ports_req[MASTER_RAM_IDX].ar.lock ),
-       .slv_ar_cache_i  ( xbar_mst_ports_req[MASTER_RAM_IDX].ar.cache ),
-       .slv_ar_qos_i    ( xbar_mst_ports_req[MASTER_RAM_IDX].ar.qos ),
-       .slv_ar_id_i     ( xbar_mst_ports_req[MASTER_RAM_IDX].ar.id ),
-       .slv_ar_user_i   ( xbar_mst_ports_req[MASTER_RAM_IDX].ar.user ),
-       .slv_r_valid_o   ( xbar_mst_ports_resp[MASTER_RAM_IDX].r_valid ),
-       .slv_r_ready_i   ( xbar_mst_ports_req[MASTER_RAM_IDX].r_ready ),
-       .slv_r_data_o    ( xbar_mst_ports_resp[MASTER_RAM_IDX].r.data ),
-       .slv_r_resp_o    ( xbar_mst_ports_resp[MASTER_RAM_IDX].r.resp ),
-       .slv_r_last_o    ( xbar_mst_ports_resp[MASTER_RAM_IDX].r.last ),
-       .slv_r_id_o      ( xbar_mst_ports_resp[MASTER_RAM_IDX].r.id ),
-       .slv_r_user_o    ( xbar_mst_ports_resp[MASTER_RAM_IDX].r.user ),
-       // Master interface to axi_to_obi bridge
-       .mst_aw_valid_o  ( ram_req_from_atomics.aw_valid ),
-       .mst_aw_ready_i  ( ram_resp_to_atomics.aw_ready ),
-       .mst_aw_addr_o   ( ram_req_from_atomics.aw.addr ),
-       .mst_aw_prot_o   ( ram_req_from_atomics.aw.prot ),
-       .mst_aw_region_o ( ram_req_from_atomics.aw.region ),
-       .mst_aw_atop_o   ( ram_req_from_atomics.aw.atop ),
-       .mst_aw_len_o    ( ram_req_from_atomics.aw.len ),
-       .mst_aw_size_o   ( ram_req_from_atomics.aw.size ),
-       .mst_aw_burst_o  ( ram_req_from_atomics.aw.burst ),
-       .mst_aw_lock_o   ( ram_req_from_atomics.aw.lock ),
-       .mst_aw_cache_o  ( ram_req_from_atomics.aw.cache ),
-       .mst_aw_qos_o    ( ram_req_from_atomics.aw.qos ),
-       .mst_aw_id_o     ( ram_req_from_atomics.aw.id ),
-       .mst_aw_user_o   ( ram_req_from_atomics.aw.user ),
-       .mst_w_valid_o   ( ram_req_from_atomics.w_valid ),
-       .mst_w_ready_i   ( ram_resp_to_atomics.w_ready ),
-       .mst_w_data_o    ( ram_req_from_atomics.w.data ),
-       .mst_w_strb_o    ( ram_req_from_atomics.w.strb ),
-       .mst_w_user_o    ( ram_req_from_atomics.w.user ),
-       .mst_w_last_o    ( ram_req_from_atomics.w.last ),
-       .mst_b_valid_i   ( ram_resp_to_atomics.b_valid ),
-       .mst_b_ready_o   ( ram_req_from_atomics.b_ready ),
-       .mst_b_resp_i    ( ram_resp_to_atomics.b.resp ),
-       .mst_b_id_i      ( ram_resp_to_atomics.b.id ),
-       .mst_b_user_i    ( ram_resp_to_atomics.b.user ),
-       .mst_ar_valid_o  ( ram_req_from_atomics.ar_valid ),
-       .mst_ar_ready_i  ( ram_resp_to_atomics.ar_ready ),
-       .mst_ar_addr_o   ( ram_req_from_atomics.ar.addr ),
-       .mst_ar_prot_o   ( ram_req_from_atomics.ar.prot ),
-       .mst_ar_region_o ( ram_req_from_atomics.ar.region ),
-       .mst_ar_len_o    ( ram_req_from_atomics.ar.len ),
-       .mst_ar_size_o   ( ram_req_from_atomics.ar.size ),
-       .mst_ar_burst_o  ( ram_req_from_atomics.ar.burst ),
-       .mst_ar_lock_o   ( ram_req_from_atomics.ar.lock ),
-       .mst_ar_cache_o  ( ram_req_from_atomics.ar.cache ),
-       .mst_ar_qos_o    ( ram_req_from_atomics.ar.qos ),
-       .mst_ar_id_o     ( ram_req_from_atomics.ar.id ),
-       .mst_ar_user_o   ( ram_req_from_atomics.ar.user ),
-       .mst_r_valid_i   ( ram_resp_to_atomics.r_valid ),
-       .mst_r_ready_o   ( ram_req_from_atomics.r_ready ),
-       .mst_r_data_i    ( ram_resp_to_atomics.r.data ),
-       .mst_r_resp_i    ( ram_resp_to_atomics.r.resp ),
-       .mst_r_last_i    ( ram_resp_to_atomics.r.last ),
-       .mst_r_id_i      ( ram_resp_to_atomics.r.id ),
-       .mst_r_user_i    ( ram_resp_to_atomics.r.user )
-   );
-   */
 
    // Instantiate Bridge for RAM (Master Port 0)
    axi_to_obi #(
@@ -739,109 +630,24 @@ module air_soc (
    logic [1:0]                      dram_axi_rresp;
    logic                            dram_axi_rlast;
 
-   axi_riscv_atomics #(
-       .AXI_ADDR_WIDTH     (XbarCfg.AxiAddrWidth),
-       .AXI_DATA_WIDTH     (XbarCfg.AxiDataWidth),
-       .AXI_ID_WIDTH       (AXI_ID_WIDTH_XBAR_MST),
-       .AXI_USER_WIDTH     (cva6_config_pkg::CVA6ConfigDataUserWidth),
-       .AXI_MAX_WRITE_TXNS (AXI_MAX_TRANS),
-       .RISCV_WORD_WIDTH   (32)
-   ) i_axi_riscv_atomics_dram (
-       .clk_i           ( clkwiz_o ),
-       .rst_ni          ( rst_n    ),
-       // Slave interface from XBAR
-       .slv_aw_valid_i  ( xbar_mst_ports_req[MASTER_DRAM_IDX].aw_valid ),
-       .slv_aw_ready_o  ( xbar_mst_ports_resp[MASTER_DRAM_IDX].aw_ready ),
-       .slv_aw_addr_i   ( xbar_mst_ports_req[MASTER_DRAM_IDX].aw.addr ),
-       .slv_aw_prot_i   ( xbar_mst_ports_req[MASTER_DRAM_IDX].aw.prot ),
-       .slv_aw_region_i ( '0 ),
-       .slv_aw_atop_i   ( xbar_mst_ports_req[MASTER_DRAM_IDX].aw.atop ),
-       .slv_aw_len_i    ( xbar_mst_ports_req[MASTER_DRAM_IDX].aw.len ),
-       .slv_aw_size_i   ( xbar_mst_ports_req[MASTER_DRAM_IDX].aw.size ),
-       .slv_aw_burst_i  ( xbar_mst_ports_req[MASTER_DRAM_IDX].aw.burst ),
-       .slv_aw_lock_i   ( xbar_mst_ports_req[MASTER_DRAM_IDX].aw.lock ),
-       .slv_aw_cache_i  ( xbar_mst_ports_req[MASTER_DRAM_IDX].aw.cache ),
-       .slv_aw_qos_i    ( xbar_mst_ports_req[MASTER_DRAM_IDX].aw.qos ),
-       .slv_aw_id_i     ( xbar_mst_ports_req[MASTER_DRAM_IDX].aw.id ),
-       .slv_aw_user_i   ( xbar_mst_ports_req[MASTER_DRAM_IDX].aw.user ),
-       .slv_w_valid_i   ( xbar_mst_ports_req[MASTER_DRAM_IDX].w_valid ),
-       .slv_w_ready_o   ( xbar_mst_ports_resp[MASTER_DRAM_IDX].w_ready ),
-       .slv_w_data_i    ( xbar_mst_ports_req[MASTER_DRAM_IDX].w.data ),
-       .slv_w_strb_i    ( xbar_mst_ports_req[MASTER_DRAM_IDX].w.strb ),
-       .slv_w_user_i    ( xbar_mst_ports_req[MASTER_DRAM_IDX].w.user ),
-       .slv_w_last_i    ( xbar_mst_ports_req[MASTER_DRAM_IDX].w.last ),
-       .slv_b_valid_o   ( xbar_mst_ports_resp[MASTER_DRAM_IDX].b_valid ),
-       .slv_b_ready_i   ( xbar_mst_ports_req[MASTER_DRAM_IDX].b_ready ),
-       .slv_b_resp_o    ( xbar_mst_ports_resp[MASTER_DRAM_IDX].b.resp ),
-       .slv_b_id_o      ( xbar_mst_ports_resp[MASTER_DRAM_IDX].b.id ),
-       .slv_b_user_o    ( xbar_mst_ports_resp[MASTER_DRAM_IDX].b.user ),
-       .slv_ar_valid_i  ( xbar_mst_ports_req[MASTER_DRAM_IDX].ar_valid ),
-       .slv_ar_ready_o  ( xbar_mst_ports_resp[MASTER_DRAM_IDX].ar_ready ),
-       .slv_ar_addr_i   ( xbar_mst_ports_req[MASTER_DRAM_IDX].ar.addr ),
-       .slv_ar_prot_i   ( xbar_mst_ports_req[MASTER_DRAM_IDX].ar.prot ),
-       .slv_ar_region_i ( '0 ),
-       .slv_ar_len_i    ( xbar_mst_ports_req[MASTER_DRAM_IDX].ar.len ),
-       .slv_ar_size_i   ( xbar_mst_ports_req[MASTER_DRAM_IDX].ar.size ),
-       .slv_ar_burst_i  ( xbar_mst_ports_req[MASTER_DRAM_IDX].ar.burst ),
-       .slv_ar_lock_i   ( xbar_mst_ports_req[MASTER_DRAM_IDX].ar.lock ),
-       .slv_ar_cache_i  ( xbar_mst_ports_req[MASTER_DRAM_IDX].ar.cache ),
-       .slv_ar_qos_i    ( xbar_mst_ports_req[MASTER_DRAM_IDX].ar.qos ),
-       .slv_ar_id_i     ( xbar_mst_ports_req[MASTER_DRAM_IDX].ar.id ),
-       .slv_ar_user_i   ( xbar_mst_ports_req[MASTER_DRAM_IDX].ar.user ),
-       .slv_r_valid_o   ( xbar_mst_ports_resp[MASTER_DRAM_IDX].r_valid ),
-       .slv_r_ready_i   ( xbar_mst_ports_req[MASTER_DRAM_IDX].r_ready ),
-       .slv_r_data_o    ( xbar_mst_ports_resp[MASTER_DRAM_IDX].r.data ),
-       .slv_r_resp_o    ( xbar_mst_ports_resp[MASTER_DRAM_IDX].r.resp ),
-       .slv_r_last_o    ( xbar_mst_ports_resp[MASTER_DRAM_IDX].r.last ),
-       .slv_r_id_o      ( xbar_mst_ports_resp[MASTER_DRAM_IDX].r.id ),
-       .slv_r_user_o    ( xbar_mst_ports_resp[MASTER_DRAM_IDX].r.user ),
-       // Master interface to DRAM controller
-       .mst_aw_valid_o  ( dram_axi_awvalid ),
-       .mst_aw_ready_i  ( dram_axi_awready ),
-       .mst_aw_addr_o   ( dram_axi_awaddr ),
-       .mst_aw_prot_o   ( dram_axi_awprot ),
-       .mst_aw_region_o ( ),
-       .mst_aw_atop_o   ( ),
-       .mst_aw_len_o    ( dram_axi_awlen ),
-       .mst_aw_size_o   ( dram_axi_awsize ),
-       .mst_aw_burst_o  ( dram_axi_awburst ),
-       .mst_aw_lock_o   ( ),
-       .mst_aw_cache_o  ( ),
-       .mst_aw_qos_o    ( ),
-       .mst_aw_id_o     ( dram_axi_awid ),
-       .mst_aw_user_o   ( ),
-       .mst_w_valid_o   ( dram_axi_wvalid ),
-       .mst_w_ready_i   ( dram_axi_wready ),
-       .mst_w_data_o    ( dram_axi_wdata ),
-       .mst_w_strb_o    ( dram_axi_wstrb ),
-       .mst_w_user_o    ( ),
-       .mst_w_last_o    ( dram_axi_wlast ),
-       .mst_b_valid_i   ( dram_axi_bvalid ),
-       .mst_b_ready_o   ( dram_axi_bready ),
-       .mst_b_resp_i    ( dram_axi_bresp ),
-       .mst_b_id_i      ( dram_axi_bid ),
-       .mst_b_user_i    ( '0 ),
-       .mst_ar_valid_o  ( dram_axi_arvalid ),
-       .mst_ar_ready_i  ( dram_axi_arready ),
-       .mst_ar_addr_o   ( dram_axi_araddr ),
-       .mst_ar_prot_o   ( dram_axi_arprot ),
-       .mst_ar_region_o ( ),
-       .mst_ar_len_o    ( dram_axi_arlen ),
-       .mst_ar_size_o   ( dram_axi_arsize ),
-       .mst_ar_burst_o  ( dram_axi_arburst ),
-       .mst_ar_lock_o   ( ),
-       .mst_ar_cache_o  ( ),
-       .mst_ar_qos_o    ( ),
-       .mst_ar_id_o     ( dram_axi_arid ),
-       .mst_ar_user_o   ( ),
-       .mst_r_valid_i   ( dram_axi_rvalid ),
-       .mst_r_ready_o   ( dram_axi_rready ),
-       .mst_r_data_i    ( dram_axi_rdata ),
-       .mst_r_resp_i    ( dram_axi_rresp ),
-       .mst_r_last_i    ( dram_axi_rlast ),
-       .mst_r_id_i      ( dram_axi_rid ),
-       .mst_r_user_i    ( '0 )
-   );
+   assign dram_axi_awvalid = xbar_mst_ports_req[MASTER_DRAM_IDX].aw_valid;
+   assign dram_axi_awaddr  = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.addr;
+   assign dram_axi_awid    = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.id;
+   assign dram_axi_awlen   = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.len;
+   assign dram_axi_awsize  = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.size;
+   assign dram_axi_awburst = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.burst;
+   assign dram_axi_awprot  = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.prot;
+   assign dram_axi_wvalid  = xbar_mst_ports_req[MASTER_DRAM_IDX].w_valid;
+   assign dram_axi_wdata   = xbar_mst_ports_req[MASTER_DRAM_IDX].w.data;
+   assign dram_axi_wstrb   = xbar_mst_ports_req[MASTER_DRAM_IDX].w.strb;
+   assign dram_axi_wlast   = xbar_mst_ports_req[MASTER_DRAM_IDX].w.last;
+   assign dram_axi_arvalid = xbar_mst_ports_req[MASTER_DRAM_IDX].ar_valid;
+   assign dram_axi_araddr  = xbar_mst_ports_req[MASTER_DRAM_IDX].ar.addr;
+   assign dram_axi_arid    = xbar_mst_ports_req[MASTER_DRAM_IDX].ar.id;
+   assign dram_axi_arlen   = xbar_mst_ports_req[MASTER_DRAM_IDX].ar.len;
+   assign dram_axi_arsize  = xbar_mst_ports_req[MASTER_DRAM_IDX].ar.size;
+   assign dram_axi_arburst = xbar_mst_ports_req[MASTER_DRAM_IDX].ar.burst;
+   assign dram_axi_arprot  = xbar_mst_ports_req[MASTER_DRAM_IDX].ar.prot;
    assign dram_axi_bready  = xbar_mst_ports_req[MASTER_DRAM_IDX].b_ready;
    assign dram_axi_rready  = xbar_mst_ports_req[MASTER_DRAM_IDX].r_ready;
 
@@ -1027,109 +833,25 @@ module air_soc (
    logic [1:0]                      dram_axi_rresp;
    logic                            dram_axi_rlast;
 
-   axi_riscv_atomics #(
-       .AXI_ADDR_WIDTH     (XbarCfg.AxiAddrWidth),
-       .AXI_DATA_WIDTH     (XbarCfg.AxiDataWidth),
-       .AXI_ID_WIDTH       (AXI_ID_WIDTH_XBAR_MST),
-       .AXI_USER_WIDTH     (cva6_config_pkg::CVA6ConfigDataUserWidth),
-       .AXI_MAX_WRITE_TXNS (AXI_MAX_TRANS),
-       .RISCV_WORD_WIDTH   (32)
-   ) i_axi_riscv_atomics_dram (
-       .clk_i           ( clkwiz_o ),
-       .rst_ni          ( rst_n    ),
-       // Slave interface from XBAR
-       .slv_aw_valid_i  ( xbar_mst_ports_req[MASTER_DRAM_IDX].aw_valid ),
-       .slv_aw_ready_o  ( xbar_mst_ports_resp[MASTER_DRAM_IDX].aw_ready ),
-       .slv_aw_addr_i   ( xbar_mst_ports_req[MASTER_DRAM_IDX].aw.addr ),
-       .slv_aw_prot_i   ( xbar_mst_ports_req[MASTER_DRAM_IDX].aw.prot ),
-       .slv_aw_region_i ( '0 ),
-       .slv_aw_atop_i   ( xbar_mst_ports_req[MASTER_DRAM_IDX].aw.atop ),
-       .slv_aw_len_i    ( xbar_mst_ports_req[MASTER_DRAM_IDX].aw.len ),
-       .slv_aw_size_i   ( xbar_mst_ports_req[MASTER_DRAM_IDX].aw.size ),
-       .slv_aw_burst_i  ( xbar_mst_ports_req[MASTER_DRAM_IDX].aw.burst ),
-       .slv_aw_lock_i   ( xbar_mst_ports_req[MASTER_DRAM_IDX].aw.lock ),
-       .slv_aw_cache_i  ( xbar_mst_ports_req[MASTER_DRAM_IDX].aw.cache ),
-       .slv_aw_qos_i    ( xbar_mst_ports_req[MASTER_DRAM_IDX].aw.qos ),
-       .slv_aw_id_i     ( xbar_mst_ports_req[MASTER_DRAM_IDX].aw.id ),
-       .slv_aw_user_i   ( xbar_mst_ports_req[MASTER_DRAM_IDX].aw.user ),
-       .slv_w_valid_i   ( xbar_mst_ports_req[MASTER_DRAM_IDX].w_valid ),
-       .slv_w_ready_o   ( xbar_mst_ports_resp[MASTER_DRAM_IDX].w_ready ),
-       .slv_w_data_i    ( xbar_mst_ports_req[MASTER_DRAM_IDX].w.data ),
-       .slv_w_strb_i    ( xbar_mst_ports_req[MASTER_DRAM_IDX].w.strb ),
-       .slv_w_user_i    ( xbar_mst_ports_req[MASTER_DRAM_IDX].w.user ),
-       .slv_w_last_i    ( xbar_mst_ports_req[MASTER_DRAM_IDX].w.last ),
-       .slv_b_valid_o   ( xbar_mst_ports_resp[MASTER_DRAM_IDX].b_valid ),
-       .slv_b_ready_i   ( xbar_mst_ports_req[MASTER_DRAM_IDX].b_ready ),
-       .slv_b_resp_o    ( xbar_mst_ports_resp[MASTER_DRAM_IDX].b.resp ),
-       .slv_b_id_o      ( xbar_mst_ports_resp[MASTER_DRAM_IDX].b.id ),
-       .slv_b_user_o    ( xbar_mst_ports_resp[MASTER_DRAM_IDX].b.user ),
-       .slv_ar_valid_i  ( xbar_mst_ports_req[MASTER_DRAM_IDX].ar_valid ),
-       .slv_ar_ready_o  ( xbar_mst_ports_resp[MASTER_DRAM_IDX].ar_ready ),
-       .slv_ar_addr_i   ( xbar_mst_ports_req[MASTER_DRAM_IDX].ar.addr ),
-       .slv_ar_prot_i   ( xbar_mst_ports_req[MASTER_DRAM_IDX].ar.prot ),
-       .slv_ar_region_i ( '0 ),
-       .slv_ar_len_i    ( xbar_mst_ports_req[MASTER_DRAM_IDX].ar.len ),
-       .slv_ar_size_i   ( xbar_mst_ports_req[MASTER_DRAM_IDX].ar.size ),
-       .slv_ar_burst_i  ( xbar_mst_ports_req[MASTER_DRAM_IDX].ar.burst ),
-       .slv_ar_lock_i   ( xbar_mst_ports_req[MASTER_DRAM_IDX].ar.lock ),
-       .slv_ar_cache_i  ( xbar_mst_ports_req[MASTER_DRAM_IDX].ar.cache ),
-       .slv_ar_qos_i    ( xbar_mst_ports_req[MASTER_DRAM_IDX].ar.qos ),
-       .slv_ar_id_i     ( xbar_mst_ports_req[MASTER_DRAM_IDX].ar.id ),
-       .slv_ar_user_i   ( xbar_mst_ports_req[MASTER_DRAM_IDX].ar.user ),
-       .slv_r_valid_o   ( xbar_mst_ports_resp[MASTER_DRAM_IDX].r_valid ),
-       .slv_r_ready_i   ( xbar_mst_ports_req[MASTER_DRAM_IDX].r_ready ),
-       .slv_r_data_o    ( xbar_mst_ports_resp[MASTER_DRAM_IDX].r.data ),
-       .slv_r_resp_o    ( xbar_mst_ports_resp[MASTER_DRAM_IDX].r.resp ),
-       .slv_r_last_o    ( xbar_mst_ports_resp[MASTER_DRAM_IDX].r.last ),
-       .slv_r_id_o      ( xbar_mst_ports_resp[MASTER_DRAM_IDX].r.id ),
-       .slv_r_user_o    ( xbar_mst_ports_resp[MASTER_DRAM_IDX].r.user ),
-       // Master interface to DRAM controller
-       .mst_aw_valid_o  ( dram_axi_awvalid ),
-       .mst_aw_ready_i  ( dram_axi_awready ),
-       .mst_aw_addr_o   ( dram_axi_awaddr ),
-       .mst_aw_prot_o   ( dram_axi_awprot ),
-       .mst_aw_region_o ( ),
-       .mst_aw_atop_o   ( ),
-       .mst_aw_len_o    ( dram_axi_awlen ),
-       .mst_aw_size_o   ( ),
-       .mst_aw_burst_o  ( dram_axi_awburst ),
-       .mst_aw_lock_o   ( ),
-       .mst_aw_cache_o  ( ),
-       .mst_aw_qos_o    ( ),
-       .mst_aw_id_o     ( dram_axi_awid ),
-       .mst_aw_user_o   ( ),
-       .mst_w_valid_o   ( dram_axi_wvalid ),
-       .mst_w_ready_i   ( dram_axi_wready ),
-       .mst_w_data_o    ( dram_axi_wdata ),
-       .mst_w_strb_o    ( dram_axi_wstrb ),
-       .mst_w_user_o    ( ),
-       .mst_w_last_o    ( dram_axi_wlast ),
-       .mst_b_valid_i   ( dram_axi_bvalid ),
-       .mst_b_ready_o   ( dram_axi_bready ),
-       .mst_b_resp_i    ( dram_axi_bresp ),
-       .mst_b_id_i      ( dram_axi_bid ),
-       .mst_b_user_i    ( '0 ),
-       .mst_ar_valid_o  ( dram_axi_arvalid ),
-       .mst_ar_ready_i  ( dram_axi_arready ),
-       .mst_ar_addr_o   ( dram_axi_araddr ),
-       .mst_ar_prot_o   ( dram_axi_arprot ),
-       .mst_ar_region_o ( ),
-       .mst_ar_len_o    ( dram_axi_arlen ),
-       .mst_ar_size_o   ( ),
-       .mst_ar_burst_o  ( dram_axi_arburst ),
-       .mst_ar_lock_o   ( ),
-       .mst_ar_cache_o  ( ),
-       .mst_ar_qos_o    ( ),
-       .mst_ar_id_o     ( dram_axi_arid ),
-       .mst_ar_user_o   ( ),
-       .mst_r_valid_i   ( dram_axi_rvalid ),
-       .mst_r_ready_o   ( dram_axi_rready ),
-       .mst_r_data_i    ( dram_axi_rdata ),
-       .mst_r_resp_i    ( dram_axi_rresp ),
-       .mst_r_last_i    ( dram_axi_rlast ),
-       .mst_r_id_i      ( dram_axi_rid ),
-       .mst_r_user_i    ( '0 )
-   );
+   assign dram_axi_awvalid = xbar_mst_ports_req[MASTER_DRAM_IDX].aw_valid;
+   assign dram_axi_awaddr  = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.addr;
+   assign dram_axi_awid    = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.id;
+   assign dram_axi_awlen   = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.len;
+   assign dram_axi_awburst = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.burst;
+   assign dram_axi_awprot  = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.prot;
+
+   assign dram_axi_wvalid  = xbar_mst_ports_req[MASTER_DRAM_IDX].w_valid;
+   assign dram_axi_wdata   = xbar_mst_ports_req[MASTER_DRAM_IDX].w.data;
+   assign dram_axi_wstrb   = xbar_mst_ports_req[MASTER_DRAM_IDX].w.strb;
+   assign dram_axi_wlast   = xbar_mst_ports_req[MASTER_DRAM_IDX].w.last;
+
+   assign dram_axi_arvalid = xbar_mst_ports_req[MASTER_DRAM_IDX].ar_valid;
+   assign dram_axi_araddr  = xbar_mst_ports_req[MASTER_DRAM_IDX].ar.addr;
+   assign dram_axi_arid    = xbar_mst_ports_req[MASTER_DRAM_IDX].ar.id;
+   assign dram_axi_arlen   = xbar_mst_ports_req[MASTER_DRAM_IDX].ar.len;
+   assign dram_axi_arburst = xbar_mst_ports_req[MASTER_DRAM_IDX].ar.burst;
+   assign dram_axi_arprot  = xbar_mst_ports_req[MASTER_DRAM_IDX].ar.prot;
+
    assign dram_axi_bready  = xbar_mst_ports_req[MASTER_DRAM_IDX].b_ready;
    assign dram_axi_rready  = xbar_mst_ports_req[MASTER_DRAM_IDX].r_ready;
 
