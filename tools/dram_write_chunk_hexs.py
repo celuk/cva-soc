@@ -7,22 +7,32 @@ def modify_hex(hex_code, new_base_address, new_offset, new_value):
     
     final_address = new_base_address + new_offset
     
-    value_upper = (new_value >> 12) & 0xFFFFF
-    if new_value & 0x800:
-        value_upper += 1
+    # Handle value splitting for LUI + ADDI (same logic as compiler)
     value_lower = new_value & 0xFFF
+    value_upper = new_value >> 12
+    if value_lower & 0x800:  # If bit 11 is set, ADDI will sign extend
+        value_upper += 1     # Compensate by adding 1 to upper part
+    
+    # Handle address splitting for LUI + SW offset  
+    addr_lower = final_address & 0xFFF
+    addr_upper = final_address >> 12
+    if addr_lower & 0x800:  # If bit 11 is set, SW offset will sign extend
+        addr_upper += 1     # Compensate by adding 1 to upper part
+    
+    # Ensure values fit in instruction fields and handle overflow
+    value_upper &= 0xFFFFF  # 20-bit limit for LUI
+    addr_upper &= 0xFFFFF   # 20-bit limit for LUI
+    
+    # Sign extend lower parts for instruction encoding
     if value_lower & 0x800:
         value_lower |= 0xFFFFF000
+    if addr_lower & 0x800:
+        addr_lower |= 0xFFFFF000
     
-    addr_upper = (final_address >> 12) & 0xFFFFF
-    if final_address & 0x800:
-        addr_upper += 1
-    addr_lower = final_address & 0xFFF
-    
-    instructions[0] = f"{(0x37 | (15 << 7) | (value_upper << 12)) & 0xFFFFFFFF:08X}"
-    instructions[1] = f"{(0x37 | (14 << 7) | (addr_upper << 12)) & 0xFFFFFFFF:08X}"
-    instructions[2] = f"{(0x13 | (15 << 7) | (15 << 15) | ((value_lower & 0xFFF) << 20)) & 0xFFFFFFFF:08X}"
-    instructions[3] = f"{(0x23 | (2 << 12) | (14 << 15) | (15 << 20) | ((addr_lower & 0x1F) << 7) | (((addr_lower >> 5) & 0x7F) << 25)) & 0xFFFFFFFF:08X}"
+    instructions[0] = f"{(0x37 | (15 << 7) | (value_upper << 12)):08X}"
+    instructions[1] = f"{(0x37 | (14 << 7) | (addr_upper << 12)):08X}"
+    instructions[2] = f"{(0x13 | (15 << 7) | (15 << 15) | ((value_lower & 0xFFF) << 20)):08X}"
+    instructions[3] = f"{(0x23 | (2 << 12) | (14 << 15) | (15 << 20) | ((addr_lower & 0x1F) << 7) | (((addr_lower >> 5) & 0x7F) << 25)):08X}"
     
     return ' '.join(instructions)
 
@@ -62,7 +72,7 @@ def send_hex_file(ser, hex_file_path, header_hex, original_hex, new_base_address
             
             modified_hex = modify_hex(original_hex, new_base_address, new_offset, new_value)
             send_hex_chunk(ser, header_hex, modified_hex, program_sequence)
-            #time.sleep(1)
+            time.sleep(0.1)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--file", '-f', type=str, default="./tests/qspi_demo/qspi_demo.hex", help="File to send")
