@@ -321,7 +321,7 @@ module ram32_dwr #(
         end
         
         if (dram_write_we_o) begin
-          dram_prog_addr <= dram_prog_addr + 1'b1;
+          dram_prog_addr <= dram_prog_addr + 'h4;
         end
         
         case (state_prog)
