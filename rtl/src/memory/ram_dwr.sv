@@ -25,7 +25,8 @@ module ram32_dwr #(
    ,output logic dram_write_we_o,
    output logic [31:0] dram_write_addr_o,
    output logic [31:0] dram_write_data_o,
-   output logic dram_write_rst_o
+   output logic dram_write_rst_o,
+   output logic dram_mode_o
 );
 
    localparam int ADDR_W = $clog2(SIZE*4);
@@ -471,6 +472,7 @@ module ram32_dwr #(
    assign dram_write_addr_o = dram_prog_addr;
    assign dram_write_data_o = dram_prog_instruction;
    assign dram_write_rst_o  = !dram_prog_sys_rst_n;
+   assign dram_mode_o = (state_prog == SequenceDramWriteProgram);
    
    // =========================================================================
    // UART FOR PROGRAMMING

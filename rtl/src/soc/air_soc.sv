@@ -82,6 +82,8 @@ module air_soc (
    wire uart_rx_i;
 
    logic system_reset_o;
+   logic uart_dram_write_rst;
+   logic uart_dram_mode;
    `ifdef BASYS3
       wire clkwiz_o;
       wire clkwiz_locked;
@@ -116,7 +118,7 @@ module air_soc (
       );
 
       wire clkwiz_o = clk_i;
-      wire rst_n = rst_ni & system_reset_o & pll_locked;
+      wire rst_n = rst_ni & system_reset_o & !uart_dram_mode & pll_locked;
    `elsif DDR3_AXI
       wire pll_locked;
       wire clk100;
@@ -354,7 +356,6 @@ module air_soc (
    logic uart_dram_write_we;
    logic [31:0] uart_dram_write_addr;
    logic [31:0] uart_dram_write_data;
-   logic uart_dram_write_rst;
 
    ram32_dwr #(
       .SIZE     (`RAM_SIZE / 4),
@@ -378,6 +379,7 @@ module air_soc (
       ,.dram_write_addr_o(uart_dram_write_addr)
       ,.dram_write_data_o(uart_dram_write_data)
       ,.dram_write_rst_o(uart_dram_write_rst)
+      ,.dram_mode_o    ( uart_dram_mode )
    );
 
    logic                            uart_axi_awvalid;
@@ -650,7 +652,7 @@ module air_soc (
        .AXI_DATA_WIDTH(XbarCfg.AxiDataWidth)
    ) dram_dut (
        .clk_i        ( clkwiz_o         ),
-       .rst_ni       ( rst_n            ),
+       .rst_ni       ( (rst_ni & system_reset_o & pll_locked) || uart_dram_mode ),
 
        .s_axi_awvalid( dram_axi_awvalid ),
        .s_axi_awready( dram_axi_awready ),
@@ -712,7 +714,7 @@ module air_soc (
        ,.uart_dram_write_we_i (uart_dram_write_we),
        .uart_dram_write_addr_i (uart_dram_write_addr),
        .uart_dram_write_data_i (uart_dram_write_data),
-       .uart_dram_write_rst_i (uart_dram_write_rst)
+       .uart_dram_write_rst_i (0)
    );
    `elsif USE_SRAM
    adapter_obi_req_t mem8_obi_req;
