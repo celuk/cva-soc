@@ -52,14 +52,14 @@ ifeq ($(CFILE), bootloader_sram)
 	DRIVERS := $(DRIVERS_PATH)/timer.c
 endif
 
-
-#ifeq ($(CFILE), simple_dram_write)
-#	LINKER_SCRIPT := $(COMMON_PATH)/link_asm.ld
-#	START_ASM := 
-#	DRIVERS := 
-#endif
-
 CFLAGS ?= -O2 -mcmodel=medany -static -std=gnu99 -fno-common -fno-unroll-loops -nostdlib -nostartfiles -fno-builtin -ffunction-sections -lm -lgcc -T $(LINKER_SCRIPT) -march=rv32im -mabi=ilp32 -I$(COMMON_PATH) -I$(DRIVERS_PATH)
+
+ifeq ($(CFILE), simple_dram_write)
+	LINKER_SCRIPT := $(COMMON_PATH)/link_asm.ld
+	START_ASM := 
+	DRIVERS := 
+	CFLAGS := -O2 -mcmodel=medany -static -std=gnu99 -fno-common -fno-unroll-loops -nostdlib -nostartfiles -fno-builtin -ffunction-sections -lm -lgcc -T $(LINKER_SCRIPT) -march=rv32im -mabi=ilp32 -I$(COMMON_PATH) -I$(DRIVERS_PATH)
+endif
 
 ifeq ($(USE_COREMARK), 1)
 	CFLAGS += -Icoremark -Icoremark/riscv32-baremetal -DITERATIONS=2000 -DUSE_COREMARK_UTILS
