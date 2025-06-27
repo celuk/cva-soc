@@ -1,4 +1,3 @@
-// dram_controller_wb.sv
 `timescale 1ns / 1ps
 
 `include "header.vh"
@@ -36,6 +35,12 @@ module dram_controller_wb (
    ,input clk_ddr
    ,input clk_ref
    ,input clk_ddr_dqs
+
+   // New inputs for UART-based DRAM writing
+   ,input wire uart_dram_write_we_i,
+   input wire [31:0] uart_dram_write_addr_i,
+   input wire [31:0] uart_dram_write_data_i,
+   input wire uart_dram_write_rst_i
 );
 
     reg [31:0] wb_read_data_r;
@@ -63,7 +68,7 @@ module dram_controller_wb (
     reg [31:0] DRAM_WDG;
     reg [31:0] DRAM_WDG_NEXT;
 
-    typedef enum logic [3:0] {
+    typedef enum logic [4:0] {
         IDLE,
         READ_START,
         READ_WAIT_ACCEPT,
@@ -73,7 +78,13 @@ module dram_controller_wb (
         WRITE_RMW_WAIT_ACK,
         WRITE_START,
         WRITE_WAIT_ACCEPT,
-        WRITE_WAIT_ACK
+        WRITE_WAIT_ACK,
+        UART_WRITE_RMW_START,
+        UART_WRITE_RMW_WAIT_ACCEPT,
+        UART_WRITE_RMW_WAIT_ACK,
+        UART_WRITE_START,
+        UART_WRITE_WAIT_ACCEPT,
+        UART_WRITE_WAIT_ACK
     } state_t;
 
     state_t state_r, state_next_r;
@@ -81,6 +92,9 @@ module dram_controller_wb (
     reg [31:0] wb_adr_r, wb_adr_next_r;
     reg [31:0] wb_dat_r, wb_dat_next_r;
     reg [3:0]  wb_sel_r, wb_sel_next_r;
+
+    reg [31:0] uart_adr_r, uart_adr_next_r;
+    reg [31:0] uart_dat_r, uart_dat_next_r;
 
     logic [127:0] modified_rmw_data;
  
@@ -103,7 +117,6 @@ module dram_controller_wb (
        .DDR_MHZ(`DDR_MHZ)
     )
     ddr3_controller_inst(
-       // user ports
        .rst_i(ddr3_reset_i),
        `ifdef DDR_100MHZ
        .clk(clk100),
@@ -122,7 +135,7 @@ module dram_controller_wb (
        .accepted(ram_accept),
        .acked(ram_ack),
        .ram_ready(ram_ready),
-       // io ports
+
        .ddr3_reset_n(ddr3_reset_n),
        .ddr3_cke(ddr3_cke),
        .ddr3_ck_p(ddr3_ck_p),
@@ -155,6 +168,8 @@ module dram_controller_wb (
         wb_adr_next_r = wb_adr_r;
         wb_dat_next_r = wb_dat_r;
         wb_sel_next_r = wb_sel_r;
+        uart_adr_next_r = uart_adr_r;
+        uart_dat_next_r = uart_dat_r;
 
         DRAM_ADDRESS_NEXT = DRAM_ADDRESS;
         DRAM_DATA_WRITE0_NEXT = DRAM_DATA_WRITE0;
@@ -169,7 +184,12 @@ module dram_controller_wb (
             IDLE: begin
                 DRAM_RE_NEXT = 0;
                 DRAM_WE_NEXT = 0;
-                if (wb_cyc_i && wb_stb_i && !wb_ack_r) begin
+                if (uart_dram_write_we_i) begin
+                    uart_adr_next_r = uart_dram_write_addr_i;
+                    uart_dat_next_r = uart_dram_write_data_i;
+                    DRAM_ADDRESS_NEXT = uart_dram_write_addr_i & 32'hFFFFFFF0;
+                    state_next_r = UART_WRITE_RMW_START;
+                end else if (wb_cyc_i && wb_stb_i && !wb_ack_r) begin
                     wb_adr_next_r = wb_adr_i;
                     DRAM_ADDRESS_NEXT = wb_adr_i & 32'hFFFFFFF0;
                     if (wb_we_i) begin
@@ -281,6 +301,58 @@ module dram_controller_wb (
                     DRAM_WE_NEXT = 0;
                 end
             end
+            
+            UART_WRITE_RMW_START: begin
+                if (ram_ready) begin
+                    DRAM_RE_NEXT = 1;
+                    state_next_r = UART_WRITE_RMW_WAIT_ACCEPT;
+                end
+            end
+
+            UART_WRITE_RMW_WAIT_ACCEPT: begin
+                if (ram_accept) begin
+                    state_next_r = UART_WRITE_RMW_WAIT_ACK;
+                end
+            end
+
+            UART_WRITE_RMW_WAIT_ACK: begin
+                if (ram_ack) begin
+                    DRAM_RE_NEXT = 0;
+                    modified_rmw_data = ram_rd_data;
+                    case (uart_adr_r[3:2])
+                        2'b00: modified_rmw_data[31:0]   = uart_dat_r;
+                        2'b01: modified_rmw_data[63:32]  = uart_dat_r;
+                        2'b10: modified_rmw_data[95:64]  = uart_dat_r;
+                        2'b11: modified_rmw_data[127:96] = uart_dat_r;
+                    endcase
+                    DRAM_DATA_WRITE0_NEXT = modified_rmw_data[31:0];
+                    DRAM_DATA_WRITE1_NEXT = modified_rmw_data[63:32];
+                    DRAM_DATA_WRITE2_NEXT = modified_rmw_data[95:64];
+                    DRAM_DATA_WRITE3_NEXT = modified_rmw_data[127:96];
+                    state_next_r = UART_WRITE_START;
+                end
+            end
+
+            UART_WRITE_START: begin
+                if (ram_ready) begin
+                    DRAM_WE_NEXT = 1;
+                    state_next_r = UART_WRITE_WAIT_ACCEPT;
+                end
+            end
+
+            UART_WRITE_WAIT_ACCEPT: begin
+                if (ram_accept) begin
+                    state_next_r = UART_WRITE_WAIT_ACK;
+                end
+            end
+
+            UART_WRITE_WAIT_ACK: begin
+                if (ram_ack) begin
+                    wb_ack_next_r = 0; // No WB ack for UART writes
+                    state_next_r = IDLE;
+                    DRAM_WE_NEXT = 0;
+                end
+            end
         endcase
 
         if (DRAM_WDG > 0) begin
@@ -289,7 +361,7 @@ module dram_controller_wb (
     end
 
     always_ff @(posedge clk_i) begin
-        if (rst_i) begin
+        if (rst_i || uart_dram_write_rst_i) begin
             wb_ack_r <= 0;
             wb_read_data_r <= 0;
     
@@ -306,6 +378,8 @@ module dram_controller_wb (
             wb_adr_r <= 0;
             wb_dat_r <= 0;
             wb_sel_r <= 0;
+            uart_adr_r <= 0;
+            uart_dat_r <= 0;
         end
         else begin
             wb_ack_r <= wb_ack_next_r;
@@ -324,6 +398,8 @@ module dram_controller_wb (
             wb_adr_r <= wb_adr_next_r;
             wb_dat_r <= wb_dat_next_r;
             wb_sel_r <= wb_sel_next_r;
+            uart_adr_r <= uart_adr_next_r;
+            uart_dat_r <= uart_dat_next_r;
         end
     end
 endmodule

@@ -122,7 +122,6 @@ module dram_controller (
        .DDR_MHZ(`DDR_MHZ)
     )
     ddr3_controller_inst(
-       // user ports
        .rst_i(ddr3_reset_i),
        `ifdef DDR_100MHZ
        .clk(clk100),
@@ -140,7 +139,7 @@ module dram_controller (
        .rd_data(ram_rd_data),
        .accepted(ram_accept),
        .acked(ram_ack),
-       // io ports
+
        .ddr3_reset_n(ddr3_reset_n),
        .ddr3_cke(ddr3_cke),
        .ddr3_ck_p(ddr3_ck_p),

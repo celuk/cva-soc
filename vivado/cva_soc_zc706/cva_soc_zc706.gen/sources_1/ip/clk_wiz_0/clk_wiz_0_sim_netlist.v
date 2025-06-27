@@ -3,8 +3,8 @@
 // Tool Version: Vivado v.2022.2 (lin64) Build 3671981 Fri Oct 14 04:59:54 MDT 2022
 // Date        : Mon May 26 17:37:06 2025
 // Host        : karpuz running 64-bit Ubuntu 22.04.5 LTS
-// Command     : write_verilog -force -mode funcsim
-//               /home/shc/projects/cva-soc/vivado/cva_soc_zc706/cva_soc_zc706.gen/sources_1/ip/clk_wiz_0/clk_wiz_0_sim_netlist.v
+// Command     : write_verilog -force -mode funcsim -rename_top clk_wiz_0 -prefix
+//               clk_wiz_0_ clk_wiz_0_sim_netlist.v
 // Design      : clk_wiz_0
 // Purpose     : This verilog netlist is a functional simulation representation of the design and should not be modified
 //               or synthesized. This netlist cannot be used for SDF annotated simulation.
@@ -43,7 +43,7 @@ module clk_wiz_0
   wire locked;
   wire reset;
 
-  clk_wiz_0_clk_wiz inst
+  clk_wiz_0_clk_wiz_0_clk_wiz inst
        (.clk_in1_n(clk_in1_n),
         .clk_in1_p(clk_in1_p),
         .clk_out1(clk_out1),
@@ -55,7 +55,7 @@ module clk_wiz_0
         .reset(reset));
 endmodule
 
-module clk_wiz_0_clk_wiz
+module clk_wiz_0_clk_wiz_0_clk_wiz
    (clk_out1,
     clk_out2,
     clk_out3,

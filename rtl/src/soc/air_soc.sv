@@ -111,7 +111,7 @@ module air_soc (
          ,.clk_out2(clk_ddr)     // 400
          ,.clk_out3(clk_ref)     // 200
          ,.clk_out4(clk_ddr_dqs) // 400 (phase 90)
-         ,.clk_out5(clk_i)       // 50 or 25
+         ,.clk_out5(clk_i)       // 100, 50, 25
          ,.locked(pll_locked)
       );
 
@@ -136,7 +136,7 @@ module air_soc (
          ,.clk_out2(clk_ddr)     // 400
          ,.clk_out3(clk_ref)     // 200
          ,.clk_out4(clk_ddr_dqs) // 400 (phase 90)
-         ,.clk_out5(clk_i)       // 50 or 25
+         ,.clk_out5(clk_i)       // 100, 50, 25
          ,.locked(pll_locked)
       );
 
@@ -177,14 +177,13 @@ module air_soc (
       .noc_resp_i           ( cva6_axi_resp                )
    );
 
-   // --- AXI Crossbar (XBAR) ---
    localparam int unsigned NUM_SLAVES_XBAR = 1; // CVA6
    `ifdef ZC706
    localparam int unsigned NUM_MASTERS_XBAR = 4; // RAM, UART, TIMER, DRAM
    `elsif DDR3_AXI
-   localparam int unsigned NUM_MASTERS_XBAR = 4; // RAM, UART, TIMER, DRAM
+   localparam int unsigned NUM_MASTERS_XBAR = 4;
    `else
-   localparam int unsigned NUM_MASTERS_XBAR = 3; // RAM, UART, TIMER
+   localparam int unsigned NUM_MASTERS_XBAR = 3;
    `endif
    localparam int unsigned MASTER_RAM_IDX  = 0;
    localparam int unsigned MASTER_UART_IDX = 1;
@@ -195,7 +194,6 @@ module air_soc (
    localparam int unsigned MASTER_DRAM_IDX = 3;
    `endif
 
-   // Define AXI XBAR configuration
    localparam axi_pkg::xbar_cfg_t XbarCfg = '{
        NoSlvPorts:         NUM_SLAVES_XBAR,
        NoMstPorts:         NUM_MASTERS_XBAR,
@@ -212,25 +210,16 @@ module air_soc (
        ,default: '0
    };
 
-   // Define AXI type for the master ports of the XBAR
-   // Note: If NoSlvPorts > 1, AxiIdWidthMstPorts needs to be wider.
-   // Since NoSlvPorts = 1 here, master ID width = slave ID width.
-   localparam int unsigned AXI_ID_WIDTH_XBAR_MST = XbarCfg.AxiIdWidthSlvPorts; // + $clog2(XbarCfg.NoSlvPorts); -> simplifies to this when NoSlvPorts = 1
+   localparam int unsigned AXI_ID_WIDTH_XBAR_MST = XbarCfg.AxiIdWidthSlvPorts;
 
-   // Signals connecting CVA6 <-> XBAR Slave Port 0
-   // (Using ariane_axi types directly as they match the XBAR slave port config)
    ariane_axi::req_t  xbar_slv_port0_req;
    ariane_axi::resp_t xbar_slv_port0_resp;
 
-   // Signals connecting XBAR Master Ports <-> AXI-to-OBI Bridges
    ariane_axi::req_t     [NUM_MASTERS_XBAR-1:0] xbar_mst_ports_req;
    ariane_axi::resp_t    [NUM_MASTERS_XBAR-1:0] xbar_mst_ports_resp;
 
-   // Define the address map for the AXI XBAR
    localparam axi_pkg::xbar_rule_32_t [XbarCfg.NoAddrRules-1:0] ADDR_MAP_XBAR = '{
-      // Rule 0 -> Master Port 0 (RAM)
       '{ start_addr: `MEM_BASE_ADDR,   end_addr: `MEM_BASE_ADDR  + `MEM_RANGE,   idx: MASTER_RAM_IDX  },
-      // Rule 1 -> Master Port 1 (UART)
       '{ start_addr: `UART_BASE_ADDR,  end_addr: `UART_BASE_ADDR + `UART_RANGE,  idx: MASTER_UART_IDX },
       '{ start_addr: `TIMER_BASE_ADDR, end_addr: `TIMER_BASE_ADDR+ `TIMER_RANGE, idx: MASTER_TIMR_IDX }
       `ifdef ZC706 
@@ -240,105 +229,95 @@ module air_soc (
       `endif
    };
 
-   // Instantiate AXI XBAR
    axi_xbar #(
       .Cfg          ( XbarCfg ),
-      .ATOPs        ( 1'b0 ), // Disable ATOPs if CVA6/peripherals don't use them
-      // Pass AXI type definitions for slave port (matches CVA6)
+      .ATOPs        ( 1'b0 ),
+
       .slv_aw_chan_t( ariane_axi::aw_chan_t ),
       .slv_ar_chan_t( ariane_axi::ar_chan_t ),
-      .w_chan_t     ( ariane_axi::w_chan_t  ), // W channel type is common
+      .w_chan_t     ( ariane_axi::w_chan_t  ),
       .slv_b_chan_t ( ariane_axi::b_chan_t  ),
       .slv_r_chan_t ( ariane_axi::r_chan_t  ),
       .slv_req_t    ( ariane_axi::req_t     ),
       .slv_resp_t   ( ariane_axi::resp_t    ),
-      // Pass AXI type definitions for master ports
+
       .mst_aw_chan_t( ariane_axi::aw_chan_t ),
       .mst_ar_chan_t( ariane_axi::ar_chan_t ),
       .mst_b_chan_t ( ariane_axi::b_chan_t  ),
       .mst_r_chan_t ( ariane_axi::r_chan_t  ),
       .mst_req_t    ( ariane_axi::req_t     ),
       .mst_resp_t   ( ariane_axi::resp_t    ),
-      // Address rule type
+
       .rule_t       ( axi_pkg::xbar_rule_32_t   )
    ) i_axi_xbar (
       .clk_i        ( clkwiz_o                      ),
       .rst_ni       ( rst_n                         ),
       .test_i       ( 1'b0                          ),
 
-      // Slave Port 0 Interface (Connected to CVA6)
-      .slv_ports_req_i  ( {xbar_slv_port0_req}      ), // Input Req Array (size 1)
-      .slv_ports_resp_o ( {xbar_slv_port0_resp}     ), // Output Resp Array (size 1)
+      .slv_ports_req_i  ( {xbar_slv_port0_req}      ),
+      .slv_ports_resp_o ( {xbar_slv_port0_resp}     ),
 
-      // Master Ports Interface (Connected to AXI-to-OBI Bridges)
-      .mst_ports_req_o  ( xbar_mst_ports_req        ), // Output Req Array [NUM_MASTERS_XBAR-1:0]
-      .mst_ports_resp_i ( xbar_mst_ports_resp       ), // Input Resp Array [NUM_MASTERS_XBAR-1:0]
+      .mst_ports_req_o  ( xbar_mst_ports_req        ),
+      .mst_ports_resp_i ( xbar_mst_ports_resp       ),
 
-      // Address Mapping
       .addr_map_i       ( ADDR_MAP_XBAR             ),
-      .en_default_mst_port_i( {NUM_SLAVES_XBAR{1'b0}} ), // Disable default routing
+      .en_default_mst_port_i( {NUM_SLAVES_XBAR{1'b0}} ),
       .default_mst_port_i ( '0                      )
    );
 
-   // Connect CVA6 <-> XBAR Slave Port 0
    assign xbar_slv_port0_req = cva6_axi_req;
    assign cva6_axi_resp      = xbar_slv_port0_resp;
 
-   // --- OBI Interface Definition (Common for all bridges) ---
    import obi_pkg::*;
    localparam obi_pkg::obi_cfg_t AdapterObiCfg = '{
-       AddrWidth: XbarCfg.AxiAddrWidth, // Match AXI Addr Width
-       DataWidth: `MEM_W, // OBI Data width (can differ from AXI) - Use peripheral width `MEM_W`
-       IdWidth:   AXI_ID_WIDTH_XBAR_MST, // Pass AXI ID from XBAR Master Port through OBI
+       AddrWidth: XbarCfg.AxiAddrWidth,
+       DataWidth: `MEM_W,
+       IdWidth:   AXI_ID_WIDTH_XBAR_MST,
        UseRReady: 1'b0,
        CombGnt:   1'b0,
        Integrity: 1'b0,
        BeFull:    1'b1,
        OptionalCfg: '{ UseAtop: 1'b0, UseProt: 1'b0, UseMemtype: 1'b0, UseDbg: 1'b0,
-                      AUserWidth: 0, WUserWidth: 0, RUserWidth: 1, // Adjust if needed
+                      AUserWidth: 0, WUserWidth: 0, RUserWidth: 1,
                       MidWidth: 0, AChkWidth: 0, RChkWidth: 0 }
    };
 
-   // Define OBI types based on the configuration (Only need req/rsp now)
    `OBI_TYPEDEF_MINIMAL_A_OPTIONAL(adapter_obi_a_optional_t)
    `OBI_TYPEDEF_ALL_R_OPTIONAL(adapter_obi_r_optional_t, AdapterObiCfg.OptionalCfg.RUserWidth, AdapterObiCfg.OptionalCfg.RChkWidth)
 
    `OBI_TYPEDEF_A_CHAN_T(adapter_obi_a_chan_t, AdapterObiCfg.AddrWidth, AdapterObiCfg.DataWidth, AdapterObiCfg.IdWidth, adapter_obi_a_optional_t)
-   `OBI_TYPEDEF_R_CHAN_T(adapter_obi_r_chan_t, AdapterObiCfg.DataWidth, AdapterObiCfg.IdWidth, adapter_obi_r_optional_t) // Use type defined by _ALL_ macro
+   `OBI_TYPEDEF_R_CHAN_T(adapter_obi_r_chan_t, AdapterObiCfg.DataWidth, AdapterObiCfg.IdWidth, adapter_obi_r_optional_t)
 
    `OBI_TYPEDEF_DEFAULT_REQ_T(adapter_obi_req_t, adapter_obi_a_chan_t)
    `OBI_TYPEDEF_RSP_T(adapter_obi_rsp_t, adapter_obi_r_chan_t)
 
-   // --- AXI-to-OBI Bridges (One per Peripheral) ---
-   localparam int unsigned AXI_MAX_TRANS = XbarCfg.MaxMstTrans; // Max outstanding transactions per bridge
+   localparam int unsigned AXI_MAX_TRANS = XbarCfg.MaxMstTrans;
 
-   // OBI signals between bridges and peripherals
    adapter_obi_req_t mem_obi_req;
    adapter_obi_rsp_t mem_obi_rsp;
 
-   // Instantiate Bridge for RAM (Master Port 0)
    axi_to_obi #(
       .ObiCfg         ( AdapterObiCfg          ),
       .obi_req_t      ( adapter_obi_req_t      ), .obi_rsp_t      ( adapter_obi_rsp_t      ),
       .obi_a_chan_t   ( adapter_obi_a_chan_t   ), .obi_r_chan_t   ( adapter_obi_r_chan_t   ),
       .AxiAddrWidth   ( XbarCfg.AxiAddrWidth   ),
       .AxiDataWidth   ( XbarCfg.AxiDataWidth   ),
-      .AxiIdWidth     ( AXI_ID_WIDTH_XBAR_MST  ), // Use XBAR Master ID Width
-      .AxiUserWidth   ( cva6_config_pkg::CVA6ConfigDataUserWidth), // Match XBAR User Width
+      .AxiIdWidth     ( AXI_ID_WIDTH_XBAR_MST  ),
+      .AxiUserWidth   ( cva6_config_pkg::CVA6ConfigDataUserWidth),
       .MaxTrans       ( AXI_MAX_TRANS          ),
-      .axi_req_t      ( ariane_axi::req_t         ), // Use XBAR Master Req Type
-      .axi_rsp_t      ( ariane_axi::resp_t        )  // Use XBAR Master Resp Type
+      .axi_req_t      ( ariane_axi::req_t         ),
+      .axi_rsp_t      ( ariane_axi::resp_t        )
    ) i_axi_to_obi_mem (
       .clk_i        ( clkwiz_o                              ),
       .rst_ni       ( rst_n                                 ),
       .testmode_i   ( 1'b0                                  ),
-      // AXI Slave Interface (Connected to XBAR Master Port 0)
+
       .axi_req_i    ( xbar_mst_ports_req[MASTER_RAM_IDX]    ),
       .axi_rsp_o    ( xbar_mst_ports_resp[MASTER_RAM_IDX]   ),
-      // OBI Master Interface (Connected to RAM)
+
       .obi_req_o    ( mem_obi_req                           ),
       .obi_rsp_i    ( mem_obi_rsp                           ),
-      // Tie-offs (adjust if user signals are actually used)
+
       .req_aw_id_o (), .req_aw_user_o (), .req_w_user_o (),
       .req_write_aid_i ('0),.req_write_auser_i ('0),.req_write_wuser_i ('0),
       .req_ar_id_o (), .req_ar_user_o (),
@@ -350,7 +329,6 @@ module air_soc (
       .rsp_read_ruser_o (), .rsp_r_user_i ('0)
    );
 
-   // RAM (Connects to mem_obi_req/mem_obi_rsp)
    logic        ram_req_i;
    logic        ram_we_i;
    logic [AdapterObiCfg.DataWidth/8-1:0] ram_be_i;
@@ -361,29 +339,29 @@ module air_soc (
 
    assign ram_req_i   = mem_obi_req.req;
    assign ram_we_i    = mem_obi_req.a.we;
-   assign ram_addr_i  = mem_obi_req.a.addr[31:0]; // Slice to RAM's address width
+   assign ram_addr_i  = mem_obi_req.a.addr[31:0];
    assign ram_wdata_i = mem_obi_req.a.wdata;
    assign ram_be_i    = mem_obi_req.a.be;
 
-   // RAM grants immediately (assuming simple RAM model)
-   // The actual peripheral must assert gnt correctly if it has latency.
-   // ram32_obi needs a gnt_o, assuming it's combinatorial based on req_i.
-   // If ram32_obi uses registered grant, the bridge needs CombGnt=0.
-   // ** Assuming ram32_obi provides gnt_o combinatorially or 1 cycle after req_i **
-   assign mem_obi_rsp.gnt    = 1; // Use grant from RAM module
+   assign mem_obi_rsp.gnt    = 1;
    assign mem_obi_rsp.rvalid = ram_rvalid_o;
    assign mem_obi_rsp.r.rdata = ram_rdata_o;
-   assign mem_obi_rsp.r.rid   = mem_obi_req.a.aid; // Echo back the ID
-   assign mem_obi_rsp.r.err  = 1'b0; // Assuming no errors from simple RAM
+   assign mem_obi_rsp.r.rid   = mem_obi_req.a.aid;
+   assign mem_obi_rsp.r.err  = 1'b0;
 
    // TODO: Handle atomics with wrapper
 
-   ram32 #(
+   logic uart_dram_write_we;
+   logic [31:0] uart_dram_write_addr;
+   logic [31:0] uart_dram_write_data;
+   logic uart_dram_write_rst;
+
+   ram32_dwr #(
       .SIZE     (`RAM_SIZE / 4),
       .INIT_FILE(`RAM_FPATH)
    ) main_memory (
       .clk_i   (clkwiz_o),
-      .rst_ni  (rst_ni `ifdef BASYS3 & clkwiz_locked `endif),
+      .rst_ni  (rst_ni `ifdef BASYS3 & clkwiz_locked `endif), // pll_locked
       .req_i   ( ram_req_i      ),
       .we_i    ( ram_we_i       ),
       .be_i    ( ram_be_i       ),
@@ -395,12 +373,17 @@ module air_soc (
       ,.program_rx_i   ( program_rx_i   )
       ,.system_reset_o ( system_reset_o )
       ,.prog_mode_led_o( prog_mode_led_o)
+
+      ,.dram_write_we_o(uart_dram_write_we)
+      ,.dram_write_addr_o(uart_dram_write_addr)
+      ,.dram_write_data_o(uart_dram_write_data)
+      ,.dram_write_rst_o(uart_dram_write_rst)
    );
 
    logic                            uart_axi_awvalid;
    logic                            uart_axi_awready;
    logic [XbarCfg.AxiAddrWidth-1:0] uart_axi_awaddr;
-   logic [AXI_ID_WIDTH_XBAR_MST-1:0]uart_axi_awid; // <-- Added
+   logic [AXI_ID_WIDTH_XBAR_MST-1:0]uart_axi_awid;
    logic [2:0]                      uart_axi_awprot;
    logic                            uart_axi_wvalid;
    logic                            uart_axi_wready;
@@ -408,69 +391,67 @@ module air_soc (
    logic [XbarCfg.AxiDataWidth/8-1:0] uart_axi_wstrb;
    logic                            uart_axi_bvalid;
    logic                            uart_axi_bready;
-   logic [AXI_ID_WIDTH_XBAR_MST-1:0]uart_axi_bid; // <-- Added
+   logic [AXI_ID_WIDTH_XBAR_MST-1:0]uart_axi_bid;
    logic [1:0]                      uart_axi_bresp;
    logic                            uart_axi_arvalid;
    logic                            uart_axi_arready;
    logic [XbarCfg.AxiAddrWidth-1:0] uart_axi_araddr;
-   logic [AXI_ID_WIDTH_XBAR_MST-1:0]uart_axi_arid; // <-- Added
+   logic [AXI_ID_WIDTH_XBAR_MST-1:0]uart_axi_arid;
    logic [2:0]                      uart_axi_arprot;
    logic                            uart_axi_rvalid;
    logic                            uart_axi_rready;
-   logic [AXI_ID_WIDTH_XBAR_MST-1:0]uart_axi_rid; // <-- Added
+   logic [AXI_ID_WIDTH_XBAR_MST-1:0]uart_axi_rid;
    logic [XbarCfg.AxiDataWidth-1:0] uart_axi_rdata;
    logic [1:0]                      uart_axi_rresp;
 
-   // Assign signals from XBAR output request struct to UART AXI inputs
    assign uart_axi_awvalid = xbar_mst_ports_req[MASTER_UART_IDX].aw_valid;
    assign uart_axi_awaddr  = xbar_mst_ports_req[MASTER_UART_IDX].aw.addr;
-   assign uart_axi_awid    = xbar_mst_ports_req[MASTER_UART_IDX].aw.id; // <-- Connect ID
+   assign uart_axi_awid    = xbar_mst_ports_req[MASTER_UART_IDX].aw.id;
    assign uart_axi_awprot  = xbar_mst_ports_req[MASTER_UART_IDX].aw.prot;
-   // ... W channel ...
+
    assign uart_axi_wvalid  = xbar_mst_ports_req[MASTER_UART_IDX].w_valid;
    assign uart_axi_wdata   = xbar_mst_ports_req[MASTER_UART_IDX].w.data;
    assign uart_axi_wstrb   = xbar_mst_ports_req[MASTER_UART_IDX].w.strb;
-   // ... AR channel ...
+
    assign uart_axi_arvalid = xbar_mst_ports_req[MASTER_UART_IDX].ar_valid;
    assign uart_axi_araddr  = xbar_mst_ports_req[MASTER_UART_IDX].ar.addr;
-   assign uart_axi_arid    = xbar_mst_ports_req[MASTER_UART_IDX].ar.id; // <-- Connect ID
+   assign uart_axi_arid    = xbar_mst_ports_req[MASTER_UART_IDX].ar.id;
    assign uart_axi_arprot  = xbar_mst_ports_req[MASTER_UART_IDX].ar.prot;
-   // ... Ready ...
+
    assign uart_axi_bready  = xbar_mst_ports_req[MASTER_UART_IDX].b_ready;
    assign uart_axi_rready  = xbar_mst_ports_req[MASTER_UART_IDX].r_ready;
 
-   // Assign signals from UART AXI outputs to XBAR input response struct
+
    assign xbar_mst_ports_resp[MASTER_UART_IDX].aw_ready = uart_axi_awready;
    assign xbar_mst_ports_resp[MASTER_UART_IDX].w_ready  = uart_axi_wready;
    assign xbar_mst_ports_resp[MASTER_UART_IDX].ar_ready = uart_axi_arready;
    assign xbar_mst_ports_resp[MASTER_UART_IDX].b_valid  = uart_axi_bvalid;
-   assign xbar_mst_ports_resp[MASTER_UART_IDX].b.id     = uart_axi_bid; // <-- Connect ID
+   assign xbar_mst_ports_resp[MASTER_UART_IDX].b.id     = uart_axi_bid;
    assign xbar_mst_ports_resp[MASTER_UART_IDX].b.resp   = uart_axi_bresp;
    assign xbar_mst_ports_resp[MASTER_UART_IDX].r_valid  = uart_axi_rvalid;
-   assign xbar_mst_ports_resp[MASTER_UART_IDX].r.id     = uart_axi_rid; // <-- Connect ID
+   assign xbar_mst_ports_resp[MASTER_UART_IDX].r.id     = uart_axi_rid;
    assign xbar_mst_ports_resp[MASTER_UART_IDX].r.data   = uart_axi_rdata;
    assign xbar_mst_ports_resp[MASTER_UART_IDX].r.resp   = uart_axi_rresp;
    assign xbar_mst_ports_resp[MASTER_UART_IDX].r.last   = 1'b1; // AXI-Lite
 
-   // Instantiate the UART controller with AXI interface
    uart_controller_axi #(
-       .AXI_ID_WIDTH  (AXI_ID_WIDTH_XBAR_MST), // <-- Pass correct ID width
+       .AXI_ID_WIDTH  (AXI_ID_WIDTH_XBAR_MST),
        .AXI_ADDR_WIDTH(XbarCfg.AxiAddrWidth),
        .AXI_DATA_WIDTH(XbarCfg.AxiDataWidth)
    ) uart_dut (
        .clk_i   ( clkwiz_o      ), .rst_ni  ( rst_n         ),
        .s_axi_awvalid(uart_axi_awvalid), .s_axi_awready(uart_axi_awready),
-       .s_axi_awaddr (uart_axi_awaddr),  .s_axi_awid   (uart_axi_awid), // <-- Connect ID
+       .s_axi_awaddr (uart_axi_awaddr),  .s_axi_awid   (uart_axi_awid),
        .s_axi_awprot (uart_axi_awprot),
        .s_axi_wvalid (uart_axi_wvalid),  .s_axi_wready (uart_axi_wready),
        .s_axi_wdata  (uart_axi_wdata),   .s_axi_wstrb  (uart_axi_wstrb),
        .s_axi_bvalid (uart_axi_bvalid),  .s_axi_bready (uart_axi_bready),
-       .s_axi_bid    (uart_axi_bid),     .s_axi_bresp  (uart_axi_bresp), // <-- Connect ID
+       .s_axi_bid    (uart_axi_bid),     .s_axi_bresp  (uart_axi_bresp),
        .s_axi_arvalid(uart_axi_arvalid), .s_axi_arready(uart_axi_arready),
-       .s_axi_araddr (uart_axi_araddr),  .s_axi_arid   (uart_axi_arid), // <-- Connect ID
+       .s_axi_araddr (uart_axi_araddr),  .s_axi_arid   (uart_axi_arid),
        .s_axi_arprot (uart_axi_arprot),
        .s_axi_rvalid (uart_axi_rvalid),  .s_axi_rready (uart_axi_rready),
-       .s_axi_rid    (uart_axi_rid),     .s_axi_rdata  (uart_axi_rdata), // <-- Connect ID
+       .s_axi_rid    (uart_axi_rid),     .s_axi_rdata  (uart_axi_rdata),
        .s_axi_rresp  (uart_axi_rresp),
        .rx_i    ( uart_rx_i     ), .tx_o    ( uart_tx_o     )
    );
@@ -670,7 +651,7 @@ module air_soc (
    ) dram_dut (
        .clk_i        ( clkwiz_o         ),
        .rst_ni       ( rst_n            ),
-       // AXI Write Address Channel
+
        .s_axi_awvalid( dram_axi_awvalid ),
        .s_axi_awready( dram_axi_awready ),
        .s_axi_awaddr ( dram_axi_awaddr  ),
@@ -679,18 +660,18 @@ module air_soc (
        .s_axi_awsize ( dram_axi_awsize  ),
        .s_axi_awburst( dram_axi_awburst ),
        .s_axi_awprot ( dram_axi_awprot  ),
-       // AXI Write Data Channel
+
        .s_axi_wvalid ( dram_axi_wvalid  ),
        .s_axi_wready ( dram_axi_wready  ),
        .s_axi_wdata  ( dram_axi_wdata   ),
        .s_axi_wstrb  ( dram_axi_wstrb   ),
        .s_axi_wlast  ( dram_axi_wlast   ),
-       // AXI Write Response Channel
+
        .s_axi_bvalid ( dram_axi_bvalid  ),
        .s_axi_bready ( dram_axi_bready  ),
        .s_axi_bid    ( dram_axi_bid     ),
        .s_axi_bresp  ( dram_axi_bresp   ),
-       // AXI Read Address Channel
+
        .s_axi_arvalid( dram_axi_arvalid ),
        .s_axi_arready( dram_axi_arready ),
        .s_axi_araddr ( dram_axi_araddr  ),
@@ -699,14 +680,14 @@ module air_soc (
        .s_axi_arsize ( dram_axi_arsize  ),
        .s_axi_arburst( dram_axi_arburst ),
        .s_axi_arprot ( dram_axi_arprot  ),
-       // AXI Read Data Channel
+
        .s_axi_rvalid ( dram_axi_rvalid  ),
        .s_axi_rready ( dram_axi_rready  ),
        .s_axi_rid    ( dram_axi_rid     ),
        .s_axi_rdata  ( dram_axi_rdata   ),
        .s_axi_rresp  ( dram_axi_rresp   ),
        .s_axi_rlast  ( dram_axi_rlast   ),
-       // DDR3 Physical Interface
+
        .ddr3_reset_n( ddr3_reset_n ),
        .ddr3_cke    ( ddr3_cke     ),
        .ddr3_ck_p   ( ddr3_ck_p    ),
@@ -722,11 +703,16 @@ module air_soc (
        .ddr3_dqs_p  ( ddr3_dqs_p   ),
        .ddr3_dqs_n  ( ddr3_dqs_n   ),
        .ddr3_dq     ( ddr3_dq      ),
-       // Clocks
+
        .clk100      ( clk100       ),
        .clk_ddr     ( clk_ddr      ),
        .clk_ref     ( clk_ref      ),
        .clk_ddr_dqs ( clk_ddr_dqs  )
+
+       ,.uart_dram_write_we_i (uart_dram_write_we),
+       .uart_dram_write_addr_i (uart_dram_write_addr),
+       .uart_dram_write_data_i (uart_dram_write_data),
+       .uart_dram_write_rst_i (uart_dram_write_rst)
    );
    `elsif USE_SRAM
    adapter_obi_req_t mem8_obi_req;

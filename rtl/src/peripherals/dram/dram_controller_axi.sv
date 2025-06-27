@@ -9,7 +9,6 @@ module dram_controller_axi #(
     parameter int unsigned AXI_DATA_WIDTH = 32,
     parameter int unsigned WB_ADDR_WIDTH  = 32
 ) (
-    // Clock and Reset
     input  logic clk_i,
     input  logic rst_ni,
 
@@ -71,6 +70,11 @@ module dram_controller_axi #(
     ,input clk_ddr
     ,input clk_ref
     ,input clk_ddr_dqs
+
+    ,input wire uart_dram_write_we_i,
+    input wire [31:0] uart_dram_write_addr_i,
+    input wire [31:0] uart_dram_write_data_i,
+    input wire uart_dram_write_rst_i
 );
 
     localparam logic [1:0] AXI_BURST_FIXED = 2'b00;
@@ -92,7 +96,6 @@ module dram_controller_axi #(
 
     state_e current_state, next_state;
 
-    // Wishbone Interface Signals
     logic                            wb_cyc;
     logic                            wb_stb;
     logic                            wb_we;
@@ -102,7 +105,6 @@ module dram_controller_axi #(
     logic                            wb_ack;
     logic [AXI_DATA_WIDTH-1:0]       wb_dat_r;
 
-    // Internal Registers for Burst Transaction
     logic [AXI_ID_WIDTH-1:0]         reg_id;
     logic [AXI_ADDR_WIDTH-1:0]       current_addr;
     logic [7:0]                      reg_len;
@@ -144,14 +146,17 @@ module dram_controller_axi #(
       ,.clk_ddr(clk_ddr)
       ,.clk_ref(clk_ref)
       ,.clk_ddr_dqs(clk_ddr_dqs)
+
+      ,.uart_dram_write_we_i(uart_dram_write_we_i)
+      ,.uart_dram_write_addr_i(uart_dram_write_addr_i)
+      ,.uart_dram_write_data_i(uart_dram_write_data_i)
+      ,.uart_dram_write_rst_i(uart_dram_write_rst_i)
    );
 
-    // AXI Ready Signal Logic
     assign s_axi_awready = (current_state == S_IDLE);
     assign s_axi_arready = (current_state == S_IDLE);
     assign s_axi_wready  = (current_state == S_WRITE_WAIT_DATA);
 
-    // AXI Response Signal Logic
     assign s_axi_bvalid = (current_state == S_WRITE_RESP_AXI);
     assign s_axi_bresp  = RESP_OKAY;
     assign s_axi_bid    = reg_id;
@@ -162,14 +167,12 @@ module dram_controller_axi #(
     assign s_axi_rid    = reg_id;
     assign s_axi_rlast  = (beat_count == reg_len);
 
-    // Wishbone Control Signals
     assign wb_cyc = (current_state == S_READ_REQ_WB) || (current_state == S_WRITE_REQ_WB) ||
                     (current_state == S_READ_WAIT_WB) || (current_state == S_WRITE_WAIT_WB);
     assign wb_stb = wb_cyc;
     assign wb_we  = is_write;
     assign wb_adr = current_addr;
 
-    // State Register
     always_ff @(posedge clk_i or negedge rst_ni) begin
         if (!rst_ni) begin
             current_state <= S_IDLE;
@@ -178,7 +181,6 @@ module dram_controller_axi #(
         end
     end
 
-    // Internal Registers
     always_ff @(posedge clk_i or negedge rst_ni) begin
         if (!rst_ni) begin
             reg_id <= '0;
@@ -243,7 +245,6 @@ module dram_controller_axi #(
         end
     end
 
-    // Next State Logic
     always_comb begin
         next_state = current_state;
         case (current_state)

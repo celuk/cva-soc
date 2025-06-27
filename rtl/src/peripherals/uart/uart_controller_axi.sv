@@ -4,20 +4,18 @@
 import axi_pkg::*;
 
 module uart_controller_axi #(
-    parameter int unsigned AXI_ID_WIDTH   = 4, // Example ID width - **MUST MATCH XBAR MASTER PORT ID WIDTH**
+    parameter int unsigned AXI_ID_WIDTH   = 4,
     parameter int unsigned AXI_ADDR_WIDTH = 32,
     parameter int unsigned AXI_DATA_WIDTH = 32,
     parameter int unsigned WB_ADDR_WIDTH  = 8
 ) (
-    // Clock and Reset
     input  logic clk_i,
     input  logic rst_ni,
 
-    // AXI4-Lite Slave Interface (with IDs)
     input  logic                            s_axi_awvalid,
     output logic                            s_axi_awready,
     input  logic [AXI_ADDR_WIDTH-1:0]       s_axi_awaddr,
-    input  logic [AXI_ID_WIDTH-1:0]         s_axi_awid,   // <-- Added
+    input  logic [AXI_ID_WIDTH-1:0]         s_axi_awid,
     input  logic [2:0]                      s_axi_awprot,
     input  logic                            s_axi_wvalid,
     output logic                            s_axi_wready,
@@ -25,20 +23,19 @@ module uart_controller_axi #(
     input  logic [AXI_DATA_WIDTH/8-1:0]     s_axi_wstrb,
     output logic                            s_axi_bvalid,
     input  logic                            s_axi_bready,
-    output logic [AXI_ID_WIDTH-1:0]         s_axi_bid,    // <-- Added
+    output logic [AXI_ID_WIDTH-1:0]         s_axi_bid,
     output logic [1:0]                      s_axi_bresp,
     input  logic                            s_axi_arvalid,
     output logic                            s_axi_arready,
     input  logic [AXI_ADDR_WIDTH-1:0]       s_axi_araddr,
-    input  logic [AXI_ID_WIDTH-1:0]         s_axi_arid,   // <-- Added
+    input  logic [AXI_ID_WIDTH-1:0]         s_axi_arid,
     input  logic [2:0]                      s_axi_arprot,
     output logic                            s_axi_rvalid,
     input  logic                            s_axi_rready,
-    output logic [AXI_ID_WIDTH-1:0]         s_axi_rid,    // <-- Added
+    output logic [AXI_ID_WIDTH-1:0]         s_axi_rid,
     output logic [AXI_DATA_WIDTH-1:0]       s_axi_rdata,
     output logic [1:0]                      s_axi_rresp,
 
-    // UART Physical Interface
     input  logic rx_i,
     output logic tx_o
 );
@@ -51,7 +48,6 @@ module uart_controller_axi #(
 
     state_e current_state, next_state;
 
-    // Wishbone Interface Signals
     logic                            wb_cyc;
     logic                            wb_stb;
     logic                            wb_we;
@@ -61,58 +57,50 @@ module uart_controller_axi #(
     logic                            wb_ack;
     logic [AXI_DATA_WIDTH-1:0]       wb_dat_r;
 
-    // Internal Registers
     logic [AXI_DATA_WIDTH-1:0]       reg_axi_rdata;
     logic                            reg_is_write;
-    logic [AXI_ID_WIDTH-1:0]         reg_axi_id; // Register to hold ID for current transaction
+    logic [AXI_ID_WIDTH-1:0]         reg_axi_id;
 
-    // Instantiate the Wishbone UART Core
-    uart_controller uart_iface_dut ( /* Ports as before */
+    uart_controller uart_iface_dut (
        .clk_i(clk_i), .rst_i(~rst_ni), .wb_adr_i(wb_adr_reg[WB_ADDR_WIDTH-1:0]),
        .wb_dat_i(wb_dat_w_reg), .wb_we_i(wb_we), .wb_stb_i(wb_stb),
        .wb_sel_i(wb_sel_reg), .wb_cyc_i(wb_cyc), .wb_ack_o(wb_ack),
        .wb_dat_o(wb_dat_r), .uart_rx_i(rx_i), .uart_tx_o(tx_o)
     );
 
-    // AXI Ready Signal Logic
     assign s_axi_awready = (current_state == S_IDLE);
     assign s_axi_wready  = (current_state == S_WRITE_ADDR);
     assign s_axi_arready = (current_state == S_IDLE);
 
-    // AXI Response Signal Logic
     assign s_axi_bvalid = (current_state == S_RESP) && reg_is_write;
     assign s_axi_bresp  = RESP_OKAY;
-    assign s_axi_bid    = reg_axi_id; // Return stored ID for write resp
+    assign s_axi_bid    = reg_axi_id;
 
     assign s_axi_rvalid = (current_state == S_RESP) && !reg_is_write;
     assign s_axi_rdata  = reg_axi_rdata;
     assign s_axi_rresp  = RESP_OKAY;
-    assign s_axi_rid    = reg_axi_id; // Return stored ID for read resp
+    assign s_axi_rid    = reg_axi_id;
 
-    // Wishbone Control Signals
     assign wb_cyc = (current_state == S_WRITE_DATA) || (current_state == S_READ_ADDR) || (current_state == S_WAIT_ACK);
     assign wb_stb = wb_cyc;
     assign wb_we  = (current_state == S_WRITE_DATA) || ((current_state == S_WAIT_ACK) && reg_is_write);
 
-    // State Register
     always_ff @(posedge clk_i or negedge rst_ni) begin
         if (!rst_ni) current_state <= S_IDLE; else current_state <= next_state; end
 
-    // Data Registers and Transaction Type/ID Tracking
     always_ff @(posedge clk_i or negedge rst_ni) begin
         if (!rst_ni) begin
             wb_adr_reg   <= '0; wb_dat_w_reg <= '0; wb_sel_reg   <= '0;
             reg_axi_rdata<= '0; reg_is_write <= 1'b0; reg_axi_id <= '0;
         end else begin
-            // Register inputs when AXI handshake occurs
             if (s_axi_awvalid && s_axi_awready) begin
                 wb_adr_reg <= s_axi_awaddr;
                 reg_is_write <= 1'b1;
-                reg_axi_id <= s_axi_awid; // Capture AWID
+                reg_axi_id <= s_axi_awid;
             end else if (s_axi_arvalid && s_axi_arready) begin
                 wb_adr_reg <= s_axi_araddr;
                 reg_is_write <= 1'b0;
-                reg_axi_id <= s_axi_arid; // Capture ARID
+                reg_axi_id <= s_axi_arid;
             end
 
             if (s_axi_wvalid && s_axi_wready) begin
@@ -121,13 +109,12 @@ module uart_controller_axi #(
             end
 
             if (current_state == S_WAIT_ACK && wb_ack && !reg_is_write) begin
-                reg_axi_rdata <= wb_dat_r; end // Latch WB read data
+                reg_axi_rdata <= wb_dat_r; end
 
-            if (s_axi_rvalid && s_axi_rready) begin reg_axi_rdata <= '0; end // Clear read data
+            if (s_axi_rvalid && s_axi_rready) begin reg_axi_rdata <= '0; end
         end
     end
 
-    // Next State Logic
     always_comb begin
         next_state = current_state;
         case (current_state)
