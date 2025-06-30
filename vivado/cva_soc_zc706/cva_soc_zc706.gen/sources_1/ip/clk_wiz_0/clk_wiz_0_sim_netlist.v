@@ -1,7 +1,7 @@
 // Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
 // --------------------------------------------------------------------------------
 // Tool Version: Vivado v.2022.2 (lin64) Build 3671981 Fri Oct 14 04:59:54 MDT 2022
-// Date        : Mon May 26 17:37:06 2025
+// Date        : Wed Jun 25 23:54:43 2025
 // Host        : karpuz running 64-bit Ubuntu 22.04.5 LTS
 // Command     : write_verilog -force -mode funcsim -rename_top clk_wiz_0 -prefix
 //               clk_wiz_0_ clk_wiz_0_sim_netlist.v
@@ -166,7 +166,7 @@ module clk_wiz_0_clk_wiz_0_clk_wiz
     .CLKOUT3_PHASE(90.000000),
     .CLKOUT3_USE_FINE_PS("FALSE"),
     .CLKOUT4_CASCADE("FALSE"),
-    .CLKOUT4_DIVIDE(8),
+    .CLKOUT4_DIVIDE(16),
     .CLKOUT4_DUTY_CYCLE(0.500000),
     .CLKOUT4_PHASE(0.000000),
     .CLKOUT4_USE_FINE_PS("FALSE"),
