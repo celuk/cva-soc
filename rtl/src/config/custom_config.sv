@@ -25,7 +25,7 @@ package cva6_config_pkg;
       AxiUserWidth: unsigned'(CVA6ConfigDataUserWidth),
       MemTidWidth: unsigned'(CVA6ConfigAxiIdWidth),
       NrLoadBufEntries: unsigned'(2),
-      RVF: bit'(0),
+      RVF: bit'(1),
       RVD: bit'(0),
       XF16: bit'(0),
       XF16ALT: bit'(0),
