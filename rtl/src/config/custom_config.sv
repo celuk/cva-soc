@@ -30,7 +30,7 @@ package cva6_config_pkg;
       XF16: bit'(0),
       XF16ALT: bit'(0),
       XF8: bit'(0),
-      RVA: bit'(0),
+      RVA: bit'(1),
       RVB: bit'(0),
       ZKN: bit'(0),
       RVV: bit'(0),

@@ -234,7 +234,7 @@ module air_soc (
 
    axi_xbar #(
       .Cfg          ( XbarCfg ),
-      .ATOPs        ( 1'b0 ),
+      .ATOPs        ( 1'b1 ),
 
       .slv_aw_chan_t( ariane_axi::aw_chan_t ),
       .slv_ar_chan_t( ariane_axi::ar_chan_t ),
@@ -280,12 +280,12 @@ module air_soc (
        CombGnt:   1'b0,
        Integrity: 1'b0,
        BeFull:    1'b1,
-       OptionalCfg: '{ UseAtop: 1'b0, UseProt: 1'b0, UseMemtype: 1'b0, UseDbg: 1'b0,
+       OptionalCfg: '{ UseAtop: 1'b1, UseProt: 1'b0, UseMemtype: 1'b0, UseDbg: 1'b0,
                       AUserWidth: 0, WUserWidth: 0, RUserWidth: 1,
                       MidWidth: 0, AChkWidth: 0, RChkWidth: 0 }
    };
 
-   `OBI_TYPEDEF_MINIMAL_A_OPTIONAL(adapter_obi_a_optional_t)
+   `OBI_TYPEDEF_ATOP_A_OPTIONAL(adapter_obi_a_optional_t)
    `OBI_TYPEDEF_ALL_R_OPTIONAL(adapter_obi_r_optional_t, AdapterObiCfg.OptionalCfg.RUserWidth, AdapterObiCfg.OptionalCfg.RChkWidth)
 
    `OBI_TYPEDEF_A_CHAN_T(adapter_obi_a_chan_t, AdapterObiCfg.AddrWidth, AdapterObiCfg.DataWidth, AdapterObiCfg.IdWidth, adapter_obi_a_optional_t)
