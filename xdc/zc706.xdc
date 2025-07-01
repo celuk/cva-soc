@@ -1,3 +1,5 @@
+set_property SEVERITY Warning [get_drc_checks LUTLP-1]
+
 set_property PACKAGE_PIN H9 [get_ports clk_p]
 set_property IOSTANDARD LVDS [get_ports clk_p]
 set_property PACKAGE_PIN G9 [get_ports clk_n]
