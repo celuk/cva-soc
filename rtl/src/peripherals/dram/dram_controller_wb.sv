@@ -100,37 +100,12 @@ module dram_controller_wb (
     `ifdef ZC706
     wire [31:0]  ram_addr = DRAM_ADDRESS;
     wire         ram_wr = DRAM_WE;
-
-    reg [127:0] ram_wr_data_r;
-    wire [127:0] ram_wr_data = ram_wr_data_r;
+    wire [127:0] ram_wr_data = {DRAM_DATA_WRITE3, DRAM_DATA_WRITE2, DRAM_DATA_WRITE1, DRAM_DATA_WRITE0};
     wire         ram_rd = DRAM_RE;
-    wire [127:0] ram_rd_data_w;
+    wire [127:0] ram_rd_data;
     wire         ram_accept;
     wire         ram_ack;
     wire         ram_ready;
-
-    reg         ram_accept_r;
-    reg         ram_ack_r;
-    reg         ram_ready_r;
-    reg [127:0] ram_rd_data;
-    
-
-    always @(posedge clk100) begin
-        if(rst_i) begin
-            ram_accept_r <= 0;
-            ram_ack_r <= 0;
-            ram_ready_r <= 0;
-            ram_rd_data <= 0;
-            ram_wr_data_r <= 0;
-        end
-        else begin
-            ram_accept_r <= ram_accept;
-            ram_ack_r <= ram_ack;
-            ram_ready_r <= ram_ready;
-            ram_rd_data <= ram_rd_data_w;
-            ram_wr_data_r <= {DRAM_DATA_WRITE3, DRAM_DATA_WRITE2, DRAM_DATA_WRITE1, DRAM_DATA_WRITE0};
-        end
-    end
  
     reg [15:0] ram_req_id = 0;
 
@@ -155,7 +130,7 @@ module dram_controller_wb (
        .wr_sel(16'b1111111111111111),
        .wr_data(ram_wr_data),
        .rd_en(ram_rd),
-       .rd_data(ram_rd_data_w),
+       .rd_data(ram_rd_data),
        .accepted(ram_accept),
        .acked(ram_ack),
        .ram_ready(ram_ready),
@@ -228,20 +203,20 @@ module dram_controller_wb (
             end
 
             READ_START: begin
-                if (ram_ready_r || ram_ready) begin
+                if (ram_ready) begin
                     DRAM_RE_NEXT = 1;
                     state_next_r = READ_WAIT_ACCEPT;
                 end
             end
 
             READ_WAIT_ACCEPT: begin
-                if (ram_accept_r || ram_accept) begin
+                if (ram_accept) begin
                     state_next_r = READ_WAIT_ACK;
                 end
             end
 
             READ_WAIT_ACK: begin
-                if (ram_ack_r || ram_ack) begin
+                if (ram_ack) begin
                     case (wb_adr_r[3:2])
                         2'b00: wb_read_data_next_r = ram_rd_data[31:0];
                         2'b01: wb_read_data_next_r = ram_rd_data[63:32];
@@ -255,20 +230,20 @@ module dram_controller_wb (
             end
 
             WRITE_RMW_START: begin
-                if (ram_ready_r || ram_ready) begin
+                if (ram_ready) begin
                     DRAM_RE_NEXT = 1;
                     state_next_r = WRITE_RMW_WAIT_ACCEPT;
                 end
             end
 
             WRITE_RMW_WAIT_ACCEPT: begin
-                if (ram_accept_r || ram_accept) begin
+                if (ram_accept) begin
                     state_next_r = WRITE_RMW_WAIT_ACK;
                 end
             end
 
             WRITE_RMW_WAIT_ACK: begin
-                if (ram_ack_r || ram_ack) begin
+                if (ram_ack) begin
                     DRAM_RE_NEXT = 0;
                     modified_rmw_data = ram_rd_data;
                     case (wb_adr_r[3:2])
@@ -306,20 +281,20 @@ module dram_controller_wb (
             end
 
             WRITE_START: begin
-                if (ram_ready_r || ram_ready) begin
+                if (ram_ready) begin
                     DRAM_WE_NEXT = 1;
                     state_next_r = WRITE_WAIT_ACCEPT;
                 end
             end
 
             WRITE_WAIT_ACCEPT: begin
-                if (ram_accept_r || ram_accept) begin
+                if (ram_accept) begin
                     state_next_r = WRITE_WAIT_ACK;
                 end
             end
 
             WRITE_WAIT_ACK: begin
-                if (ram_ack_r || ram_ack) begin
+                if (ram_ack) begin
                     wb_ack_next_r = 1;
                     state_next_r = IDLE;
                     DRAM_WE_NEXT = 0;
@@ -327,20 +302,20 @@ module dram_controller_wb (
             end
             
             UART_WRITE_RMW_START: begin
-                if (ram_ready_r || ram_ready) begin
+                if (ram_ready) begin
                     DRAM_RE_NEXT = 1;
                     state_next_r = UART_WRITE_RMW_WAIT_ACCEPT;
                 end
             end
 
             UART_WRITE_RMW_WAIT_ACCEPT: begin
-                if (ram_accept_r || ram_accept) begin
+                if (ram_accept) begin
                     state_next_r = UART_WRITE_RMW_WAIT_ACK;
                 end
             end
 
             UART_WRITE_RMW_WAIT_ACK: begin
-                if (ram_ack_r || ram_ack) begin
+                if (ram_ack) begin
                     DRAM_RE_NEXT = 0;
                     modified_rmw_data = ram_rd_data;
                     case (uart_adr_r[3:2])
@@ -358,20 +333,20 @@ module dram_controller_wb (
             end
 
             UART_WRITE_START: begin
-                if (ram_ready_r || ram_ready) begin
+                if (ram_ready) begin
                     DRAM_WE_NEXT = 1;
                     state_next_r = UART_WRITE_WAIT_ACCEPT;
                 end
             end
 
             UART_WRITE_WAIT_ACCEPT: begin
-                if (ram_accept_r || ram_accept) begin
+                if (ram_accept) begin
                     state_next_r = UART_WRITE_WAIT_ACK;
                 end
             end
 
             UART_WRITE_WAIT_ACK: begin
-                if (ram_ack_r || ram_ack) begin
+                if (ram_ack) begin
                     wb_ack_next_r = 0; // No WB ack for UART writes
                     state_next_r = IDLE;
                     DRAM_WE_NEXT = 0;

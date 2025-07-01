@@ -46,10 +46,12 @@
 //`define BASYS3
 //`define EXT_FLASH
 //`define QSPI_SIM
-`define DDR_100MHZ
+
+//`define DDR_100MHZ
+
 `define ZC706
 //`define DDR3_AXI
-`define DDR_MHZ 100
+`define DDR_MHZ 50
 `define DRAM_SIM
 //`define USE_SRAM
 

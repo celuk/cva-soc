@@ -134,11 +134,12 @@ module air_soc (
 
          ,.reset(~rst_ni)
 
-         ,.clk_out1(clk100)      // 100
-         ,.clk_out2(clk_ddr)     // 400
-         ,.clk_out3(clk_ref)     // 200
-         ,.clk_out4(clk_ddr_dqs) // 400 (phase 90)
-         ,.clk_out5(clk_i)       // 100, 50, 25
+         // first values for 100mhz, second values for 50mhz
+         ,.clk_out1(clk100)      // 100, 50
+         ,.clk_out2(clk_ddr)     // 400, 200
+         ,.clk_out3(clk_ref)     // 200, 200
+         ,.clk_out4(clk_ddr_dqs) // 400, 200 (phase 90)
+         ,.clk_out5(clk_i)       // 100, 50
          ,.locked(pll_locked)
       );
 
