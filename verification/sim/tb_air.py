@@ -18,7 +18,7 @@ from pathlib import Path
 SCRIPT_DIR = Path(os.path.realpath(__file__)).parent.absolute()
 test_hex = {
     cfile: {
-        "TEST_FILE": f"{SCRIPT_DIR}/../../tests/{cfile}/{cfile}.hex",
+        "TEST_FILE": "/home/shc/projects/riscv-linux-boot/opensbi/build/platform/template/firmware/fw_dynamic.hex", #f"{SCRIPT_DIR}/../../tests/{cfile}/{cfile}.hex",
         "fail_adr": 0x40F00060,
         "pass_adr": 0x40F00078,
         "instructions": [],
@@ -141,18 +141,20 @@ async def main_memory(dut, clk, start_address):
     await RisingEdge(clk)
     dut.rst_ni.value = 0
     await RisingEdge(clk)
+
+    cfile = os.environ['CFILE']
     
-    if cfile != "bootloader" or cfile != "bootloader_dram" or cfile != "bootloader_sram" or cfile != "secure_bootloader":
-        memory = load_verilog_hex_file()
-        for address, value in memory.items():
-            if address % 4 == 0: # TODO: are all addresses 4 byte aligned?
-                word = (
-                    memory.get(address + 3, 0) << 24 |
-                    memory.get(address + 2, 0) << 16 |
-                    memory.get(address + 1, 0) << 8  |
-                    memory.get(address, 0)
-                )
-                dut.main_memory.ram[address >> 2].value = word
+    #if cfile != "bootloader" or cfile != "bootloader_dram" or cfile != "bootloader_sram" or cfile != "secure_bootloader":
+    #    memory = load_verilog_hex_file()
+    #    for address, value in memory.items():
+    #        if address % 4 == 0: # TODO: are all addresses 4 byte aligned?
+    #            word = (
+    #                memory.get(address + 3, 0) << 24 |
+    #                memory.get(address + 2, 0) << 16 |
+    #                memory.get(address + 1, 0) << 8  |
+    #                memory.get(address, 0)
+    #            )
+    #            dut.main_memory.ram[address >> 2].value = word
         
     dram_mem_size = 0
     address = 0
@@ -204,6 +206,29 @@ async def main_memory(dut, clk, start_address):
         dut.ddr3_dut.memory_used.value = memory_array_index #address
 
     global timeout
+    for test in tests:
+        dut.rst_ni.value = 0
+        await RisingEdge(clk)
+        #if test != "bootloader":
+        for index, instruction in enumerate(tests[test]["instructions"]):
+            # fmt: off
+            #dut.ram_i.dp_ram_i.mem[(index << 2) + 0].value = (int(instruction, 16) >>  0) & 0xFF
+            #dut.ram_i.dp_ram_i.mem[(index << 2) + 1].value = (int(instruction, 16) >>  8) & 0xFF
+            #dut.ram_i.dp_ram_i.mem[(index << 2) + 2].value = (int(instruction, 16) >> 16) & 0xFF
+            #dut.ram_i.dp_ram_i.mem[(index << 2) + 3].value = (int(instruction, 16) >> 24) & 0xFF
+            # fmt: on
+            dut.main_memory8.ram[index + (0 >> 2)].value = int(instruction, 16)
+
+        await RisingEdge(clk)
+        dut.rst_ni.value = 1
+
+        timeout = 0
+        while True:
+            await RisingEdge(clk)
+            if timeout > TIMEOUT:
+                break
+            timeout += 1
+
     while True:
         try:
             await RisingEdge(clk)
@@ -216,35 +241,10 @@ async def main_memory(dut, clk, start_address):
             ##await cocotb.triggers.Timer(1, units='ns')
             ##cocotb.simulator.end_simulation()
             #break
-        
-    """
-    for test in tests:
-        dut.rst_ni.value = 0
-        await RisingEdge(clk)
-        #if test != "bootloader":
-        for index, instruction in enumerate(tests[test]["instructions"]):
-            # fmt: off
-            #dut.ram_i.dp_ram_i.mem[(index << 2) + 0].value = (int(instruction, 16) >>  0) & 0xFF
-            #dut.ram_i.dp_ram_i.mem[(index << 2) + 1].value = (int(instruction, 16) >>  8) & 0xFF
-            #dut.ram_i.dp_ram_i.mem[(index << 2) + 2].value = (int(instruction, 16) >> 16) & 0xFF
-            #dut.ram_i.dp_ram_i.mem[(index << 2) + 3].value = (int(instruction, 16) >> 24) & 0xFF
-            # fmt: on
-            dut.main_memory.ram[index + (start_address >> 2)].value = int(instruction, 16)
-
-        await RisingEdge(clk)
-        dut.rst_ni.value = 1
-
-        timeout = 0
-        while True:
-            await RisingEdge(clk)
-            if timeout > TIMEOUT:
-                break
-            timeout += 1
-    """
 
 @cocotb.test()
 async def tair(dut):
-    #await read_instructions()
+    await read_instructions()
 
     ## start address of hex file not boot address
     ## boot address is 0x80 always but the hex file start address can be different

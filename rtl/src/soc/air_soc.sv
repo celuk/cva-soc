@@ -29,6 +29,7 @@ module air_soc (
    output wire uart_tx_o
 
    `ifndef ZC706
+   `ifndef USE_SRAM
    `ifndef DDR3_AXI
    `ifndef QSPI_SIM
    ,output wire qspi_cs_n_o
@@ -36,6 +37,7 @@ module air_soc (
    ,output wire qspi_sck_o
    `endif
    ,inout wire [3:0] qspi_data_io
+   `endif
    `endif
    `endif
    `endif
@@ -183,6 +185,8 @@ module air_soc (
    localparam int unsigned NUM_SLAVES_XBAR = 1; // CVA6
    `ifdef ZC706
    localparam int unsigned NUM_MASTERS_XBAR = 4; // RAM, UART, TIMER, DRAM
+   `elsif USE_SRAM
+   localparam int unsigned NUM_MASTERS_XBAR = 4;
    `elsif DDR3_AXI
    localparam int unsigned NUM_MASTERS_XBAR = 4;
    `else
@@ -192,7 +196,9 @@ module air_soc (
    localparam int unsigned MASTER_UART_IDX = 1;
    localparam int unsigned MASTER_TIMR_IDX = 2;
    `ifdef ZC706 
-   localparam int unsigned MASTER_DRAM_IDX = 3; 
+   localparam int unsigned MASTER_DRAM_IDX = 3;
+   `elsif USE_SRAM
+   localparam int unsigned MASTER_DRAM_IDX = 3;
    `elsif DDR3_AXI
    localparam int unsigned MASTER_DRAM_IDX = 3;
    `endif
@@ -227,6 +233,8 @@ module air_soc (
       '{ start_addr: `TIMER_BASE_ADDR, end_addr: `TIMER_BASE_ADDR+ `TIMER_RANGE, idx: MASTER_TIMR_IDX }
       `ifdef ZC706 
       ,'{ start_addr: `DRAM_BASE_ADDR, end_addr: `DRAM_BASE_ADDR+ `DRAM_RANGE, idx: MASTER_DRAM_IDX }
+      `elsif USE_SRAM
+      ,'{ start_addr: `DDR3_AXI_BASE_ADDR, end_addr: `DDR3_AXI_BASE_ADDR+ `DDR3_AXI_RANGE, idx: MASTER_DRAM_IDX }
       `elsif DDR3_AXI
       ,'{ start_addr: `DDR3_AXI_BASE_ADDR, end_addr: `DDR3_AXI_BASE_ADDR+ `DDR3_AXI_RANGE, idx: MASTER_DRAM_IDX }
       `endif
@@ -774,7 +782,7 @@ module air_soc (
    assign mem8_obi_rsp.r.err  = 1'b0;
 
    ram32 #(
-      .SIZE     (`RAM_SIZE / 4),
+      .SIZE     ('h40000/4),
       .INIT_FILE(`RAM_FPATH)
    ) main_memory8 (
       .clk_i   (clkwiz_o),
