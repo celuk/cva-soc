@@ -771,7 +771,7 @@ module air_soc (
 
    assign ram8_req_i   = mem8_obi_req.req;
    assign ram8_we_i    = mem8_obi_req.a.we;
-   assign ram8_addr_i  = mem8_obi_req.a.addr[27:0];
+   assign ram8_addr_i  = mem8_obi_req.a.addr[30:0];
    assign ram8_wdata_i = mem8_obi_req.a.wdata;
    assign ram8_be_i    = mem8_obi_req.a.be;
 
@@ -783,7 +783,8 @@ module air_soc (
 
    ram32 #(
       .SIZE     ('h40000/4),
-      .INIT_FILE(`RAM_FPATH)
+      .INIT_FILE(`RAM_FPATH),
+      .USE_BOOTROM(0)
    ) main_memory8 (
       .clk_i   (clkwiz_o),
       .rst_ni  (rst_n),

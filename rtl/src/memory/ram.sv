@@ -4,7 +4,8 @@
 
 module ram32 #(
    parameter SIZE = 16384,  // 64 K
-   parameter INIT_FILE = ""
+   parameter INIT_FILE = "",
+   parameter USE_BOOTROM = `USE_BOOTROM
 ) (
    input clk_i,
    input rst_ni,
@@ -119,7 +120,7 @@ module ram32 #(
    // Boot initialization state machine
    always @(posedge clk_i or negedge rst_ni) begin
       if (!rst_ni) begin
-         if (`USE_BOOTROM) begin
+         if (USE_BOOTROM) begin
             boot_rom_addr <= 32'd0;
             boot_in_progress <= 1'b1;  
             boot_done <= 1'b0;
@@ -129,7 +130,7 @@ module ram32 #(
          end
       end
       else if(received_sequence == RESET_SEQUENCE) begin
-         if (`USE_BOOTROM) begin
+         if (USE_BOOTROM) begin
             boot_rom_addr <= 32'd0;
             boot_in_progress <= 1'b1;  
             boot_done <= 1'b0;
@@ -420,8 +421,8 @@ module ram32 #(
    // Initial values
    initial begin
       boot_rom_addr = 0;
-      boot_in_progress = `USE_BOOTROM && (INIT_FILE == "");
-      boot_done = ~`USE_BOOTROM || (INIT_FILE != "");
+      boot_in_progress = USE_BOOTROM && (INIT_FILE == "");
+      boot_done = ~USE_BOOTROM || (INIT_FILE != "");
       prog_addr = 'h0; //0;
       state_prog = SequenceWait;
       rvalid_r = 0;
