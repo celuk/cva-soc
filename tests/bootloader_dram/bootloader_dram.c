@@ -26,11 +26,62 @@ static inline void jump_to_dram()
     );
 }
 
+struct fw_dynamic_info {
+    unsigned int magic;
+    unsigned int version;
+    unsigned int next_addr;
+    unsigned int next_mode;
+    unsigned int options;
+    unsigned int boot_hart;
+};
+
+#define FW_DYNAMIC_INFO_MAGIC_VALUE 0x4942534f
+#define FW_DYNAMIC_INFO_VERSION_2 0x2
+#define FW_DYNAMIC_INFO_VERSION_MAX FW_DYNAMIC_INFO_VERSION_2
+#define FW_DYNAMIC_INFO_NEXT_MODE_U 0x0
+#define FW_DYNAMIC_INFO_NEXT_MODE_S 0x1
+#define FW_DYNAMIC_INFO_NEXT_MODE_M 0x3
+#define FW_DYNAMIC_NEXT_ADDRESS 0x90000000
+
+#define BOOT_HART_ID 0x0
+
+//#define OPENSBI_ENTRY_POINT 0x80000100
+
+#define DTB_ADDRESS 0x0
+
+static inline void opensbi_init()
+{
+    static struct fw_dynamic_info dynamic_info;
+    dynamic_info.magic = FW_DYNAMIC_INFO_MAGIC_VALUE;
+    dynamic_info.version = FW_DYNAMIC_INFO_VERSION_MAX;
+    dynamic_info.next_addr = FW_DYNAMIC_NEXT_ADDRESS;
+    dynamic_info.next_mode = FW_DYNAMIC_INFO_NEXT_MODE_S;
+    dynamic_info.options = 0x00000000;
+    dynamic_info.boot_hart = BOOT_HART_ID;
+
+    unsigned int hart_id;
+	__asm__ volatile("csrr %0, mhartid" : "=r"(hart_id));
+
+    __asm__ volatile (
+		"mv a0, %[hart_id]\n"
+		"mv a1, %[dtb_addr]\n"
+		"mv a2, %[info_addr]\n"
+		//"jr %[entry]\n" // we are jumping later
+		:
+		: [hart_id]"r"(hart_id),
+		  [dtb_addr]"r"(DTB_ADDRESS), // normally this would be the DTB address
+		  [info_addr]"r"(&dynamic_info)
+		  //,[entry]"r"(OPENSBI_ENTRY_POINT)
+		: "a0", "a1", "a2"
+	);
+}
+
 int main()
 {
     init();
     
     update_trap_vector_base_address();
+    opensbi_init();
     jump_to_dram();
     return 0;
 }
