@@ -19,3 +19,9 @@
 [submodule "cva6-softcore-contest"]
 	path = cva6-softcore-contest
 	url = https://github.com/ThalesGroup/cva6-softcore-contest
+[submodule "clint"]
+	path = clint
+	url = https://github.com/pulp-platform/clint
+[submodule "register_interface"]
+	path = register_interface
+	url = https://github.com/pulp-platform/register_interface

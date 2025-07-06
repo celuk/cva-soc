@@ -24,6 +24,8 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
         Path(SCRIPT_DIR / "../../cva6/common"),
         Path(SCRIPT_DIR / "../../cva6/corev_apu"),
         Path(SCRIPT_DIR / "../../cva6/verif/tb/core/tb_components"),
+        Path(SCRIPT_DIR / "../../clint"),
+        Path(SCRIPT_DIR / "../../register_interface"),
         #Path(SCRIPT_DIR / "../../axi"),
         Path(SCRIPT_DIR / "../../obi"),
         Path(SCRIPT_DIR / "../../safety_island/future/axi_obi")
@@ -79,6 +81,8 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
         and "cvxif_example" not in str(path)
         and "mmu_sv39" not in str(path)
         and "cvfpu/src/common_cells" not in str(path)
+        and "corev_apu/register_interface" not in str(path)
+        and "corev_apu/clint" not in str(path)
         #and "rtl/src/common_cells" not in str(path)
         and "rtl/src/common/macros/behav" not in str(path)
         and "corev_apu/bootrom" not in str(path)
@@ -114,6 +118,7 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
     other_paths = [path for path in verilog_sources if not str(path).rsplit('/', 1)[-1].startswith("def") and not str(path).endswith("pkg.sv")]
     verilog_sources = (
         list(def_sv_paths)
+        + list([Path(SCRIPT_DIR / "../../common_cells/include/common_cells/registers.svh")])
         + list(obi_pkg_path)
         + list(config_pkg_path)
         + list(cva6_config_pkg_path)
@@ -130,6 +135,7 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
         + list([Path(SCRIPT_DIR / "../../cva6/vendor/pulp-platform/fpga-support/rtl/SyncSpRamBeNx32.sv")])
         + list(pkg_sv_paths)
         + list(other_paths)
+        + list([Path(SCRIPT_DIR / "../../axi/src/axi_to_detailed_mem.sv")])
         + list(["../../vivado/cva_soc_zc706/cva_soc_zc706.gen/sources_1/ip/clk_wiz_0/clk_wiz_0_sim_netlist.v"])
         + list(["/tools/Xilinx/Vivado/2022.2/data/verilog/src/glbl.v"])
         + list(["/tools/Xilinx/Vivado/2022.2/data/verilog/src/unisims/OBUFDS.v"])

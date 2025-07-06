@@ -75,6 +75,13 @@ PERIPHERALS
 //`define DRAM_BASE_ADDR  32'hFF07_0000
 //`define DRAM_RANGE      32'h0000_FFFF
 
+// https://github.com/pulp-platform/clint
+// BASE + 0x0	msip	Machine mode software interrupt (IPI)
+// BASE + 0x4000	mtimecmp	Machine mode timer compare register for Hart 0
+// BASE + 0xBFF8	mtime	Timer register
+`define CLINT_BASE_ADDR 32'hFF08_0000
+`define CLINT_RANGE     32'h0000_FFFF
+
 `define DRAM_BASE_ADDR  32'h8000_0000
 `define DRAM_RANGE      32'h7F00_0000
 

@@ -7,6 +7,7 @@
 
 `include "obi/typedef.svh"
 `include "axi/typedef.svh"
+`include "register_interface/typedef.svh"
 
 module air_soc (
    `ifdef ZC706
@@ -157,6 +158,9 @@ module air_soc (
    ariane_axi::req_t  cva6_axi_req;
    ariane_axi::resp_t cva6_axi_resp;
 
+   logic [1:0] timer_irq;
+   logic [1:0] ipi;
+
    cva6 #(
       .CVA6Cfg ( CVA6Cfg )
       ,.axi_ar_chan_t ( ariane_axi::ar_chan_t )
@@ -172,8 +176,8 @@ module air_soc (
       .boot_addr_i          ( `BOOT_ADDR                   ),
       .hart_id_i            ( `HART_ID                     ),
       .irq_i                ( '0                           ),
-      .ipi_i                ( 1'b0                         ),
-      .time_irq_i           ( 1'b0                         ),
+      .ipi_i                ( ipi[0]                         ),
+      .time_irq_i           ( timer_irq[0]                         ),
       .debug_req_i          ( 1'b0                         ),
       .rvfi_probes_o        (                              ),
       .cvxif_req_o          (                              ),
@@ -184,23 +188,24 @@ module air_soc (
 
    localparam int unsigned NUM_SLAVES_XBAR = 1; // CVA6
    `ifdef ZC706
-   localparam int unsigned NUM_MASTERS_XBAR = 4; // RAM, UART, TIMER, DRAM
+   localparam int unsigned NUM_MASTERS_XBAR = 5; // RAM, UART, TIMER, DRAM, CLINT
    `elsif USE_SRAM
-   localparam int unsigned NUM_MASTERS_XBAR = 4;
+   localparam int unsigned NUM_MASTERS_XBAR = 5;
    `elsif DDR3_AXI
-   localparam int unsigned NUM_MASTERS_XBAR = 4;
+   localparam int unsigned NUM_MASTERS_XBAR = 5;
    `else
-   localparam int unsigned NUM_MASTERS_XBAR = 3;
+   localparam int unsigned NUM_MASTERS_XBAR = 4;
    `endif
    localparam int unsigned MASTER_RAM_IDX  = 0;
    localparam int unsigned MASTER_UART_IDX = 1;
-   localparam int unsigned MASTER_TIMR_IDX = 2;
+   localparam int unsigned MASTER_TIMER_IDX = 2;
+   localparam int unsigned MASTER_CLINT_IDX = 3;
    `ifdef ZC706 
-   localparam int unsigned MASTER_DRAM_IDX = 3;
+   localparam int unsigned MASTER_DRAM_IDX = 4;
    `elsif USE_SRAM
-   localparam int unsigned MASTER_DRAM_IDX = 3;
+   localparam int unsigned MASTER_DRAM_IDX = 4;
    `elsif DDR3_AXI
-   localparam int unsigned MASTER_DRAM_IDX = 3;
+   localparam int unsigned MASTER_DRAM_IDX = 4;
    `endif
 
    localparam axi_pkg::xbar_cfg_t XbarCfg = '{
@@ -230,7 +235,8 @@ module air_soc (
    localparam axi_pkg::xbar_rule_32_t [XbarCfg.NoAddrRules-1:0] ADDR_MAP_XBAR = '{
       '{ start_addr: `MEM_BASE_ADDR,   end_addr: `MEM_BASE_ADDR  + `MEM_RANGE,   idx: MASTER_RAM_IDX  },
       '{ start_addr: `UART_BASE_ADDR,  end_addr: `UART_BASE_ADDR + `UART_RANGE,  idx: MASTER_UART_IDX },
-      '{ start_addr: `TIMER_BASE_ADDR, end_addr: `TIMER_BASE_ADDR+ `TIMER_RANGE, idx: MASTER_TIMR_IDX }
+      '{ start_addr: `TIMER_BASE_ADDR, end_addr: `TIMER_BASE_ADDR+ `TIMER_RANGE, idx: MASTER_TIMER_IDX },
+      '{ start_addr: `CLINT_BASE_ADDR, end_addr: `CLINT_BASE_ADDR + `CLINT_RANGE, idx: MASTER_CLINT_IDX }
       `ifdef ZC706 
       ,'{ start_addr: `DRAM_BASE_ADDR, end_addr: `DRAM_BASE_ADDR+ `DRAM_RANGE, idx: MASTER_DRAM_IDX }
       `elsif USE_SRAM
@@ -278,7 +284,44 @@ module air_soc (
 
    assign xbar_slv_port0_req = cva6_axi_req;
    assign cva6_axi_resp      = xbar_slv_port0_resp;
-
+ 
+   `REG_BUS_TYPEDEF_ALL(reg, logic[XbarCfg.AxiAddrWidth-1:0], logic[XbarCfg.AxiDataWidth-1:0], logic[XbarCfg.AxiDataWidth/8-1:0])
+ 
+   reg_req_t clint_reg_req;
+   reg_rsp_t clint_reg_rsp;
+ 
+   axi_to_reg_v2 #(
+     .AxiAddrWidth(XbarCfg.AxiAddrWidth),
+     .AxiDataWidth(XbarCfg.AxiDataWidth),
+     .AxiIdWidth(AXI_ID_WIDTH_XBAR_MST),
+     .RegDataWidth(XbarCfg.AxiDataWidth),
+     .axi_req_t(ariane_axi::req_t),
+     .axi_rsp_t(ariane_axi::resp_t),
+     .reg_req_t(reg_req_t),
+     .reg_rsp_t(reg_rsp_t)
+   ) i_axi_to_reg_v2 (
+     .clk_i(clkwiz_o),
+     .rst_ni(rst_n),
+     .axi_req_i(xbar_mst_ports_req[MASTER_CLINT_IDX]),
+     .axi_rsp_o(xbar_mst_ports_resp[MASTER_CLINT_IDX]),
+     .reg_req_o(clint_reg_req),
+     .reg_rsp_i(clint_reg_rsp)
+   );
+ 
+   clint #(
+     .reg_req_t(reg_req_t),
+     .reg_rsp_t(reg_rsp_t)
+   ) i_clint (
+     .clk_i(clkwiz_o),
+     .rst_ni(rst_n),
+     .testmode_i(1'b0),
+     .reg_req_i(clint_reg_req),
+     .reg_rsp_o(clint_reg_rsp),
+     .rtc_i(1'b0),
+     .timer_irq_o(timer_irq),
+     .ipi_o(ipi)
+   );
+ 
    import obi_pkg::*;
    localparam obi_pkg::obi_cfg_t AdapterObiCfg = '{
        AddrWidth: XbarCfg.AxiAddrWidth,
@@ -491,31 +534,31 @@ module air_soc (
    logic [XbarCfg.AxiDataWidth-1:0] timer_axi_rdata;
    logic [1:0]                      timer_axi_rresp;
 
-   assign timer_axi_awvalid = xbar_mst_ports_req[MASTER_TIMR_IDX].aw_valid;
-   assign timer_axi_awaddr  = xbar_mst_ports_req[MASTER_TIMR_IDX].aw.addr;
-   assign timer_axi_awid    = xbar_mst_ports_req[MASTER_TIMR_IDX].aw.id;
-   assign timer_axi_awprot  = xbar_mst_ports_req[MASTER_TIMR_IDX].aw.prot;
-   assign timer_axi_wvalid  = xbar_mst_ports_req[MASTER_TIMR_IDX].w_valid;
-   assign timer_axi_wdata   = xbar_mst_ports_req[MASTER_TIMR_IDX].w.data;
-   assign timer_axi_wstrb   = xbar_mst_ports_req[MASTER_TIMR_IDX].w.strb;
-   assign timer_axi_arvalid = xbar_mst_ports_req[MASTER_TIMR_IDX].ar_valid;
-   assign timer_axi_araddr  = xbar_mst_ports_req[MASTER_TIMR_IDX].ar.addr;
-   assign timer_axi_arid    = xbar_mst_ports_req[MASTER_TIMR_IDX].ar.id;
-   assign timer_axi_arprot  = xbar_mst_ports_req[MASTER_TIMR_IDX].ar.prot;
-   assign timer_axi_bready  = xbar_mst_ports_req[MASTER_TIMR_IDX].b_ready;
-   assign timer_axi_rready  = xbar_mst_ports_req[MASTER_TIMR_IDX].r_ready;
+   assign timer_axi_awvalid = xbar_mst_ports_req[MASTER_TIMER_IDX].aw_valid;
+   assign timer_axi_awaddr  = xbar_mst_ports_req[MASTER_TIMER_IDX].aw.addr;
+   assign timer_axi_awid    = xbar_mst_ports_req[MASTER_TIMER_IDX].aw.id;
+   assign timer_axi_awprot  = xbar_mst_ports_req[MASTER_TIMER_IDX].aw.prot;
+   assign timer_axi_wvalid  = xbar_mst_ports_req[MASTER_TIMER_IDX].w_valid;
+   assign timer_axi_wdata   = xbar_mst_ports_req[MASTER_TIMER_IDX].w.data;
+   assign timer_axi_wstrb   = xbar_mst_ports_req[MASTER_TIMER_IDX].w.strb;
+   assign timer_axi_arvalid = xbar_mst_ports_req[MASTER_TIMER_IDX].ar_valid;
+   assign timer_axi_araddr  = xbar_mst_ports_req[MASTER_TIMER_IDX].ar.addr;
+   assign timer_axi_arid    = xbar_mst_ports_req[MASTER_TIMER_IDX].ar.id;
+   assign timer_axi_arprot  = xbar_mst_ports_req[MASTER_TIMER_IDX].ar.prot;
+   assign timer_axi_bready  = xbar_mst_ports_req[MASTER_TIMER_IDX].b_ready;
+   assign timer_axi_rready  = xbar_mst_ports_req[MASTER_TIMER_IDX].r_ready;
 
-   assign xbar_mst_ports_resp[MASTER_TIMR_IDX].aw_ready = timer_axi_awready;
-   assign xbar_mst_ports_resp[MASTER_TIMR_IDX].w_ready  = timer_axi_wready;
-   assign xbar_mst_ports_resp[MASTER_TIMR_IDX].ar_ready = timer_axi_arready;
-   assign xbar_mst_ports_resp[MASTER_TIMR_IDX].b_valid  = timer_axi_bvalid;
-   assign xbar_mst_ports_resp[MASTER_TIMR_IDX].b.id     = timer_axi_bid;
-   assign xbar_mst_ports_resp[MASTER_TIMR_IDX].b.resp   = timer_axi_bresp;
-   assign xbar_mst_ports_resp[MASTER_TIMR_IDX].r_valid  = timer_axi_rvalid;
-   assign xbar_mst_ports_resp[MASTER_TIMR_IDX].r.id     = timer_axi_rid;
-   assign xbar_mst_ports_resp[MASTER_TIMR_IDX].r.data   = timer_axi_rdata;
-   assign xbar_mst_ports_resp[MASTER_TIMR_IDX].r.resp   = timer_axi_rresp;
-   assign xbar_mst_ports_resp[MASTER_TIMR_IDX].r.last   = 1'b1;
+   assign xbar_mst_ports_resp[MASTER_TIMER_IDX].aw_ready = timer_axi_awready;
+   assign xbar_mst_ports_resp[MASTER_TIMER_IDX].w_ready  = timer_axi_wready;
+   assign xbar_mst_ports_resp[MASTER_TIMER_IDX].ar_ready = timer_axi_arready;
+   assign xbar_mst_ports_resp[MASTER_TIMER_IDX].b_valid  = timer_axi_bvalid;
+   assign xbar_mst_ports_resp[MASTER_TIMER_IDX].b.id     = timer_axi_bid;
+   assign xbar_mst_ports_resp[MASTER_TIMER_IDX].b.resp   = timer_axi_bresp;
+   assign xbar_mst_ports_resp[MASTER_TIMER_IDX].r_valid  = timer_axi_rvalid;
+   assign xbar_mst_ports_resp[MASTER_TIMER_IDX].r.id     = timer_axi_rid;
+   assign xbar_mst_ports_resp[MASTER_TIMER_IDX].r.data   = timer_axi_rdata;
+   assign xbar_mst_ports_resp[MASTER_TIMER_IDX].r.resp   = timer_axi_rresp;
+   assign xbar_mst_ports_resp[MASTER_TIMER_IDX].r.last   = 1'b1;
 
    timer_controller_axi #(
        .AXI_ID_WIDTH  (AXI_ID_WIDTH_XBAR_MST),
