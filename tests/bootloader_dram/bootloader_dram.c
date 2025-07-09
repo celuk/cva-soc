@@ -46,7 +46,7 @@ struct fw_dynamic_info {
 
 #define BOOT_HART_ID 0x0
 
-//#define OPENSBI_ENTRY_POINT 0x80000100
+#define OPENSBI_ENTRY_POINT 0x80000000
 
 #define DTB_ADDRESS 0x0
 
@@ -64,25 +64,26 @@ static inline void opensbi_init()
 	__asm__ volatile("csrr %0, mhartid" : "=r"(hart_id));
 
     __asm__ volatile (
-		"mv a0, %[hart_id]\n"
-		"mv a1, %[dtb_addr]\n"
-		"mv a2, %[info_addr]\n"
-		//"jr %[entry]\n" // we are jumping later
-		:
-		: [hart_id]"r"(hart_id),
-		  [dtb_addr]"r"(DTB_ADDRESS), // normally this would be the DTB address
-		  [info_addr]"r"(&dynamic_info)
-		  //,[entry]"r"(OPENSBI_ENTRY_POINT)
-		: "a0", "a1", "a2"
-	);
+        "mv a0, %[hart_id]\n"
+        "mv a1, %[dtb_addr]\n"
+        "mv a2, %[info_addr]\n"
+        "li t0, %[entry]\n"
+        "jalr x0, t0, 0\n"
+        :
+        : [hart_id]"r"(hart_id),
+          [dtb_addr]"r"(DTB_ADDRESS),
+          [info_addr]"r"(&dynamic_info),
+          [entry]"i"(OPENSBI_ENTRY_POINT)
+        : "a0", "a1", "a2", "t0"
+    );
 }
 
 int main()
 {
     init();
     
-    update_trap_vector_base_address();
+    //update_trap_vector_base_address();
     opensbi_init();
-    jump_to_dram();
+    //jump_to_dram();
     return 0;
 }

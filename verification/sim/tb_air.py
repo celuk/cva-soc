@@ -249,7 +249,7 @@ async def tair(dut):
     start_address = 0x00000000
     ## is not used now
 
-    clk_ns = 10
+    clk_ns = 20
     baud_rate = 115200
 
     if hasattr(dut, "clk_p") and hasattr(dut, "clk_n"):
