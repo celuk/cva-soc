@@ -11,24 +11,15 @@ int main(){
 
     wait_for_us(500);
 
-    unsigned int address = 0x00000000;
-    unsigned int data_16bytes[4];
-    while(data_16bytes[4] != 0xFFFFFFFF) {
-    //for (unsigned int i = 0; i < 1569; i += 1) { // 7218*4 = 28872
+    unsigned int address = 0x80000000;
+    unsigned int data_read;
+    //while(data_read != 0xFFFFFFFF) {
+    for (unsigned int i = 0; i < 40000; i += 1) { // 7218*4 = 28872
         //unsigned int *data_16bytes = dram_read_16bytes(address);
-        dram_read_16bytes(address, data_16bytes);
-        tekno_printf("Read data %x at address: %x\n", data_16bytes[0], address);
-        if(data_16bytes[0] == 0xFFFFFFFF) break;
+        data_read = *((volatile unsigned int*)(address));
+        //tekno_printf("Read data %x at address: %x\n", data_read, address);
+        tekno_printf("%x\n", data_read);
+        //if(data_read == 0xFFFFFFFF) break;
         address += 4;
-        tekno_printf("Read data %x at address: %x\n", data_16bytes[1], address);
-        if(data_16bytes[1] == 0xFFFFFFFF) break;
-        address += 4;
-        tekno_printf("Read data %x at address: %x\n", data_16bytes[2], address);
-        if(data_16bytes[2] == 0xFFFFFFFF) break;
-        address += 4;
-        tekno_printf("Read data %x at address: %x\n", data_16bytes[3], address);
-        if(data_16bytes[3] == 0xFFFFFFFF) break;
-        address += 4;
-        //address += 4*4;
     }
 }

@@ -398,11 +398,33 @@ module air_soc (
    assign ram_wdata_i = mem_obi_req.a.wdata;
    assign ram_be_i    = mem_obi_req.a.be;
 
-   assign mem_obi_rsp.gnt    = 1;
-   assign mem_obi_rsp.rvalid = ram_rvalid_o;
-   assign mem_obi_rsp.r.rdata = ram_rdata_o;
-   assign mem_obi_rsp.r.rid   = mem_obi_req.a.aid;
-   assign mem_obi_rsp.r.err  = 1'b0;
+   logic mem_obi_rsp_gnt_q;
+   logic mem_obi_rsp_rvalid_q;
+   logic [AdapterObiCfg.DataWidth-1:0] mem_obi_rsp_r_rdata_q;
+   logic [AdapterObiCfg.IdWidth-1:0] mem_obi_rsp_r_rid_q;
+   logic mem_obi_rsp_r_err_q;
+
+   always_ff @(posedge clkwiz_o or negedge rst_ni) begin
+      if (!rst_ni) begin
+         mem_obi_rsp_gnt_q <= 1'b0;
+         mem_obi_rsp_rvalid_q <= 1'b0;
+         mem_obi_rsp_r_rdata_q <= '0;
+         mem_obi_rsp_r_rid_q <= '0;
+         mem_obi_rsp_r_err_q <= 1'b0;
+      end else begin
+         mem_obi_rsp_gnt_q <= 1'b1;
+         mem_obi_rsp_rvalid_q <= ram_rvalid_o;
+         mem_obi_rsp_r_rdata_q <= ram_rdata_o;
+         mem_obi_rsp_r_rid_q <= mem_obi_req.a.aid;
+         mem_obi_rsp_r_err_q <= 1'b0;
+      end
+   end
+
+   assign mem_obi_rsp.gnt    = mem_obi_rsp_gnt_q;
+   assign mem_obi_rsp.rvalid = mem_obi_rsp_rvalid_q;
+   assign mem_obi_rsp.r.rdata = mem_obi_rsp_r_rdata_q;
+   assign mem_obi_rsp.r.rid   = mem_obi_rsp_r_rid_q;
+   assign mem_obi_rsp.r.err  = mem_obi_rsp_r_err_q;
 
    // TODO: Handle atomics with wrapper
 
