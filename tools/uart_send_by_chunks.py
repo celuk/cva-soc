@@ -56,7 +56,7 @@ def send_all_hex_from_build_dir(build_dir, port="/dev/ttyUSB1", baud_rate=115200
         if not os.path.isfile(hex_path):
             break
         send_hex_over_uart(port, baud_rate, hex_path, program_sequence)
-        time.sleep(1)
+        time.sleep(20)
         # wait until done received
         #done_seq = b"Done!"
         #with serial.Serial(port, baud_rate) as ser:

@@ -87,7 +87,7 @@ module ram32_dwr #(
    localparam PROGRAM_SEQUENCE    = "TEKNOFEST";
    localparam DRAMWRITE_SEQUENCE  = "DRAMWRITE"; // New sequence
    localparam PROG_SEQ_LENGTH     = 9;
-   localparam SEQ_BREAK_THRESHOLD = 32'd1000000;
+   localparam SEQ_BREAK_THRESHOLD = 32'hffffffff; //32'd1000000;
    
    reg [PROG_SEQ_LENGTH*8-1:0] received_sequence;
    

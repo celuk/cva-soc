@@ -12,17 +12,17 @@ __DYNAMIC = 0;
 
 MEMORY
 {
-    boot : ORIGIN = 0x80000000, LENGTH = 0x00000100
-    ram  : ORIGIN = 0x80001000, LENGTH = 0x0003E000
+#    boot : ORIGIN = 0x80000000, LENGTH = 0x00000100
+    ram  : ORIGIN = 0x80000000, LENGTH = 0x0003E000
 }
 
 STACK_LEN = 0x4000;
 
 SECTIONS
 {
-    .vectors 0x80000000 : {
-        *(.vectors)
-    } >boot
+#    .vectors 0x80000000 : {
+#        *(.vectors)
+#    } >boot
 
     .text : {
         . = ALIGN(4);
