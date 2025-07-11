@@ -308,7 +308,25 @@ module air_soc (
      .reg_req_o(clint_reg_req),
      .reg_rsp_i(clint_reg_rsp)
    );
- 
+
+   reg [5:0] count;
+   reg clk_rtc;
+   always @(posedge clkwiz_o or negedge rst_n) begin
+       if (!rst_n) begin
+           count   <= 0;
+           clk_rtc <= 0;
+       end
+       else begin
+           if (count == 50/2 - 1) begin // 50 MHz to 1MHz
+               clk_rtc <= ~clk_rtc;
+               count   <= 0;
+           end
+           else begin
+               count <= count + 1;
+           end
+       end
+   end
+
    clint #(
      .reg_req_t(reg_req_t),
      .reg_rsp_t(reg_rsp_t)
@@ -318,7 +336,7 @@ module air_soc (
      .testmode_i(1'b0),
      .reg_req_i(clint_reg_req),
      .reg_rsp_o(clint_reg_rsp),
-     .rtc_i(1'b0),
+     .rtc_i(clk_rtc),
      .timer_irq_o(timer_irq),
      .ipi_o(ipi)
    );
