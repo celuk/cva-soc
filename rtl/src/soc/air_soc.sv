@@ -827,7 +827,7 @@ module air_soc (
 
    ram32 #(
       .SIZE     ('h40000/4),
-      .INIT_FILE(`RAM_FPATH),
+      .INIT_FILE("/home/shc/projects/riscv-linux-boot/opensbi/build/platform/template/firmware/fw_dynamic.hex"), //(`RAM_FPATH),
       .USE_BOOTROM(0)
    ) main_memory8 (
       .clk_i   (clkwiz_o),
