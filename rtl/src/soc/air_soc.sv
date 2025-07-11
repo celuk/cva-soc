@@ -424,9 +424,9 @@ module air_soc (
       .rvalid_o( ram_rvalid_o   ),
       .rdata_o ( ram_rdata_o    )
 
-      ,.program_rx_i   ( program_rx_i   )
-      ,.system_reset_o ( system_reset_o )
-      ,.prog_mode_led_o( prog_mode_led_o)
+      ,.program_rx_i   (    )
+      ,.system_reset_o (  )
+      ,.prog_mode_led_o( )
 
       ,.dram_write_we_o(uart_dram_write_we)
       ,.dram_write_addr_o(uart_dram_write_addr)
@@ -827,7 +827,7 @@ module air_soc (
 
    ram32 #(
       .SIZE     ('h40000/4),
-      .INIT_FILE("/home/shc/projects/riscv-linux-boot/opensbi/build/platform/template/firmware/fw_dynamic.hex"), //(`RAM_FPATH),
+      .INIT_FILE(`RAM_FPATH), //("/home/shc/projects/riscv-linux-boot/opensbi/build/platform/template/firmware/fw_dynamic.hex"),
       .USE_BOOTROM(0)
    ) main_memory8 (
       .clk_i   (clkwiz_o),
@@ -840,9 +840,9 @@ module air_soc (
       .rvalid_o( ram8_rvalid_o   ),
       .rdata_o ( ram8_rdata_o    )
 
-      ,.program_rx_i   (    )
-      ,.system_reset_o (  )
-      ,.prog_mode_led_o( )
+      ,.program_rx_i   ( program_rx_i   )
+      ,.system_reset_o ( system_reset_o )
+      ,.prog_mode_led_o( prog_mode_led_o)
    );
    `elsif DDR3_AXI
    logic                            dram_axi_awvalid;
