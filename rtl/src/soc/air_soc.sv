@@ -212,10 +212,10 @@ module air_soc (
    localparam axi_pkg::xbar_cfg_t XbarCfg = '{
        NoSlvPorts:         NUM_SLAVES_XBAR,
        NoMstPorts:         NUM_MASTERS_XBAR,
-       MaxSlvTrans:        1,
+       MaxSlvTrans:        4,
        MaxMstTrans:        4,
        FallThrough:        1'b1,
-       LatencyMode:        axi_pkg::CUT_ALL_PORTS,
+       LatencyMode:        axi_pkg::NO_LATENCY,
        AxiIdWidthSlvPorts: cva6_config_pkg::CVA6ConfigAxiIdWidth,
        AxiIdUsedSlvPorts:  cva6_config_pkg::CVA6ConfigAxiIdWidth,
        UniqueIds:          1'b0,
