@@ -49,11 +49,11 @@
 
 //`define DDR_100MHZ
 
-//`define ZC706
-`define DDR3_AXI
+`define ZC706
+//`define DDR3_AXI
 `define DDR_MHZ 50
 //`define DRAM_SIM
-`define USE_SRAM
+//`define USE_SRAM
 
 /*
 PERIPHERALS

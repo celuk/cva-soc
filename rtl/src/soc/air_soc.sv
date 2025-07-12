@@ -442,9 +442,9 @@ module air_soc (
       .rvalid_o( ram_rvalid_o   ),
       .rdata_o ( ram_rdata_o    )
 
-      ,.program_rx_i   (    )
-      ,.system_reset_o (  )
-      ,.prog_mode_led_o( )
+      ,.program_rx_i   ( program_rx_i   )
+      ,.system_reset_o ( system_reset_o )
+      ,.prog_mode_led_o( prog_mode_led_o)
 
       ,.dram_write_we_o(uart_dram_write_we)
       ,.dram_write_addr_o(uart_dram_write_addr)
@@ -858,9 +858,9 @@ module air_soc (
       .rvalid_o( ram8_rvalid_o   ),
       .rdata_o ( ram8_rdata_o    )
 
-      ,.program_rx_i   ( program_rx_i   )
-      ,.system_reset_o ( system_reset_o )
-      ,.prog_mode_led_o( prog_mode_led_o)
+      ,.program_rx_i   (    )
+      ,.system_reset_o (  )
+      ,.prog_mode_led_o( )
    );
    `elsif DDR3_AXI
    logic                            dram_axi_awvalid;
