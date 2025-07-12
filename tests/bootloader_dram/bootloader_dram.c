@@ -4217,7 +4217,7 @@ struct fw_dynamic_info {
 
 #define OPENSBI_ENTRY_POINT DDR3_AXI_BASE_ADDR //0x80000000
 
-#define DTB_ADDRESS 0x0
+#define DTB_ADDRESS (OPENSBI_ENTRY_POINT + 0xe000) // fw_fdt_bin (compiled dts - dtb file) address
 
 static inline void opensbi_init()
 {
