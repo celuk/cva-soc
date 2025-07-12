@@ -4205,19 +4205,20 @@ struct fw_dynamic_info {
     unsigned int boot_hart;
 };
 
+#define OPENSBI_BASE_ADDR DDR3_AXI_BASE_ADDR //0x80000000
+
 #define FW_DYNAMIC_INFO_MAGIC_VALUE 0x4942534f
 #define FW_DYNAMIC_INFO_VERSION_2 0x2
 #define FW_DYNAMIC_INFO_VERSION_MAX FW_DYNAMIC_INFO_VERSION_2
 #define FW_DYNAMIC_INFO_NEXT_MODE_U 0x0
 #define FW_DYNAMIC_INFO_NEXT_MODE_S 0x1
 #define FW_DYNAMIC_INFO_NEXT_MODE_M 0x3
-#define FW_DYNAMIC_NEXT_ADDRESS 0x90000000
+#define FW_DYNAMIC_NEXT_ADDRESS_OFFSET 0x00100000
+#define FW_DYNAMIC_NEXT_ADDRESS (OPENSBI_BASE_ADDR + FW_DYNAMIC_NEXT_ADDRESS_OFFSET) //0x90000000
 
 #define BOOT_HART_ID 0x0
 
-#define OPENSBI_ENTRY_POINT DDR3_AXI_BASE_ADDR //0x80000000
-
-#define DTB_ADDRESS (OPENSBI_ENTRY_POINT + 0xe000) // fw_fdt_bin (compiled dts - dtb file) address
+#define DTB_ADDRESS (OPENSBI_BASE_ADDR + 0xd000) // fw_fdt_bin (compiled dts - dtb file) address
 
 static inline void opensbi_init()
 {
@@ -4242,7 +4243,7 @@ static inline void opensbi_init()
         : [hart_id]"r"(hart_id),
           [dtb_addr]"r"(DTB_ADDRESS),
           [info_addr]"r"(&dynamic_info),
-          [entry]"i"(OPENSBI_ENTRY_POINT)
+          [entry]"i"(OPENSBI_BASE_ADDR)
         : "a0", "a1", "a2", "t0"
     );
 }
