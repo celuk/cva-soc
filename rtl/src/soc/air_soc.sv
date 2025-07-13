@@ -214,7 +214,7 @@ module air_soc (
        NoMstPorts:         NUM_MASTERS_XBAR,
        MaxSlvTrans:        4,
        MaxMstTrans:        4,
-       FallThrough:        1'b1,
+       FallThrough:        1'b0,
        LatencyMode:        axi_pkg::NO_LATENCY,
        AxiIdWidthSlvPorts: cva6_config_pkg::CVA6ConfigAxiIdWidth,
        AxiIdUsedSlvPorts:  cva6_config_pkg::CVA6ConfigAxiIdWidth,
@@ -652,90 +652,140 @@ module air_soc (
    `endif
 
    `ifdef ZC706
-   adapter_obi_req_t dram_obi_req;
-   adapter_obi_rsp_t dram_obi_rsp;
+   logic                            dram_axi_awvalid;
+   logic                            dram_axi_awready;
+   logic [XbarCfg.AxiAddrWidth-1:0] dram_axi_awaddr;
+   logic [AXI_ID_WIDTH_XBAR_MST-1:0]dram_axi_awid;
+   logic [7:0]                      dram_axi_awlen;
+   logic [2:0]                      dram_axi_awsize;
+   logic [1:0]                      dram_axi_awburst;
+   logic [2:0]                      dram_axi_awprot;
+   logic                            dram_axi_wvalid;
+   logic                            dram_axi_wready;
+   logic [XbarCfg.AxiDataWidth-1:0] dram_axi_wdata;
+   logic [XbarCfg.AxiDataWidth/8-1:0] dram_axi_wstrb;
+   logic                            dram_axi_wlast;
+   logic                            dram_axi_bvalid;
+   logic                            dram_axi_bready;
+   logic [AXI_ID_WIDTH_XBAR_MST-1:0]dram_axi_bid;
+   logic [1:0]                      dram_axi_bresp;
+   logic                            dram_axi_arvalid;
+   logic                            dram_axi_arready;
+   logic [XbarCfg.AxiAddrWidth-1:0] dram_axi_araddr;
+   logic [AXI_ID_WIDTH_XBAR_MST-1:0]dram_axi_arid;
+   logic [7:0]                      dram_axi_arlen;
+   logic [2:0]                      dram_axi_arsize;
+   logic [1:0]                      dram_axi_arburst;
+   logic [2:0]                      dram_axi_arprot;
+   logic                            dram_axi_rvalid;
+   logic                            dram_axi_rready;
+   logic [AXI_ID_WIDTH_XBAR_MST-1:0]dram_axi_rid;
+   logic [XbarCfg.AxiDataWidth-1:0] dram_axi_rdata;
+   logic [1:0]                      dram_axi_rresp;
+   logic                            dram_axi_rlast;
 
-   axi_to_obi #(
-      .ObiCfg         ( AdapterObiCfg          ),
-      .obi_req_t      ( adapter_obi_req_t      ), .obi_rsp_t      ( adapter_obi_rsp_t      ),
-      .obi_a_chan_t   ( adapter_obi_a_chan_t   ), .obi_r_chan_t   ( adapter_obi_r_chan_t   ),
-      .AxiAddrWidth   ( XbarCfg.AxiAddrWidth   ),
-      .AxiDataWidth   ( XbarCfg.AxiDataWidth   ),
-      .AxiIdWidth     ( AXI_ID_WIDTH_XBAR_MST  ),
-      .AxiUserWidth   ( cva6_config_pkg::CVA6ConfigDataUserWidth),
-      .MaxTrans       ( AXI_MAX_TRANS          ),
-      .axi_req_t      ( ariane_axi::req_t         ),
-      .axi_rsp_t      ( ariane_axi::resp_t        )
-   ) i_axi_to_obi_dram (
-      .clk_i          ( clkwiz_o                  ),
-      .rst_ni         ( rst_n                     ),
-      .axi_req_i      ( xbar_mst_ports_req[MASTER_DRAM_IDX] ),
-      .axi_rsp_o     ( xbar_mst_ports_resp[MASTER_DRAM_IDX]),
-      .obi_req_o      ( dram_obi_req              ),
-      .obi_rsp_i      ( dram_obi_rsp              ),
+   assign dram_axi_awvalid = xbar_mst_ports_req[MASTER_DRAM_IDX].aw_valid;
+   assign dram_axi_awaddr  = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.addr;
+   assign dram_axi_awid    = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.id;
+   assign dram_axi_awlen   = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.len;
+   assign dram_axi_awsize  = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.size;
+   assign dram_axi_awburst = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.burst;
+   assign dram_axi_awprot  = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.prot;
+   assign dram_axi_wvalid  = xbar_mst_ports_req[MASTER_DRAM_IDX].w_valid;
+   assign dram_axi_wdata   = xbar_mst_ports_req[MASTER_DRAM_IDX].w.data;
+   assign dram_axi_wstrb   = xbar_mst_ports_req[MASTER_DRAM_IDX].w.strb;
+   assign dram_axi_wlast   = xbar_mst_ports_req[MASTER_DRAM_IDX].w.last;
+   assign dram_axi_arvalid = xbar_mst_ports_req[MASTER_DRAM_IDX].ar_valid;
+   assign dram_axi_araddr  = xbar_mst_ports_req[MASTER_DRAM_IDX].ar.addr;
+   assign dram_axi_arid    = xbar_mst_ports_req[MASTER_DRAM_IDX].ar.id;
+   assign dram_axi_arlen   = xbar_mst_ports_req[MASTER_DRAM_IDX].ar.len;
+   assign dram_axi_arsize  = xbar_mst_ports_req[MASTER_DRAM_IDX].ar.size;
+   assign dram_axi_arburst = xbar_mst_ports_req[MASTER_DRAM_IDX].ar.burst;
+   assign dram_axi_arprot  = xbar_mst_ports_req[MASTER_DRAM_IDX].ar.prot;
+   assign dram_axi_bready  = xbar_mst_ports_req[MASTER_DRAM_IDX].b_ready;
+   assign dram_axi_rready  = xbar_mst_ports_req[MASTER_DRAM_IDX].r_ready;
 
-      .req_aw_id_o (), .req_aw_user_o (), .req_w_user_o (),
-      .req_write_aid_i ('0),.req_write_auser_i ('0),.req_write_wuser_i ('0),
-      .req_ar_id_o (), .req_ar_user_o (),
-      .req_read_aid_i ('0),.req_read_auser_i ('0),
-      .rsp_write_aw_user_o (), .rsp_write_w_user_o (), .rsp_write_bank_strb_o (),
-      .rsp_write_rid_o (), .rsp_write_ruser_o (), .rsp_write_last_o (),
-      .rsp_write_hs_o (), .rsp_b_user_i ('0),
-      .rsp_read_ar_user_o (), .rsp_read_size_enable_o (), .rsp_read_rid_o (),
-      .rsp_read_ruser_o (), .rsp_r_user_i ('0)
-   );
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].aw_ready = dram_axi_awready;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].w_ready  = dram_axi_wready;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].ar_ready = dram_axi_arready;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].b_valid  = dram_axi_bvalid;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].b.id     = dram_axi_bid;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].b.resp   = dram_axi_bresp;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].r_valid  = dram_axi_rvalid;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].r.id     = dram_axi_rid;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].r.data   = dram_axi_rdata;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].r.resp   = dram_axi_rresp;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].r.last   = dram_axi_rlast;
 
-   logic        dram_req_i;
-   logic        dram_we_i;
-   logic [AdapterObiCfg.DataWidth/8-1:0] dram_be_i;
-   logic [AdapterObiCfg.AddrWidth-1:0] dram_addr_i;
-   logic [AdapterObiCfg.DataWidth-1:0] dram_wdata_i;
-   logic        dram_gnt_o;
-   logic        dram_rvalid_o;
-   logic [AdapterObiCfg.DataWidth-1:0] dram_rdata_o;
+   dram_controller_axi #(
+       .AXI_ID_WIDTH  (AXI_ID_WIDTH_XBAR_MST),
+       .AXI_ADDR_WIDTH(XbarCfg.AxiAddrWidth),
+       .AXI_DATA_WIDTH(XbarCfg.AxiDataWidth)
+   ) dram_dut (
+       .clk_i        ( clkwiz_o         ),
+       .rst_ni       ( (rst_ni & system_reset_o & pll_locked) || uart_dram_mode ),
 
-   assign dram_req_i   = dram_obi_req.req;
-   assign dram_we_i    = dram_obi_req.a.we;
-   assign dram_addr_i  = dram_obi_req.a.addr;
-   assign dram_wdata_i = dram_obi_req.a.wdata;
-   assign dram_be_i    = dram_obi_req.a.be;
+       .s_axi_awvalid( dram_axi_awvalid ),
+       .s_axi_awready( dram_axi_awready ),
+       .s_axi_awaddr ( dram_axi_awaddr  ),
+       .s_axi_awid   ( dram_axi_awid    ),
+       .s_axi_awlen  ( dram_axi_awlen   ),
+       .s_axi_awsize ( dram_axi_awsize  ),
+       .s_axi_awburst( dram_axi_awburst ),
+       .s_axi_awprot ( dram_axi_awprot  ),
 
-   assign dram_obi_rsp.gnt    = dram_gnt_o;
-   assign dram_obi_rsp.rvalid = dram_rvalid_o;
-   assign dram_obi_rsp.r.rdata = dram_rdata_o;
-   assign dram_obi_rsp.r.rid   = dram_obi_req.a.aid;
-   assign dram_obi_rsp.r.err  = 1'b0;
+       .s_axi_wvalid ( dram_axi_wvalid  ),
+       .s_axi_wready ( dram_axi_wready  ),
+       .s_axi_wdata  ( dram_axi_wdata   ),
+       .s_axi_wstrb  ( dram_axi_wstrb   ),
+       .s_axi_wlast  ( dram_axi_wlast   ),
 
-   dram_controller_obi dram_controller (
-       .clk_i(clkwiz_o),
-       .rst_ni(rst_n),
-       .req_i(dram_req_i),
-       .we_i(dram_we_i),
-       .be_i(dram_be_i),
-       .gnt_o(dram_gnt_o),
-       .addr_i(dram_addr_i),
-       .wdata_i(dram_wdata_i),
-       .rvalid_o(dram_rvalid_o),
-       .rdata_o(dram_rdata_o),
-       .ddr3_reset_n(ddr3_reset_n),
-       .ddr3_cke(ddr3_cke),
-       .ddr3_ck_p(ddr3_ck_p),
-       .ddr3_ck_n(ddr3_ck_n),
-       .ddr3_cs_n(ddr3_cs_n),
-       .ddr3_ras_n(ddr3_ras_n),
-       .ddr3_cas_n(ddr3_cas_n),
-       .ddr3_we_n(ddr3_we_n),
-       .ddr3_ba(ddr3_ba),
-       .ddr3_addr(ddr3_addr),
-       .ddr3_odt(ddr3_odt),
-       .ddr3_dm(ddr3_dm),
-       .ddr3_dqs_p(ddr3_dqs_p),
-       .ddr3_dqs_n(ddr3_dqs_n),
-       .ddr3_dq(ddr3_dq),
-       .clk100(clk100),
-       .clk_ddr(clk_ddr),
-       .clk_ref(clk_ref),
-       .clk_ddr_dqs(clk_ddr_dqs)
+       .s_axi_bvalid ( dram_axi_bvalid  ),
+       .s_axi_bready ( dram_axi_bready  ),
+       .s_axi_bid    ( dram_axi_bid     ),
+       .s_axi_bresp  ( dram_axi_bresp   ),
+
+       .s_axi_arvalid( dram_axi_arvalid ),
+       .s_axi_arready( dram_axi_arready ),
+       .s_axi_araddr ( dram_axi_araddr  ),
+       .s_axi_arid   ( dram_axi_arid    ),
+       .s_axi_arlen  ( dram_axi_arlen   ),
+       .s_axi_arsize ( dram_axi_arsize  ),
+       .s_axi_arburst( dram_axi_arburst ),
+       .s_axi_arprot ( dram_axi_arprot  ),
+
+       .s_axi_rvalid ( dram_axi_rvalid  ),
+       .s_axi_rready ( dram_axi_rready  ),
+       .s_axi_rid    ( dram_axi_rid     ),
+       .s_axi_rdata  ( dram_axi_rdata   ),
+       .s_axi_rresp  ( dram_axi_rresp   ),
+       .s_axi_rlast  ( dram_axi_rlast   ),
+
+       .ddr3_reset_n( ddr3_reset_n ),
+       .ddr3_cke    ( ddr3_cke     ),
+       .ddr3_ck_p   ( ddr3_ck_p    ),
+       .ddr3_ck_n   ( ddr3_ck_n    ),
+       .ddr3_cs_n   ( ddr3_cs_n    ),
+       .ddr3_ras_n  ( ddr3_ras_n   ),
+       .ddr3_cas_n  ( ddr3_cas_n   ),
+       .ddr3_we_n   ( ddr3_we_n    ),
+       .ddr3_ba     ( ddr3_ba      ),
+       .ddr3_addr   ( ddr3_addr    ),
+       .ddr3_odt    ( ddr3_odt     ),
+       .ddr3_dm     ( ddr3_dm      ),
+       .ddr3_dqs_p  ( ddr3_dqs_p   ),
+       .ddr3_dqs_n  ( ddr3_dqs_n   ),
+       .ddr3_dq     ( ddr3_dq      ),
+
+       .clk100      ( clk100       ),
+       .clk_ddr     ( clk_ddr      ),
+       .clk_ref     ( clk_ref      ),
+       .clk_ddr_dqs ( clk_ddr_dqs  )
+
+       ,.uart_dram_write_we_i (uart_dram_write_we),
+       .uart_dram_write_addr_i (uart_dram_write_addr),
+       .uart_dram_write_data_i (uart_dram_write_data),
+       .uart_dram_write_rst_i (0)
    );
    `elsif USE_SRAM
    adapter_obi_req_t mem8_obi_req;
