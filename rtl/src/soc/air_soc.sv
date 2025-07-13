@@ -212,8 +212,8 @@ module air_soc (
    localparam axi_pkg::xbar_cfg_t XbarCfg = '{
        NoSlvPorts:         NUM_SLAVES_XBAR,
        NoMstPorts:         NUM_MASTERS_XBAR,
-       MaxSlvTrans:        4,
-       MaxMstTrans:        4,
+       MaxSlvTrans:        1,
+       MaxMstTrans:        1,
        FallThrough:        1'b0,
        LatencyMode:        axi_pkg::NO_LATENCY,
        AxiIdWidthSlvPorts: cva6_config_pkg::CVA6ConfigAxiIdWidth,
@@ -768,7 +768,7 @@ module air_soc (
        .AXI_DATA_WIDTH     (XbarCfg.AxiDataWidth),
        .AXI_ID_WIDTH       (AXI_ID_WIDTH_XBAR_MST),
        .AXI_USER_WIDTH     (1),
-       .AXI_MAX_WRITE_TXNS (4),
+       .AXI_MAX_WRITE_TXNS (1),
        .RISCV_WORD_WIDTH   (32)
    ) i_axi_atomics (
        .clk_i(clkwiz_o),
