@@ -38,7 +38,7 @@ module dram_controller_obi (
    wire        wb_ack_w;
    wire [31:0] wb_dat_o_w;
 
-   dram_controller dram_iface_dut (
+   dram_controller_wb dram_iface_dut (
       .clk_i   (clk_i),
       .rst_i   (~rst_ni),
       .wb_adr_i(addr_i),

@@ -360,7 +360,7 @@ module dram_controller_wb (
     end
 
     always_ff @(posedge clk_i) begin
-        if (rst_i || uart_dram_write_rst_i) begin
+        if (rst_i) begin
             wb_ack_r <= 0;
             wb_read_data_r <= 0;
     
