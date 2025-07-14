@@ -949,8 +949,8 @@ module air_soc (
    assign mem8_obi_rsp.r.err  = 1'b0;
 
    ram32 #(
-      .SIZE     ('h60000/4),
-      .INIT_FILE(`RAM_FPATH), //("/home/shc/projects/riscv-linux-boot/opensbi/build/platform/template/firmware/fw_dynamic.hex"),
+      .SIZE     ('h50000/4),
+      .INIT_FILE("/home/shc/projects/riscv-linux-boot/opensbi/build/platform/template/firmware/fw_dynamic.hex"),
       .USE_BOOTROM(0)
    ) main_memory8 (
       .clk_i   (clkwiz_o),
