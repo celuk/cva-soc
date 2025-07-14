@@ -208,14 +208,14 @@ async def main_memory(dut, clk, start_address):
         dut.rst_ni.value = 0
         await RisingEdge(clk)
         #if test != "bootloader":
-        #for index, instruction in enumerate(tests[test]["instructions"]):
-        #    # fmt: off
-        #    #dut.ram_i.dp_ram_i.mem[(index << 2) + 0].value = (int(instruction, 16) >>  0) & 0xFF
-        #    #dut.ram_i.dp_ram_i.mem[(index << 2) + 1].value = (int(instruction, 16) >>  8) & 0xFF
-        #    #dut.ram_i.dp_ram_i.mem[(index << 2) + 2].value = (int(instruction, 16) >> 16) & 0xFF
-        #    #dut.ram_i.dp_ram_i.mem[(index << 2) + 3].value = (int(instruction, 16) >> 24) & 0xFF
-        #    # fmt: on
-        #    dut.main_memory8.ram[index + (0 >> 2)].value = int(instruction, 16)
+        for index, instruction in enumerate(tests[test]["instructions"]):
+            # fmt: off
+            #dut.ram_i.dp_ram_i.mem[(index << 2) + 0].value = (int(instruction, 16) >>  0) & 0xFF
+            #dut.ram_i.dp_ram_i.mem[(index << 2) + 1].value = (int(instruction, 16) >>  8) & 0xFF
+            #dut.ram_i.dp_ram_i.mem[(index << 2) + 2].value = (int(instruction, 16) >> 16) & 0xFF
+            #dut.ram_i.dp_ram_i.mem[(index << 2) + 3].value = (int(instruction, 16) >> 24) & 0xFF
+            # fmt: on
+            dut.main_memory8.ram[index + (0 >> 2)].value = int(instruction, 16)
 
         await RisingEdge(clk)
         dut.rst_ni.value = 1
