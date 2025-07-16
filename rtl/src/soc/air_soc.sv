@@ -187,121 +187,6 @@ module air_soc (
       .noc_resp_i           ( cva6_axi_resp                )
    );
 
-   ariane_axi::req_t  atomics_to_xbar_req;
-   ariane_axi::resp_t atomics_to_xbar_resp;
-
-   axi_riscv_atomics #(
-       .AXI_ADDR_WIDTH     (cva6_config_pkg::CVA6ConfigAxiAddrWidth),
-       .AXI_DATA_WIDTH     (cva6_config_pkg::CVA6ConfigAxiDataWidth),
-       .AXI_ID_WIDTH       (cva6_config_pkg::CVA6ConfigAxiIdWidth),
-       .AXI_USER_WIDTH     (cva6_config_pkg::CVA6ConfigDataUserWidth),
-       .AXI_MAX_WRITE_TXNS (1),
-       .RISCV_WORD_WIDTH   (32)
-   ) i_axi_atomics (
-       .clk_i(clkwiz_o),
-       .rst_ni(rst_n),
-
-       .slv_aw_addr_i   (cva6_axi_req.aw.addr),
-       .slv_aw_prot_i   (cva6_axi_req.aw.prot),
-       .slv_aw_region_i ('0),
-       .slv_aw_atop_i   (cva6_axi_req.aw.atop),
-       .slv_aw_len_i    (cva6_axi_req.aw.len),
-       .slv_aw_size_i   (cva6_axi_req.aw.size),
-       .slv_aw_burst_i  (cva6_axi_req.aw.burst),
-       .slv_aw_lock_i   (cva6_axi_req.aw.lock),
-       .slv_aw_cache_i  ('0),
-       .slv_aw_qos_i    ('0),
-       .slv_aw_id_i     (cva6_axi_req.aw.id),
-       .slv_aw_user_i   ('0),
-       .slv_aw_ready_o  (cva6_axi_resp.aw_ready),
-       .slv_aw_valid_i  (cva6_axi_req.aw_valid),
-
-       .slv_ar_addr_i   (cva6_axi_req.ar.addr),
-       .slv_ar_prot_i   (cva6_axi_req.ar.prot),
-       .slv_ar_region_i ('0),
-       .slv_ar_len_i    (cva6_axi_req.ar.len),
-       .slv_ar_size_i   (cva6_axi_req.ar.size),
-       .slv_ar_burst_i  (cva6_axi_req.ar.burst),
-       .slv_ar_lock_i   (cva6_axi_req.ar.lock),
-       .slv_ar_cache_i  ('0),
-       .slv_ar_qos_i    ('0),
-       .slv_ar_id_i     (cva6_axi_req.ar.id),
-       .slv_ar_user_i   ('0),
-       .slv_ar_ready_o  (cva6_axi_resp.ar_ready),
-       .slv_ar_valid_i  (cva6_axi_req.ar_valid),
-
-       .slv_w_data_i    (cva6_axi_req.w.data),
-       .slv_w_strb_i    (cva6_axi_req.w.strb),
-       .slv_w_user_i    ('0),
-       .slv_w_last_i    (cva6_axi_req.w.last),
-       .slv_w_ready_o   (cva6_axi_resp.w_ready),
-       .slv_w_valid_i   (cva6_axi_req.w_valid),
-
-       .slv_r_data_o    (cva6_axi_resp.r.data),
-       .slv_r_resp_o    (cva6_axi_resp.r.resp),
-       .slv_r_last_o    (cva6_axi_resp.r.last),
-       .slv_r_id_o      (cva6_axi_resp.r.id),
-       .slv_r_user_o    (),
-       .slv_r_ready_i   (cva6_axi_req.r_ready),
-       .slv_r_valid_o   (cva6_axi_resp.r_valid),
-
-       .slv_b_resp_o    (cva6_axi_resp.b.resp),
-       .slv_b_id_o      (cva6_axi_resp.b.id),
-       .slv_b_user_o    (),
-       .slv_b_ready_i   (cva6_axi_req.b_ready),
-       .slv_b_valid_o   (cva6_axi_resp.b_valid),
-
-       .mst_aw_addr_o   (atomics_to_xbar_req.aw.addr),
-       .mst_aw_prot_o   (atomics_to_xbar_req.aw.prot),
-       .mst_aw_region_o (),
-       .mst_aw_atop_o   (), //(atomics_to_xbar_req.aw.atop),
-       .mst_aw_len_o    (atomics_to_xbar_req.aw.len),
-       .mst_aw_size_o   (atomics_to_xbar_req.aw.size),
-       .mst_aw_burst_o  (atomics_to_xbar_req.aw.burst),
-       .mst_aw_lock_o   (atomics_to_xbar_req.aw.lock),
-       .mst_aw_cache_o  (),
-       .mst_aw_qos_o    (),
-       .mst_aw_id_o     (atomics_to_xbar_req.aw.id),
-       .mst_aw_user_o   (),
-       .mst_aw_ready_i  (atomics_to_xbar_resp.aw_ready),
-       .mst_aw_valid_o  (atomics_to_xbar_req.aw_valid),
-
-       .mst_ar_addr_o   (atomics_to_xbar_req.ar.addr),
-       .mst_ar_prot_o   (atomics_to_xbar_req.ar.prot),
-       .mst_ar_region_o (),
-       .mst_ar_len_o    (atomics_to_xbar_req.ar.len),
-       .mst_ar_size_o   (atomics_to_xbar_req.ar.size),
-       .mst_ar_burst_o  (atomics_to_xbar_req.ar.burst),
-       .mst_ar_lock_o   (atomics_to_xbar_req.ar.lock),
-       .mst_ar_cache_o  (),
-       .mst_ar_qos_o    (),
-       .mst_ar_id_o     (atomics_to_xbar_req.ar.id),
-       .mst_ar_user_o   (),
-       .mst_ar_ready_i  (atomics_to_xbar_resp.ar_ready),
-       .mst_ar_valid_o  (atomics_to_xbar_req.ar_valid),
-
-       .mst_w_data_o    (atomics_to_xbar_req.w.data),
-       .mst_w_strb_o    (atomics_to_xbar_req.w.strb),
-       .mst_w_user_o    (),
-       .mst_w_last_o    (atomics_to_xbar_req.w.last),
-       .mst_w_ready_i   (atomics_to_xbar_resp.w_ready),
-       .mst_w_valid_o   (atomics_to_xbar_req.w_valid),
-
-       .mst_r_data_i    (atomics_to_xbar_resp.r.data),
-       .mst_r_resp_i    (atomics_to_xbar_resp.r.resp),
-       .mst_r_last_i    (atomics_to_xbar_resp.r.last),
-       .mst_r_id_i      (atomics_to_xbar_resp.r.id),
-       .mst_r_user_i    (1'b0),
-       .mst_r_ready_o   (atomics_to_xbar_req.r_ready),
-       .mst_r_valid_i   (atomics_to_xbar_resp.r_valid),
-
-       .mst_b_resp_i    (atomics_to_xbar_resp.b.resp),
-       .mst_b_id_i      (atomics_to_xbar_resp.b.id),
-       .mst_b_user_i    (1'b0),
-       .mst_b_ready_o   (atomics_to_xbar_req.b_ready),
-       .mst_b_valid_i   (atomics_to_xbar_resp.b_valid)
-   );
-
    localparam int unsigned NUM_SLAVES_XBAR = 1; // CVA6
    `ifdef ZC706
    localparam int unsigned NUM_MASTERS_XBAR = 5; // RAM, UART, TIMER, DRAM, CLINT
@@ -330,7 +215,7 @@ module air_soc (
        MaxSlvTrans:        1,
        MaxMstTrans:        1,
        FallThrough:        1'b0,
-       LatencyMode:        axi_pkg::CUT_ALL_PORTS,
+       LatencyMode:        axi_pkg::NO_LATENCY,
        AxiIdWidthSlvPorts: cva6_config_pkg::CVA6ConfigAxiIdWidth,
        AxiIdUsedSlvPorts:  cva6_config_pkg::CVA6ConfigAxiIdWidth,
        UniqueIds:          1'b0,
@@ -342,8 +227,8 @@ module air_soc (
 
    localparam int unsigned AXI_ID_WIDTH_XBAR_MST = XbarCfg.AxiIdWidthSlvPorts;
 
-   //ariane_axi::req_t  xbar_slv_port0_req;
-   //ariane_axi::resp_t xbar_slv_port0_resp;
+   ariane_axi::req_t  xbar_slv_port0_req;
+   ariane_axi::resp_t xbar_slv_port0_resp;
 
    ariane_axi::req_t     [NUM_MASTERS_XBAR-1:0] xbar_mst_ports_req;
    ariane_axi::resp_t    [NUM_MASTERS_XBAR-1:0] xbar_mst_ports_resp;
@@ -387,8 +272,8 @@ module air_soc (
       .rst_ni       ( rst_n                         ),
       .test_i       ( 1'b0                          ),
 
-      .slv_ports_req_i  ( {atomics_to_xbar_req}      ),
-      .slv_ports_resp_o ( {atomics_to_xbar_resp}     ),
+      .slv_ports_req_i  ( {xbar_slv_port0_req}      ),
+      .slv_ports_resp_o ( {xbar_slv_port0_resp}     ),
 
       .mst_ports_req_o  ( xbar_mst_ports_req        ),
       .mst_ports_resp_i ( xbar_mst_ports_resp       ),
@@ -398,8 +283,8 @@ module air_soc (
       .default_mst_port_i ( '0                      )
    );
 
-   //assign xbar_slv_port0_req = cva6_axi_req;
-   //assign cva6_axi_resp      = xbar_slv_port0_resp;
+   assign xbar_slv_port0_req = cva6_axi_req;
+   assign cva6_axi_resp      = xbar_slv_port0_resp;
  
    `REG_BUS_TYPEDEF_ALL(reg, logic[XbarCfg.AxiAddrWidth-1:0], logic[XbarCfg.AxiDataWidth-1:0], logic[XbarCfg.AxiDataWidth/8-1:0])
  
@@ -767,28 +652,217 @@ module air_soc (
    `endif
 
    `ifdef ZC706
-   ariane_axi::req_t  xbar_to_serializer_req;
-   ariane_axi::resp_t xbar_to_serializer_resp;
+   logic                            dram_axi_awvalid;
+   logic                            dram_axi_awready;
+   logic [XbarCfg.AxiAddrWidth-1:0] dram_axi_awaddr;
+   logic [AXI_ID_WIDTH_XBAR_MST-1:0]dram_axi_awid;
+   logic [7:0]                      dram_axi_awlen;
+   logic [2:0]                      dram_axi_awsize;
+   logic [1:0]                      dram_axi_awburst;
+   logic [2:0]                      dram_axi_awprot;
+   logic                            dram_axi_wvalid;
+   logic                            dram_axi_wready;
+   logic [XbarCfg.AxiDataWidth-1:0] dram_axi_wdata;
+   logic [XbarCfg.AxiDataWidth/8-1:0] dram_axi_wstrb;
+   logic                            dram_axi_wlast;
+   logic                            dram_axi_bvalid;
+   logic                            dram_axi_bready;
+   logic [AXI_ID_WIDTH_XBAR_MST-1:0]dram_axi_bid;
+   logic [1:0]                      dram_axi_bresp;
+   logic                            dram_axi_arvalid;
+   logic                            dram_axi_arready;
+   logic [XbarCfg.AxiAddrWidth-1:0] dram_axi_araddr;
+   logic [AXI_ID_WIDTH_XBAR_MST-1:0]dram_axi_arid;
+   logic [7:0]                      dram_axi_arlen;
+   logic [2:0]                      dram_axi_arsize;
+   logic [1:0]                      dram_axi_arburst;
+   logic [2:0]                      dram_axi_arprot;
+   logic                            dram_axi_rvalid;
+   logic                            dram_axi_rready;
+   logic [AXI_ID_WIDTH_XBAR_MST-1:0]dram_axi_rid;
+   logic [XbarCfg.AxiDataWidth-1:0] dram_axi_rdata;
+   logic [1:0]                      dram_axi_rresp;
+   logic                            dram_axi_rlast;
 
-   ariane_axi::req_t  serializer_to_dram_req;
-   ariane_axi::resp_t serializer_to_dram_resp;
+   logic                            atomics_mst_awvalid;
+   logic                            atomics_mst_awready;
+   logic [XbarCfg.AxiAddrWidth-1:0] atomics_mst_awaddr;
+   logic [AXI_ID_WIDTH_XBAR_MST-1:0]atomics_mst_awid;
+   logic [7:0]                      atomics_mst_awlen;
+   logic [2:0]                      atomics_mst_awsize;
+   logic [1:0]                      atomics_mst_awburst;
+   logic [2:0]                      atomics_mst_awprot;
+   logic [5:0]                      atomics_mst_awatop;
+   logic                            atomics_mst_awlock;
+   logic [3:0]                      atomics_mst_awcache;
+   logic [3:0]                      atomics_mst_awqos;
+   logic [3:0]                      atomics_mst_awregion;
+   logic [0:0]                      atomics_mst_awuser;
+   logic                            atomics_mst_wvalid;
+   logic                            atomics_mst_wready;
+   logic [XbarCfg.AxiDataWidth-1:0] atomics_mst_wdata;
+   logic [XbarCfg.AxiDataWidth/8-1:0] atomics_mst_wstrb;
+   logic                            atomics_mst_wlast;
+   logic [0:0]                      atomics_mst_wuser;
+   logic                            atomics_mst_bvalid;
+   logic                            atomics_mst_bready;
+   logic [AXI_ID_WIDTH_XBAR_MST-1:0]atomics_mst_bid;
+   logic [1:0]                      atomics_mst_bresp;
+   logic [0:0]                      atomics_mst_buser;
+   logic                            atomics_mst_arvalid;
+   logic                            atomics_mst_arready;
+   logic [XbarCfg.AxiAddrWidth-1:0] atomics_mst_araddr;
+   logic [AXI_ID_WIDTH_XBAR_MST-1:0]atomics_mst_arid;
+   logic [7:0]                      atomics_mst_arlen;
+   logic [2:0]                      atomics_mst_arsize;
+   logic [1:0]                      atomics_mst_arburst;
+   logic [2:0]                      atomics_mst_arprot;
+   logic                            atomics_mst_arlock;
+   logic [3:0]                      atomics_mst_arcache;
+   logic [3:0]                      atomics_mst_arqos;
+   logic [3:0]                      atomics_mst_arregion;
+   logic [0:0]                      atomics_mst_aruser;
+   logic                            atomics_mst_rvalid;
+   logic                            atomics_mst_rready;
+   logic [AXI_ID_WIDTH_XBAR_MST-1:0]atomics_mst_rid;
+   logic [XbarCfg.AxiDataWidth-1:0] atomics_mst_rdata;
+   logic [1:0]                      atomics_mst_rresp;
+   logic                            atomics_mst_rlast;
+   logic [0:0]                      atomics_mst_ruser;
+   
+   assign dram_axi_awvalid = xbar_mst_ports_req[MASTER_DRAM_IDX].aw_valid;
+   assign dram_axi_awaddr  = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.addr;
+   assign dram_axi_awid    = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.id;
+   assign dram_axi_awlen   = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.len;
+   assign dram_axi_awsize  = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.size;
+   assign dram_axi_awburst = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.burst;
+   assign dram_axi_awprot  = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.prot;
+   assign dram_axi_wvalid  = xbar_mst_ports_req[MASTER_DRAM_IDX].w_valid;
+   assign dram_axi_wdata   = xbar_mst_ports_req[MASTER_DRAM_IDX].w.data;
+   assign dram_axi_wstrb   = xbar_mst_ports_req[MASTER_DRAM_IDX].w.strb;
+   assign dram_axi_wlast   = xbar_mst_ports_req[MASTER_DRAM_IDX].w.last;
+   assign dram_axi_arvalid = xbar_mst_ports_req[MASTER_DRAM_IDX].ar_valid;
+   assign dram_axi_araddr  = xbar_mst_ports_req[MASTER_DRAM_IDX].ar.addr;
+   assign dram_axi_arid    = xbar_mst_ports_req[MASTER_DRAM_IDX].ar.id;
+   assign dram_axi_arlen   = xbar_mst_ports_req[MASTER_DRAM_IDX].ar.len;
+   assign dram_axi_arsize  = xbar_mst_ports_req[MASTER_DRAM_IDX].ar.size;
+   assign dram_axi_arburst = xbar_mst_ports_req[MASTER_DRAM_IDX].ar.burst;
+   assign dram_axi_arprot  = xbar_mst_ports_req[MASTER_DRAM_IDX].ar.prot;
+   assign dram_axi_bready  = xbar_mst_ports_req[MASTER_DRAM_IDX].b_ready;
+   assign dram_axi_rready  = xbar_mst_ports_req[MASTER_DRAM_IDX].r_ready;
 
-   assign xbar_to_serializer_req = xbar_mst_ports_req[MASTER_DRAM_IDX];
-   assign xbar_mst_ports_resp[MASTER_DRAM_IDX] = xbar_to_serializer_resp;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].aw_ready = dram_axi_awready;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].w_ready  = dram_axi_wready;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].ar_ready = dram_axi_arready;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].b_valid  = dram_axi_bvalid;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].b.id     = dram_axi_bid;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].b.resp   = dram_axi_bresp;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].r_valid  = dram_axi_rvalid;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].r.id     = dram_axi_rid;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].r.data   = dram_axi_rdata;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].r.resp   = dram_axi_rresp;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].r.last   = dram_axi_rlast;
 
-   axi_serializer #(
-      .MaxReadTxns ( AXI_MAX_TRANS ),
-      .MaxWriteTxns( AXI_MAX_TRANS ),
-      .AxiIdWidth ( cva6_config_pkg::CVA6ConfigAxiIdWidth ),
-      .req_t    ( ariane_axi::req_t        ),
-      .resp_t   ( ariane_axi::resp_t       )
-   ) i_dram_serializer (
-      .clk_i      ( clkwiz_o                ),
-      .rst_ni     ( (rst_ni & system_reset_o & pll_locked) || uart_dram_mode ),
-      .slv_req_i  ( xbar_to_serializer_req  ),
-      .slv_resp_o ( xbar_to_serializer_resp ),
-      .mst_req_o  ( serializer_to_dram_req  ),
-      .mst_resp_i ( serializer_to_dram_resp )
+   axi_riscv_atomics #(
+       .AXI_ADDR_WIDTH     (XbarCfg.AxiAddrWidth),
+       .AXI_DATA_WIDTH     (XbarCfg.AxiDataWidth),
+       .AXI_ID_WIDTH       (AXI_ID_WIDTH_XBAR_MST),
+       .AXI_USER_WIDTH     (1),
+       .AXI_MAX_WRITE_TXNS (1),
+       .RISCV_WORD_WIDTH   (32)
+   ) i_axi_atomics (
+       .clk_i(clkwiz_o),
+       .rst_ni(rst_n),
+       .slv_aw_addr_i   (dram_axi_awaddr),
+       .slv_aw_prot_i   (dram_axi_awprot),
+       .slv_aw_region_i ('0),
+       .slv_aw_atop_i   ({2'b0, xbar_mst_ports_req[MASTER_DRAM_IDX].aw.atop}),
+       .slv_aw_len_i    (dram_axi_awlen),
+       .slv_aw_size_i   (dram_axi_awsize),
+       .slv_aw_burst_i  (dram_axi_awburst),
+       .slv_aw_lock_i   (xbar_mst_ports_req[MASTER_DRAM_IDX].aw.lock),
+       .slv_aw_cache_i  ('0),
+       .slv_aw_qos_i    ('0),
+       .slv_aw_id_i     (dram_axi_awid),
+       .slv_aw_user_i   ('0),
+       .slv_aw_ready_o  (dram_axi_awready),
+       .slv_aw_valid_i  (dram_axi_awvalid),
+       .slv_ar_addr_i   (dram_axi_araddr),
+       .slv_ar_prot_i   (dram_axi_arprot),
+       .slv_ar_region_i ('0),
+       .slv_ar_len_i    (dram_axi_arlen),
+       .slv_ar_size_i   (dram_axi_arsize),
+       .slv_ar_burst_i  (dram_axi_arburst),
+       .slv_ar_lock_i   (xbar_mst_ports_req[MASTER_DRAM_IDX].ar.lock),
+       .slv_ar_cache_i  ('0),
+       .slv_ar_qos_i    ('0),
+       .slv_ar_id_i     (dram_axi_arid),
+       .slv_ar_user_i   ('0),
+       .slv_ar_ready_o  (dram_axi_arready),
+       .slv_ar_valid_i  (dram_axi_arvalid),
+       .slv_w_data_i    (dram_axi_wdata),
+       .slv_w_strb_i    (dram_axi_wstrb),
+       .slv_w_user_i    ('0),
+       .slv_w_last_i    (dram_axi_wlast),
+       .slv_w_ready_o   (dram_axi_wready),
+       .slv_w_valid_i   (dram_axi_wvalid),
+       .slv_r_data_o    (dram_axi_rdata),
+       .slv_r_resp_o    (dram_axi_rresp),
+       .slv_r_last_o    (dram_axi_rlast),
+       .slv_r_id_o      (dram_axi_rid),
+       .slv_r_user_o    (),
+       .slv_r_ready_i   (dram_axi_rready),
+       .slv_r_valid_o   (dram_axi_rvalid),
+       .slv_b_resp_o    (dram_axi_bresp),
+       .slv_b_id_o      (dram_axi_bid),
+       .slv_b_user_o    (),
+       .slv_b_ready_i   (dram_axi_bready),
+       .slv_b_valid_o   (dram_axi_bvalid),
+       .mst_aw_addr_o   (atomics_mst_awaddr),
+       .mst_aw_prot_o   (atomics_mst_awprot),
+       .mst_aw_region_o (atomics_mst_awregion),
+       .mst_aw_atop_o   (atomics_mst_awatop),
+       .mst_aw_len_o    (atomics_mst_awlen),
+       .mst_aw_size_o   (atomics_mst_awsize),
+       .mst_aw_burst_o  (atomics_mst_awburst),
+       .mst_aw_lock_o   (atomics_mst_awlock),
+       .mst_aw_cache_o  (atomics_mst_awcache),
+       .mst_aw_qos_o    (atomics_mst_awqos),
+       .mst_aw_id_o     (atomics_mst_awid),
+       .mst_aw_user_o   (atomics_mst_awuser),
+       .mst_aw_ready_i  (atomics_mst_awready),
+       .mst_aw_valid_o  (atomics_mst_awvalid),
+       .mst_ar_addr_o   (atomics_mst_araddr),
+       .mst_ar_prot_o   (atomics_mst_arprot),
+       .mst_ar_region_o (atomics_mst_arregion),
+       .mst_ar_len_o    (atomics_mst_arlen),
+       .mst_ar_size_o   (atomics_mst_arsize),
+       .mst_ar_burst_o  (atomics_mst_arburst),
+       .mst_ar_lock_o   (atomics_mst_arlock),
+       .mst_ar_cache_o  (atomics_mst_arcache),
+       .mst_ar_qos_o    (atomics_mst_arqos),
+       .mst_ar_id_o     (atomics_mst_arid),
+       .mst_ar_user_o   (atomics_mst_aruser),
+       .mst_ar_ready_i  (atomics_mst_arready),
+       .mst_ar_valid_o  (atomics_mst_arvalid),
+       .mst_w_data_o    (atomics_mst_wdata),
+       .mst_w_strb_o    (atomics_mst_wstrb),
+       .mst_w_user_o    (atomics_mst_wuser),
+       .mst_w_last_o    (atomics_mst_wlast),
+       .mst_w_ready_i   (atomics_mst_wready),
+       .mst_w_valid_o   (atomics_mst_wvalid),
+       .mst_r_data_i    (atomics_mst_rdata),
+       .mst_r_resp_i    (atomics_mst_rresp),
+       .mst_r_last_i    (atomics_mst_rlast),
+       .mst_r_id_i      (atomics_mst_rid),
+       .mst_r_user_i    (atomics_mst_ruser),
+       .mst_r_ready_o   (atomics_mst_rready),
+       .mst_r_valid_i   (atomics_mst_rvalid),
+       .mst_b_resp_i    (atomics_mst_bresp),
+       .mst_b_id_i      (atomics_mst_bid),
+       .mst_b_user_i    (atomics_mst_buser),
+       .mst_b_ready_o   (atomics_mst_bready),
+       .mst_b_valid_i   (atomics_mst_bvalid)
    );
 
    dram_controller_axi #(
@@ -799,41 +873,41 @@ module air_soc (
        .clk_i        ( clkwiz_o         ),
        .rst_ni       ( (rst_ni & system_reset_o & pll_locked) || uart_dram_mode ),
 
-       .s_axi_awvalid( serializer_to_dram_req.aw_valid ),
-       .s_axi_awready( serializer_to_dram_resp.aw_ready ),
-       .s_axi_awaddr ( serializer_to_dram_req.aw.addr  ),
-       .s_axi_awid   ( serializer_to_dram_req.aw.id    ),
-       .s_axi_awlen  ( serializer_to_dram_req.aw.len   ),
-       .s_axi_awsize ( serializer_to_dram_req.aw.size  ),
-       .s_axi_awburst( serializer_to_dram_req.aw.burst ),
-       .s_axi_awprot ( serializer_to_dram_req.aw.prot  ),
+       .s_axi_awvalid( atomics_mst_awvalid ),
+       .s_axi_awready( atomics_mst_awready ),
+       .s_axi_awaddr ( atomics_mst_awaddr  ),
+       .s_axi_awid   ( atomics_mst_awid    ),
+       .s_axi_awlen  ( atomics_mst_awlen   ),
+       .s_axi_awsize ( atomics_mst_awsize  ),
+       .s_axi_awburst( atomics_mst_awburst ),
+       .s_axi_awprot ( atomics_mst_awprot  ),
 
-       .s_axi_wvalid ( serializer_to_dram_req.w_valid  ),
-       .s_axi_wready ( serializer_to_dram_resp.w_ready  ),
-       .s_axi_wdata  ( serializer_to_dram_req.w.data   ),
-       .s_axi_wstrb  ( serializer_to_dram_req.w.strb   ),
-       .s_axi_wlast  ( serializer_to_dram_req.w.last   ),
+       .s_axi_wvalid ( atomics_mst_wvalid  ),
+       .s_axi_wready ( atomics_mst_wready  ),
+       .s_axi_wdata  ( atomics_mst_wdata   ),
+       .s_axi_wstrb  ( atomics_mst_wstrb   ),
+       .s_axi_wlast  ( atomics_mst_wlast   ),
 
-       .s_axi_bvalid ( serializer_to_dram_resp.b_valid ),
-       .s_axi_bready ( serializer_to_dram_req.b_ready  ),
-       .s_axi_bid    ( serializer_to_dram_resp.b.id     ),
-       .s_axi_bresp  ( serializer_to_dram_resp.b.resp   ),
+       .s_axi_bvalid ( atomics_mst_bvalid  ),
+       .s_axi_bready ( atomics_mst_bready  ),
+       .s_axi_bid    ( atomics_mst_bid     ),
+       .s_axi_bresp  ( atomics_mst_bresp   ),
 
-       .s_axi_arvalid( serializer_to_dram_req.ar_valid ),
-       .s_axi_arready( serializer_to_dram_resp.ar_ready ),
-       .s_axi_araddr ( serializer_to_dram_req.ar.addr  ),
-       .s_axi_arid   ( serializer_to_dram_req.ar.id    ),
-       .s_axi_arlen  ( serializer_to_dram_req.ar.len   ),
-       .s_axi_arsize ( serializer_to_dram_req.ar.size  ),
-       .s_axi_arburst( serializer_to_dram_req.ar.burst ),
-       .s_axi_arprot ( serializer_to_dram_req.ar.prot  ),
+       .s_axi_arvalid( atomics_mst_arvalid ),
+       .s_axi_arready( atomics_mst_arready ),
+       .s_axi_araddr ( atomics_mst_araddr  ),
+       .s_axi_arid   ( atomics_mst_arid    ),
+       .s_axi_arlen  ( atomics_mst_arlen   ),
+       .s_axi_arsize ( atomics_mst_arsize  ),
+       .s_axi_arburst( atomics_mst_arburst ),
+       .s_axi_arprot ( atomics_mst_arprot  ),
 
-       .s_axi_rvalid ( serializer_to_dram_resp.r_valid ),
-       .s_axi_rready ( serializer_to_dram_req.r_ready  ),
-       .s_axi_rid    ( serializer_to_dram_resp.r.id     ),
-       .s_axi_rdata  ( serializer_to_dram_resp.r.data   ),
-       .s_axi_rresp  ( serializer_to_dram_resp.r.resp   ),
-       .s_axi_rlast  ( serializer_to_dram_resp.r.last   ),
+       .s_axi_rvalid ( atomics_mst_rvalid  ),
+       .s_axi_rready ( atomics_mst_rready  ),
+       .s_axi_rid    ( atomics_mst_rid     ),
+       .s_axi_rdata  ( atomics_mst_rdata   ),
+       .s_axi_rresp  ( atomics_mst_rresp   ),
+       .s_axi_rlast  ( atomics_mst_rlast   ),
 
        .ddr3_reset_n( ddr3_reset_n ),
        .ddr3_cke    ( ddr3_cke     ),
@@ -850,10 +924,12 @@ module air_soc (
        .ddr3_dqs_p  ( ddr3_dqs_p   ),
        .ddr3_dqs_n  ( ddr3_dqs_n   ),
        .ddr3_dq     ( ddr3_dq      ),
+
        .clk100      ( clk100       ),
        .clk_ddr     ( clk_ddr      ),
        .clk_ref     ( clk_ref      ),
        .clk_ddr_dqs ( clk_ddr_dqs  ),
+
        .uart_dram_write_we_i (uart_dram_write_we),
        .uart_dram_write_addr_i (uart_dram_write_addr),
        .uart_dram_write_data_i (uart_dram_write_data),
@@ -916,8 +992,8 @@ module air_soc (
    assign mem8_obi_rsp.r.err  = 1'b0;
 
    ram32 #(
-      .SIZE     ('h50000/4),
-      .INIT_FILE(""), //("/home/shc/projects/riscv-linux-boot/opensbi/build/platform/template/firmware/fw_dynamic.hex"),
+      .SIZE     ('h40000/4),
+      .INIT_FILE(`RAM_FPATH), //("/home/shc/projects/riscv-linux-boot/opensbi/build/platform/template/firmware/fw_dynamic.hex"),
       .USE_BOOTROM(0)
    ) main_memory8 (
       .clk_i   (clkwiz_o),

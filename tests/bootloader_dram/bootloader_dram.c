@@ -1,6 +1,102 @@
 #include <stdint.h>
 #include "timer.h"
 
+static const unsigned int start_address = 0x00000000;
+static const unsigned int data[] = {
+    0x00000517,
+    0x15050513,
+    0x00000597,
+    0x14C58593,
+    0x00000617,
+    0x14860613,
+    0x00000697,
+    0x14868693,
+    0x20234285,
+    0x42A10055,
+    0x0055A023,
+    0x20234291,
+    0x02930056,
+    0x2223FF00,
+    0x02930056,
+    0xA0230FF0,
+    0x02930056,
+    0xA223F000,
+    0x43090056,
+    0x086523AF,
+    0x99634285,
+    0x2E030E53,
+    0x42890005,
+    0x0E5E1463,
+    0x23AF430D,
+    0x42890065,
+    0x0C539E63,
+    0x00052E03,
+    0x19634295,
+    0x43310C5E,
+    0x206523AF,
+    0x93634295,
+    0x2E030C53,
+    0x42A50005,
+    0x0A5E1E63,
+    0x23AF430D,
+    0x42A56065,
+    0x0A539863,
+    0x00052E03,
+    0x13634285,
+    0x43290A5E,
+    0x406523AF,
+    0x9D634285,
+    0x2E030853,
+    0x42AD0005,
+    0x085E1863,
+    0x1005A32F,
+    0xA3AF0305,
+    0x91631865,
+    0xAE030803,
+    0x42A50005,
+    0x065E1C63,
+    0x23AF537D,
+    0x42918066,
+    0x06539663,
+    0x00062E03,
+    0x116352FD,
+    0x4329065E,
+    0x00460E93,
+    0xA06EA3AF,
+    0x996352C1,
+    0xAE030453,
+    0x42A9000E,
+    0x045E1463,
+    0x0C800313,
+    0xC066A3AF,
+    0x0FF00293,
+    0x02539C63,
+    0x0006AE03,
+    0x0C800293,
+    0x025E1663,
+    0x00010337,
+    0xFFF30313,
+    0x00468E93,
+    0xE06EA3AF,
+    0xF0000293,
+    0x00539A63,
+    0x000EAE03,
+    0xF0000293,
+    0x005E1463,
+    0xA001A009,
+    0x0000A001,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0x00000000,
+    0xFFFFFFFF
+};
+
 #define DDR3_AXI_BASE_ADDR 0x80000000
 
 void init()
@@ -82,6 +178,10 @@ static inline void opensbi_init()
 int main()
 {
     init();
+    
+    for (int i = 0; i < sizeof(data)/sizeof(data[0]); i++) {
+        (*((volatile unsigned int*)(DDR3_AXI_BASE_ADDR + start_address + i*4))) = data[i];
+    }
 
     //update_trap_vector_base_address();
     opensbi_init();

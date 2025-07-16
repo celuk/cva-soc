@@ -71,13 +71,18 @@ OUTNAME ?= $(CPATH).riscv
 
 ifeq ($(ASM), 1)
 	SRCS := $(CPATH).S
-	CFLAGS := -nostartfiles -nostdlib -march=rv32im -mabi=ilp32 -T $(COMMON_PATH)/link_asm.ld
+	CFLAGS := -nostartfiles -nostdlib -march=rv32im -mabi=ilp32 -T $(COMMON_PATH)/link_asm$(WITHDRAM).ld
 endif
 
 ifeq ($(SIMPLE), 1)
 	DRIVERS := $(DRIVERS_PATH)/uart.c
 	SRCS := $(CPATH).c $(START_ASM) $(DRIVERS)
 	CFLAGS := -O0 -mcmodel=medany -static -nostartfiles -nostdlib -march=rv32im -mabi=ilp32 -T $(LINKER_SCRIPT) -I$(COMMON_PATH) -I$(DRIVERS_PATH)
+endif
+
+ifeq ($(ATOMICS), 1)
+	SRCS := $(CPATH).S
+	CFLAGS := -nostartfiles -nostdlib -march=rv32imac -mabi=ilp32 -T $(COMMON_PATH)/link_asm$(WITHDRAM).ld
 endif
 
 .PHONY: all
