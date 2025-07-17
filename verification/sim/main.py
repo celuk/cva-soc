@@ -27,6 +27,7 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
         Path(SCRIPT_DIR / "../../clint"),
         Path(SCRIPT_DIR / "../../register_interface"),
         #Path(SCRIPT_DIR / "../../axi"),
+        Path(SCRIPT_DIR / "../../axi_riscv_atomics/src"),
         Path(SCRIPT_DIR / "../../obi"),
         Path(SCRIPT_DIR / "../../safety_island/future/axi_obi")
     ]
@@ -136,6 +137,7 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
         + list(pkg_sv_paths)
         + list(other_paths)
         + list([Path(SCRIPT_DIR / "../../axi/src/axi_to_detailed_mem.sv")])
+        #+ list([Path(SCRIPT_DIR / "../../axi/src/axi_cut.sv")])
         + list(["../../vivado/cva_soc_zc706/cva_soc_zc706.gen/sources_1/ip/clk_wiz_0/clk_wiz_0_sim_netlist.v"])
         + list(["/tools/Xilinx/Vivado/2022.2/data/verilog/src/glbl.v"])
         + list(["/tools/Xilinx/Vivado/2022.2/data/verilog/src/unisims/OBUFDS.v"])

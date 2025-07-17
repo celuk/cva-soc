@@ -25,3 +25,6 @@
 [submodule "register_interface"]
 	path = register_interface
 	url = https://github.com/pulp-platform/register_interface
+[submodule "axi_riscv_atomics"]
+	path = axi_riscv_atomics
+	url = https://github.com/pulp-platform/axi_riscv_atomics

@@ -18,7 +18,7 @@ from pathlib import Path
 SCRIPT_DIR = Path(os.path.realpath(__file__)).parent.absolute()
 test_hex = {
     cfile: {
-        "TEST_FILE": "/home/shc/projects/riscv-linux-boot/opensbi/build/platform/template/firmware/fw_dynamic.hex", #f"{SCRIPT_DIR}/../../tests/{cfile}/{cfile}.hex",
+        "TEST_FILE": f"{SCRIPT_DIR}/../../tests/{cfile}/{cfile}.hex",
         "fail_adr": 0x40F00060,
         "pass_adr": 0x40F00078,
         "instructions": [],
