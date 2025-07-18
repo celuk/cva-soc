@@ -5,7 +5,7 @@ import argparse
 
 BUILD_DIR = "temp"
 
-def send_hex_over_uart(port, baud_rate, hex_path, program_sequence="TEKNOFEST", file_format=1):
+def send_hex_over_uart(port, baud_rate, hex_path, program_sequence="SECURESOC", file_format=1):
     print(f"Sending {hex_path} over UART...")
 
     if file_format == 1:
@@ -48,7 +48,7 @@ def send_hex_over_uart(port, baud_rate, hex_path, program_sequence="TEKNOFEST", 
             print(f"Done sending {hex_path}\n")
 
 
-def send_all_hex_from_build_dir(build_dir, port="/dev/ttyUSB1", baud_rate=115200, program_sequence="TEKNOFEST"):
+def send_all_hex_from_build_dir(build_dir, port="/dev/ttyUSB1", baud_rate=115200, program_sequence="SECURESOC"):
     i = 0
     while True:
         folder_name = f"simple_dram_write{i}"
@@ -68,7 +68,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Send all .hex files from BUILD_DIR over UART.")
     parser.add_argument("--port", "-p", type=str, default="/dev/ttyUSB1", help="Serial port")
     parser.add_argument("--baud_rate", "-b", type=int, default=115200, help="Baud rate")
-    parser.add_argument("--program_sequence", "-ps", type=str, default="TEKNOFEST", help="UART init sequence")
+    parser.add_argument("--program_sequence", "-ps", type=str, default="SECURESOC", help="UART init sequence")
 
     args = parser.parse_args()
 

@@ -149,7 +149,7 @@ async def main_memory(dut, clock_period_ns, uart_baud_rate, clk):
         instructions = tests[test]["instructions"]
         prog_size = len(instructions)
 
-        await _send_uart_string(dut, "TEKNOFEST", cycles_per_bit, clk) # DRAMWRITE
+        await _send_uart_string(dut, "SECURESOC", cycles_per_bit, clk) # DRAMWRITE
         await _send_uart_word32(dut, prog_size, cycles_per_bit, clk)
 
         ## TODO: send start address to UART

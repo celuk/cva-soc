@@ -6,7 +6,7 @@ parser.add_argument("--port", '-p', type=str, default="/dev/ttyUSB1", required=F
 parser.add_argument("--baud_rate", '-b', type=int, default=115200, help="Baud rate to use")
 parser.add_argument("--file", '-f', type=str, default="./tests/qspi_demo/qspi_demo.hex", help="File to send")
 parser.add_argument("--file_format", '-ff', type=int, default=1, help="File format to send")
-parser.add_argument("--program_sequence", '-ps', type=str, default="TEKNOFEST", help="Program sequence to send")
+parser.add_argument("--program_sequence", '-ps', type=str, default="SECURESOC", help="Program sequence to send")
 args = parser.parse_args()
 port = args.port
 baud_rate = args.baud_rate

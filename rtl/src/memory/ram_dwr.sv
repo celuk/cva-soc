@@ -84,7 +84,7 @@ module ram32_dwr #(
    localparam RESET_SEQUENCE    = "RESETTTTT";
 
    // Programming state machine signals
-   localparam PROGRAM_SEQUENCE    = "TEKNOFEST";
+   localparam PROGRAM_SEQUENCE    = "SECURESOC";
    localparam DRAMWRITE_SEQUENCE  = "DRAMWRITE"; // New sequence
    localparam PROG_SEQ_LENGTH     = 9;
    localparam SEQ_BREAK_THRESHOLD = 32'hffffffff; //32'd1000000;
@@ -157,7 +157,7 @@ module ram32_dwr #(
    // PROGRAMMING CONTROLLER 
    // =========================================================================
    
-   // Signals for TEKNOFEST programming
+   // Signals for SECURESOC programming
    reg  [clogb2(RAM_DEPTH-1)-1:0] prog_addr;
    reg [31:0] prog_instruction;
    reg prog_inst_valid;

@@ -93,7 +93,7 @@ module ram32_obi #(
       end
    end
    
-   localparam PROGRAM_SEQUENCE    = "TEKNOFEST";
+   localparam PROGRAM_SEQUENCE    = "SECURESOC";
    localparam PROG_SEQ_LENGTH     = 9 ;
    localparam SEQ_BREAK_THRESHOLD = 32'd1000000;
    

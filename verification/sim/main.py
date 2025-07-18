@@ -27,7 +27,7 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
         Path(SCRIPT_DIR / "../../clint"),
         Path(SCRIPT_DIR / "../../register_interface"),
         #Path(SCRIPT_DIR / "../../axi"),
-        Path(SCRIPT_DIR / "../../axi_riscv_atomics/src"),
+        #Path(SCRIPT_DIR / "../../axi_riscv_atomics/src"),
         Path(SCRIPT_DIR / "../../obi"),
         Path(SCRIPT_DIR / "../../safety_island/future/axi_obi")
     ]
