@@ -1,8 +1,8 @@
 onerror {resume}
 quietly WaveActivateNextPane {} 0
 
-add wave -noupdate /air_soc/clk_i
-add wave -noupdate /air_soc/rst_ni
+add wave -noupdate /secure_soc/clk_i
+add wave -noupdate /secure_soc/rst_ni
 
 TreeUpdate [SetDefaultTree]
 configure wave -namecolwidth 150

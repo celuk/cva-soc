@@ -1,4 +1,4 @@
-// air_soc.sv
+// secure_soc.sv
 `timescale 1ns / 1ps
 
 `include "header.vh"
@@ -9,7 +9,7 @@
 `include "axi/typedef.svh"
 `include "register_interface/typedef.svh"
 
-module air_soc (
+module secure_soc (
    `ifdef ZC706
    input  wire clk_p,
    input  wire clk_n,
