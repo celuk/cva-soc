@@ -5,38 +5,51 @@ _start:
   # ----------------------------------------------------------------
   # Test Setup
   # ----------------------------------------------------------------
-  # Load addresses of test variables into registers.
-  la a0, test_val_1     # Address for general AMO tests
-  la a1, test_val_2     # Address for lr/sc test
-  la a2, test_val_3     # Address for min/max signed tests
-  la a3, test_val_4     # Address for min/max unsigned tests
+  # Define the base address for most test data.
+  .equ BASE_ADDR, 0x81000000
+  li a4, BASE_ADDR      # Load base address into a register (a4)
 
-  # Initialize test values in memory
+  # Define a separate, distant address for the lr/sc test to avoid
+  # hardware reservation granule conflicts with other AMO operations.
+  .equ LRSC_ADDR, 0x81001000
+
+  # Define offsets from the base address.
+  .equ OFFSET_VAL_1, 0
+  .equ OFFSET_VAL_3, 8
+  .equ OFFSET_VAL_4, 16
+
+  # Initialize AMO test values at their base address.
   li t0, 0x00000001
-  sw t0, 0(a0)
-  li t0, 0x00000008
-  sw t0, 0(a1)
-  li t0, 0x00000004       # Initial value for signed min/max
-  sw t0, 0(a2)
-  li t0, 0xFFFFFFF0       # Initial value for signed min/max (negative)
-  sw t0, 4(a2)
-  li t0, 0x000000FF       # Initial value for unsigned min/max
-  sw t0, 0(a3)
-  li t0, 0xFFFFFF00       # Initial value for unsigned min/max (large unsigned)
-  sw t0, 4(a3)
+  sw t0, OFFSET_VAL_1(a4)       # test_val_1 at 0x81000000
 
+  # Initialize the lr/sc test value at its separate address.
+  li t0, 0x00000008
+  li a1, LRSC_ADDR              # Load a1 with the correct, isolated address
+  sw t0, 0(a1)                  # Store initial value at 0x81001000
+
+  # Initialize the remaining test values at the base address.
+  li t0, 0x00000004
+  sw t0, OFFSET_VAL_3(a4)       # test_val_3[0] at 0x81000008
+  li t0, 0xFFFFFFF0
+  sw t0, (OFFSET_VAL_3 + 4)(a4) # test_val_3[1] at 0x8100000C
+  li t0, 0x000000FF
+  sw t0, OFFSET_VAL_4(a4)       # test_val_4[0] at 0x81000010
+  li t0, 0xFFFFFF00
+  sw t0, (OFFSET_VAL_4 + 4)(a4) # test_val_4[1] at 0x81000014
+
+  # Load the final, absolute addresses for the tests into registers.
+  addi a0, a4, OFFSET_VAL_1 # Address for general AMO tests
+  # a1 is already correctly loaded with LRSC_ADDR. The buggy line that overwrote it is now removed.
+  addi a2, a4, OFFSET_VAL_3 # Address for min/max signed tests
+  addi a3, a4, OFFSET_VAL_4 # Address for min/max unsigned tests
 
   # ----------------------------------------------------------------
   # Test 1: AMOSWAP.W
   # ----------------------------------------------------------------
-  # Atomically swap the value in memory with a new value.
-  # Initial memory (a0): 0x00000001
-  li t1, 0x00000002      # New value to swap
-  amoswap.w t2, t1, (a0) # t2 = old_val, mem(a0) = t1
-  # Verify: t2 should hold the old value (1)
+  li t1, 0x00000002
+  amoswap.w t2, t1, (a0)
   li t0, 0x00000001
   bne t2, t0, fail
-  # Verify: Memory should now hold the new value (2)
   lw t3, 0(a0)
   li t0, 0x00000002
   bne t3, t0, fail
@@ -44,14 +57,10 @@ _start:
   # ----------------------------------------------------------------
   # Test 2: AMOADD.W
   # ----------------------------------------------------------------
-  # Atomically add a value to the memory location.
-  # Initial memory (a0): 0x00000002
-  li t1, 0x00000003      # Value to add
-  amoadd.w t2, t1, (a0)  # t2 = old_val, mem(a0) = old_val + t1
-  # Verify: t2 should hold the old value (2)
+  li t1, 0x00000003
+  amoadd.w t2, t1, (a0)
   li t0, 0x00000002
   bne t2, t0, fail
-  # Verify: Memory should hold the new value (2 + 3 = 5)
   lw t3, 0(a0)
   li t0, 0x00000005
   bne t3, t0, fail
@@ -59,14 +68,10 @@ _start:
   # ----------------------------------------------------------------
   # Test 3: AMOXOR.W
   # ----------------------------------------------------------------
-  # Atomically XOR a value with the memory location.
-  # Initial memory (a0): 0x00000005 (binary 0101)
-  li t1, 0x0000000C      # Value to XOR (binary 1100)
-  amoxor.w t2, t1, (a0)  # t2 = old_val, mem(a0) = old_val ^ t1
-  # Verify: t2 should hold the old value (5)
+  li t1, 0x0000000C
+  amoxor.w t2, t1, (a0)
   li t0, 0x00000005
   bne t2, t0, fail
-  # Verify: Memory should hold the new value (5 ^ 12 = 9) (0101 ^ 1100 = 1001)
   lw t3, 0(a0)
   li t0, 0x00000009
   bne t3, t0, fail
@@ -74,14 +79,10 @@ _start:
   # ----------------------------------------------------------------
   # Test 4: AMOAND.W
   # ----------------------------------------------------------------
-  # Atomically AND a value with the memory location.
-  # Initial memory (a0): 0x00000009 (binary 1001)
-  li t1, 0x00000003      # Value to AND (binary 0011)
-  amoand.w t2, t1, (a0)  # t2 = old_val, mem(a0) = old_val & t1
-  # Verify: t2 should hold the old value (9)
+  li t1, 0x00000003
+  amoand.w t2, t1, (a0)
   li t0, 0x00000009
   bne t2, t0, fail
-  # Verify: Memory should hold the new value (9 & 3 = 1) (1001 & 0011 = 0001)
   lw t3, 0(a0)
   li t0, 0x00000001
   bne t3, t0, fail
@@ -89,14 +90,10 @@ _start:
   # ----------------------------------------------------------------
   # Test 5: AMOOR.W
   # ----------------------------------------------------------------
-  # Atomically OR a value with the memory location.
-  # Initial memory (a0): 0x00000001 (binary 0001)
-  li t1, 0x0000000A      # Value to OR (binary 1010)
-  amoor.w t2, t1, (a0)   # t2 = old_val, mem(a0) = old_val | t1
-  # Verify: t2 should hold the old value (1)
+  li t1, 0x0000000A
+  amoor.w t2, t1, (a0)
   li t0, 0x00000001
   bne t2, t0, fail
-  # Verify: Memory should hold the new value (1 | 10 = 11) (0001 | 1010 = 1011)
   lw t3, 0(a0)
   li t0, 0x0000000B
   bne t3, t0, fail
@@ -104,14 +101,11 @@ _start:
   # ----------------------------------------------------------------
   # Test 6: LR.W and SC.W (Successful)
   # ----------------------------------------------------------------
-  # Load-Reserved and Store-Conditional.
-  # Initial memory (a1): 0x00000008
-  lr.w t1, (a1)          # Load and reserve address a1
-  addi t1, t1, 1         # Increment the value
-  sc.w t2, t1, (a1)      # Attempt to store back. Should succeed.
-  # Verify: t2 should be 0 for success
-  bnez t2, fail
-  # Verify: Memory should hold the new value (8 + 1 = 9)
+  # a1 now correctly holds LRSC_ADDR (0x81001000)
+  lr.w t1, (a1)
+  addi t1, t1, 1
+  sc.w t2, t1, (a1)
+  bnez t2, fail         # This should now pass, as t2 will be 0
   lw t3, 0(a1)
   li t0, 0x00000009
   bne t3, t0, fail
@@ -119,9 +113,8 @@ _start:
   # ----------------------------------------------------------------
   # Test 7: AMOMIN.W (Signed Minimum)
   # ----------------------------------------------------------------
-  # Initial memory (a2): 4
-  li t1, -1              # New value is smaller
-  amomin.w t2, t1, (a2)  # t2 = 4, mem(a2) = min(4, -1) = -1
+  li t1, -1
+  amomin.w t2, t1, (a2)
   li t0, 4
   bne t2, t0, fail
   lw t3, 0(a2)
@@ -131,22 +124,20 @@ _start:
   # ----------------------------------------------------------------
   # Test 8: AMOMAX.W (Signed Maximum)
   # ----------------------------------------------------------------
-  # Initial memory (a2+4): -16 (0xFFFFFFF0)
-  li t1, 10              # New value is larger
-  addi t4, a2, 4         # CORRECT: AMO does not support imm offset, so calculate address first
-  amomax.w t2, t1, (t4)  # t2 = -16, mem(a2+4) = max(-16, 10) = 10
+  li t1, 10
+  addi t4, a2, 4
+  amomax.w t2, t1, (t4)
   li t0, -16
   bne t2, t0, fail
-  lw t3, 0(t4)           # Verify using the calculated address
+  lw t3, 0(t4)
   li t0, 10
   bne t3, t0, fail
 
   # ----------------------------------------------------------------
   # Test 9: AMOMINU.W (Unsigned Minimum)
   # ----------------------------------------------------------------
-  # Initial memory (a3): 255 (0x000000FF)
-  li t1, 200             # New value is smaller
-  amominu.w t2, t1, (a3) # t2 = 255, mem(a3) = min(255, 200) = 200
+  li t1, 200
+  amominu.w t2, t1, (a3)
   li t0, 255
   bne t2, t0, fail
   lw t3, 0(a3)
@@ -156,19 +147,17 @@ _start:
   # ----------------------------------------------------------------
   # Test 10: AMOMAXU.W (Unsigned Maximum)
   # ----------------------------------------------------------------
-  # Initial memory (a3+4): 0xFFFFFF00 (large unsigned)
-  li t1, 0x0000FFFF      # New value is smaller
-  addi t4, a3, 4         # CORRECT: AMO does not support imm offset, so calculate address first
-  amomaxu.w t2, t1, (t4) # t2 = 0xFFFFFF00, mem(a3+4) = max(0xFFFFFF00, 0x0000FFFF) = 0xFFFFFF00
+  li t1, 0x0000FFFF
+  addi t4, a3, 4
+  amomaxu.w t2, t1, (t4)
   li t0, 0xFFFFFF00
   bne t2, t0, fail
-  lw t3, 0(t4)           # Verify using the calculated address
+  lw t3, 0(t4)
   li t0, 0xFFFFFF00
   bne t3, t0, fail
 
-
   # ----------------------------------------------------------------
-  # All tests passed. Jump to the pass label.
+  # All tests passed.
   # ----------------------------------------------------------------
   j pass
 
@@ -176,20 +165,7 @@ _start:
 # Test Outcome Labels
 # ----------------------------------------------------------------
 pass:
-  # Infinite loop to indicate success
   j pass
 
 fail:
-  # Infinite loop to indicate failure
-  # In a real test environment, this might write to a host device.
   j fail
-
-# ----------------------------------------------------------------
-# Data Section
-# ----------------------------------------------------------------
-.section .data
-.align 4
-test_val_1: .word 0
-test_val_2: .word 0
-test_val_3: .word 0, 0
-test_val_4: .word 0, 0

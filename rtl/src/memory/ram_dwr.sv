@@ -85,7 +85,7 @@ module ram32_dwr #(
 
    // Programming state machine signals
    localparam PROGRAM_SEQUENCE    = "SECURESOC";
-   localparam DRAMWRITE_SEQUENCE  = "DRAMWRITE"; // New sequence
+   localparam DRAMWRITE_SEQUENCE  = "DRAMWRITE";
    localparam PROG_SEQ_LENGTH     = 9;
    localparam SEQ_BREAK_THRESHOLD = 32'hffffffff; //32'd1000000;
    
