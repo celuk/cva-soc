@@ -24,7 +24,7 @@
 `define DM_EXCEPTION_ADDR 32'h0
 
 `define CPU_CLK 50_000_000
-`define BAUD_RATE 115200
+`define BAUD_RATE 921600 //1843200 //115200
 
 // Cache sizes must be multiple of 64 --> e.g. 0, 64, 128, 256, ...
 `define ICACHE_SZ 0
@@ -52,7 +52,7 @@
 `define ZC706
 //`define DDR3_AXI
 `define DDR_MHZ 50
-`define DRAM_SIM
+//`define DRAM_SIM
 //`define USE_SRAM
 
 /*
