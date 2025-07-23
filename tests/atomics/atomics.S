@@ -6,12 +6,14 @@ _start:
   # Test Setup
   # ----------------------------------------------------------------
   # Define the base address for most test data.
-  .equ BASE_ADDR, 0x81000000
+  #.equ BASE_ADDR, 0x81000000
+  .equ BASE_ADDR, 0x80010000
   li a4, BASE_ADDR      # Load base address into a register (a4)
 
   # Define a separate, distant address for the lr/sc test to avoid
   # hardware reservation granule conflicts with other AMO operations.
-  .equ LRSC_ADDR, 0x81001000
+  #.equ LRSC_ADDR, 0x81001000
+  .equ LRSC_ADDR, 0x80011000
 
   # Define offsets from the base address.
   .equ OFFSET_VAL_1, 0
