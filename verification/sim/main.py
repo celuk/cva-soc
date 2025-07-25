@@ -6,6 +6,7 @@ from cocotb.runner import get_runner
 
 SCRIPT_DIR = Path(os.path.realpath(__file__)).parent.absolute()
 
+DRAM_SIM = 1
 
 def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfile: str):
     hdl_dir = Path(SCRIPT_DIR / "../../rtl")
@@ -238,7 +239,7 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
     if simulator.lower() == "xcelium":
         with open("pre_input.tcl", "w") as f:
             f.writelines(["set probe_packed_limit 0;\n", "set probe_unpacked_limit 0;\n"])
-        if "dram" in cfile:
+        if DRAM_SIM: #if "dram" in cfile:
             runner_build_args.extend(["-f", "/tools/Xilinx/Vivado/2022.2/data/secureip/secureip_cell.list.f"])
         runner_build_args = [
                              #"-f", "/tools/Xilinx/Vivado/2022.2/data/secureip/secureip_cell.list.f",
@@ -246,7 +247,7 @@ def run_test(simulator: str, test_file: Path, top_module: str, waves: bool, cfil
                              "-top", "glbl", "-namemap_mixgen", "-verbose", "-access", "+rwc", "-timescale", "1ns/1ps", "-ALLOWREDEFINITION", "-relax", "-sv",
                              "-v93",
                              '+incdir+"../../../vivado/cva_soc_zc706/cva_soc_zc706.gen/sources_1/ip/clk_wiz_0"']
-        if "dram" in cfile:
+        if DRAM_SIM: #if "dram" in cfile:
             runner_build_args.extend(["-f", "/tools/Xilinx/Vivado/2022.2/data/secureip/secureip_cell.list.f"])
         runner_pre_cmd = []
         runner_test_args = ["-newperf", "-plusperf", "-top", "glbl", "-verbose", "-access", "+rwc", "-timescale", "1ns/1ps", "-pre_input", "../pre_input.tcl"] #["set probe_packed_limit 131072; set probe_unpacked_limit 131072;"] #["probe -create -packed 131072 *;"]

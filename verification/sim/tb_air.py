@@ -108,8 +108,9 @@ def load_verilog_hex_file():
 def load_dram_verilog_hex_file():
     for test in tests:
         #with open(tests[test]["TEST_FILE"].rsplit("/", 2)[0] + "/coremark/coremark_baremetal.vmem", "r") as file:
-        with open(tests[test]["TEST_FILE"].rsplit("/", 2)[0] + "/demo/demo.vmem", "r") as file:
+        #with open(tests[test]["TEST_FILE"].rsplit("/", 2)[0] + "/demo/demo.vmem", "r") as file:
         #with open(tests[test]["TEST_FILE"].rsplit("/", 2)[0] + "/atomics/atomics.vmem", "r") as file:
+        with open(tests[test]["TEST_FILE"].replace(".hex", ".vmem"), "r") as file:
             lines = file.readlines()
 
         memory = {}
@@ -202,7 +203,7 @@ async def main_memory(dut, clk, start_address):
     address = 0
     memory_array_index = 0
     ## for dram bootloader test
-    if cfile == "bootloader_dram":
+    if cfile != "bootloader_dram":
         dram_mem_size = len(dut.ddr3_dut.memory)
         dut.ddr3_dut.memory_index.value = 0
         for i in range(dram_mem_size):
@@ -212,23 +213,19 @@ async def main_memory(dut, clk, start_address):
         dram_memory = load_dram_verilog_hex_file()
         
         sorted_addresses = sorted(dram_memory.keys())
-    
+        processed_blocks = set()
+
         for address in sorted_addresses:
-            if address % 16 == 0:
+            block_address = (address // 16) * 16
+            if block_address not in processed_blocks:
                 word128 = 0
                 for i in range(16):
-                    byte_val = dram_memory.get(address + i, 0)
+                    byte_val = dram_memory.get(block_address + i, 0)
                     word128 |= byte_val << (i * 8)
                 dut.ddr3_dut.memory[memory_array_index].value = word128
-                #BA_BITS = 3
-                #ROW_BITS = 15
-                #COL_BITS = 10
-                #BL_MAX = 8
-                #bank, row, col = extract_address_fields_rbc(address, BA_BITS, ROW_BITS, COL_BITS)
-                #addr_combined = (row << (BA_BITS + COL_BITS)) | (bank << COL_BITS) | col #(bank << (ROW_BITS + COL_BITS)) | (row << COL_BITS) | col
-                #addr_combined = addr_combined // BL_MAX
-                dut.ddr3_dut.address[memory_array_index].value = address >> 4 #addr_combined
+                dut.ddr3_dut.address[memory_array_index].value = block_address >> 4
                 memory_array_index += 1
+                processed_blocks.add(block_address)
         #print("ADDRESS: " + list(dram_memory.keys())[-1].__str__())
         #print("ADDRESS: " + (hex(address >> 4)).__str__())
     #print("ADDRESS: " + (hex(address >> 4)).__str__())
@@ -248,7 +245,7 @@ async def main_memory(dut, clk, start_address):
     await RisingEdge(clk)
     dut.rst_ni.value = 1
 #
-    if cfile == "bootloader_dram":
+    if cfile != "bootloader_dram":
         await Edge(dut.ddr3_dut.init_done)
         #dut.ddr3_dut.memory_used.value = dram_mem_size
         ## it is used as latest program address of word128
