@@ -110,7 +110,8 @@ def load_dram_verilog_hex_file():
         #with open(tests[test]["TEST_FILE"].rsplit("/", 2)[0] + "/coremark/coremark_baremetal.vmem", "r") as file:
         #with open(tests[test]["TEST_FILE"].rsplit("/", 2)[0] + "/demo/demo.vmem", "r") as file:
         #with open(tests[test]["TEST_FILE"].rsplit("/", 2)[0] + "/atomics/atomics.vmem", "r") as file:
-        with open(tests[test]["TEST_FILE"].replace(".hex", ".vmem"), "r") as file:
+        #with open(tests[test]["TEST_FILE"].replace(".hex", ".vmem"), "r") as file:
+        with open("/home/shc/projects/riscv-linux-boot/opensbi/build/platform/template/firmware/fw_dynamic.vmem", "r") as file:
             lines = file.readlines()
 
         memory = {}
@@ -199,59 +200,96 @@ async def main_memory(dut, clk, start_address):
     #            )
     #            dut.main_memory.ram[address >> 2].value = word
         
-    dram_mem_size = 0
-    address = 0
-    memory_array_index = 0
-    ## for dram bootloader test
-    if cfile != "bootloader_dram":
-        dram_mem_size = len(dut.ddr3_dut.memory)
-        dut.ddr3_dut.memory_index.value = 0
-        for i in range(dram_mem_size):
-            dut.ddr3_dut.memory[i].value = 0
-            dut.ddr3_dut.address[i].value = i
+#    dram_mem_size = 0
+#    address = 0
+#    memory_array_index = 0
+#    ## for dram bootloader test
+#    if cfile == "bootloader_dram":
+#        dram_mem_size = len(dut.ddr3_dut.memory)
+#        dut.ddr3_dut.memory_index.value = 0
+#        for i in range(dram_mem_size):
+#            dut.ddr3_dut.memory[i].value = 0
+#            dut.ddr3_dut.address[i].value = i
+##
+#        dram_memory = load_dram_verilog_hex_file()
+#        
+#        sorted_addresses = sorted(dram_memory.keys())
+#        processed_blocks = set()
 #
-        dram_memory = load_dram_verilog_hex_file()
-        
-        sorted_addresses = sorted(dram_memory.keys())
-        processed_blocks = set()
-
-        for address in sorted_addresses:
-            block_address = (address // 16) * 16
-            if block_address not in processed_blocks:
-                word128 = 0
-                for i in range(16):
-                    byte_val = dram_memory.get(block_address + i, 0)
-                    word128 |= byte_val << (i * 8)
-                dut.ddr3_dut.memory[memory_array_index].value = word128
-                dut.ddr3_dut.address[memory_array_index].value = block_address >> 4
-                memory_array_index += 1
-                processed_blocks.add(block_address)
-        #print("ADDRESS: " + list(dram_memory.keys())[-1].__str__())
-        #print("ADDRESS: " + (hex(address >> 4)).__str__())
-    #print("ADDRESS: " + (hex(address >> 4)).__str__())
+#        for address in sorted_addresses:
+#            block_address = (address // 16) * 16
+#            if block_address not in processed_blocks:
+#                word128 = 0
+#                for i in range(16):
+#                    byte_val = dram_memory.get(block_address + i, 0)
+#                    word128 |= byte_val << (i * 8)
+#                dut.ddr3_dut.memory[memory_array_index].value = word128
+#                dut.ddr3_dut.address[memory_array_index].value = block_address >> 4
+#                memory_array_index += 1
+#                processed_blocks.add(block_address)
+#        #print("ADDRESS: " + list(dram_memory.keys())[-1].__str__())
+#        #print("ADDRESS: " + (hex(address >> 4)).__str__())
+#    #print("ADDRESS: " + (hex(address >> 4)).__str__())
+##
+#        #while not dut.ddr3_dut.init_done.value:
+#        #    await RisingEdge(clk)
+#        #await Edge(dut.ddr3_dut.init_done)
+#        #dut.ddr3_dut.memory_used.value = dram_mem_size
+##
+#    #    for i in range(1024):
+#    #        dut.ddr3_dut.memory[i].value = 0xDEADBEEF
+#    #    dut.ddr3_dut.memory[256 + 0].value = 0x00A00293
+#    #    dut.ddr3_dut.memory[256 + 1].value = 0xFFF28293
+#    #    dut.ddr3_dut.memory[256 + 2].value = 0xFE029EE3
+#    #    dut.ddr3_dut.memory[256 + 3].value = 0x0000006F
+##
+#    await RisingEdge(clk)
+#    dut.rst_ni.value = 1
+##
+#    if cfile == "bootloader_dram":
+#        await Edge(dut.ddr3_dut.init_done)
+#        #dut.ddr3_dut.memory_used.value = dram_mem_size
+#        ## it is used as latest program address of word128
+#        dut.ddr3_dut.memory_used.value = memory_array_index #address
 #
-        #while not dut.ddr3_dut.init_done.value:
-        #    await RisingEdge(clk)
-        #await Edge(dut.ddr3_dut.init_done)
-        #dut.ddr3_dut.memory_used.value = dram_mem_size
-#
-    #    for i in range(1024):
-    #        dut.ddr3_dut.memory[i].value = 0xDEADBEEF
-    #    dut.ddr3_dut.memory[256 + 0].value = 0x00A00293
-    #    dut.ddr3_dut.memory[256 + 1].value = 0xFFF28293
-    #    dut.ddr3_dut.memory[256 + 2].value = 0xFE029EE3
-    #    dut.ddr3_dut.memory[256 + 3].value = 0x0000006F
-#
-    await RisingEdge(clk)
-    dut.rst_ni.value = 1
-#
-    if cfile != "bootloader_dram":
-        await Edge(dut.ddr3_dut.init_done)
-        #dut.ddr3_dut.memory_used.value = dram_mem_size
-        ## it is used as latest program address of word128
-        dut.ddr3_dut.memory_used.value = memory_array_index #address
+#    global timeout
+#    while True:
+#        try:
+#            await RisingEdge(clk)
+#            if timeout > TIMEOUT:
+#                break
+#            timeout += 1
+#        except:
+#            pass
+#            #timeout = TIMEOUT
+#            ##await cocotb.triggers.Timer(1, units='ns')
+#            ##cocotb.simulator.end_simulation()
+#            #break
 
     global timeout
+    for test in tests:
+        dut.rst_ni.value = 0
+        await RisingEdge(clk)
+        #if test != "bootloader":
+        #for index, instruction in enumerate(tests[test]["instructions"]):
+        #    # fmt: off
+        #    #dut.ram_i.dp_ram_i.mem[(index << 2) + 0].value = (int(instruction, 16) >>  0) & 0xFF
+        #    #dut.ram_i.dp_ram_i.mem[(index << 2) + 1].value = (int(instruction, 16) >>  8) & 0xFF
+        #    #dut.ram_i.dp_ram_i.mem[(index << 2) + 2].value = (int(instruction, 16) >> 16) & 0xFF
+        #    #dut.ram_i.dp_ram_i.mem[(index << 2) + 3].value = (int(instruction, 16) >> 24) & 0xFF
+        #    # fmt: on
+        #    dut.main_memory8.ram[index + (0 >> 2)].value = int(instruction, 16)
+##
+        await RisingEdge(clk)
+        dut.rst_ni.value = 1
+##
+        timeout = 0
+        while True:
+            await RisingEdge(clk)
+            if timeout > TIMEOUT:
+                break
+            timeout += 1
+##
     while True:
         try:
             await RisingEdge(clk)
@@ -264,43 +302,6 @@ async def main_memory(dut, clk, start_address):
             ##await cocotb.triggers.Timer(1, units='ns')
             ##cocotb.simulator.end_simulation()
             #break
-
-    #global timeout
-    #for test in tests:
-    #    dut.rst_ni.value = 0
-    #    await RisingEdge(clk)
-    #    #if test != "bootloader":
-    #    #for index, instruction in enumerate(tests[test]["instructions"]):
-    #    #    # fmt: off
-    #    #    #dut.ram_i.dp_ram_i.mem[(index << 2) + 0].value = (int(instruction, 16) >>  0) & 0xFF
-    #    #    #dut.ram_i.dp_ram_i.mem[(index << 2) + 1].value = (int(instruction, 16) >>  8) & 0xFF
-    #    #    #dut.ram_i.dp_ram_i.mem[(index << 2) + 2].value = (int(instruction, 16) >> 16) & 0xFF
-    #    #    #dut.ram_i.dp_ram_i.mem[(index << 2) + 3].value = (int(instruction, 16) >> 24) & 0xFF
-    #    #    # fmt: on
-    #    #    dut.main_memory8.ram[index + (0 >> 2)].value = int(instruction, 16)
-##
-    #    await RisingEdge(clk)
-    #    dut.rst_ni.value = 1
-##
-    #    timeout = 0
-    #    while True:
-    #        await RisingEdge(clk)
-    #        if timeout > TIMEOUT:
-    #            break
-    #        timeout += 1
-##
-    #while True:
-    #    try:
-    #        await RisingEdge(clk)
-    #        if timeout > TIMEOUT:
-    #            break
-    #        timeout += 1
-    #    except:
-    #        pass
-    #        #timeout = TIMEOUT
-    #        ##await cocotb.triggers.Timer(1, units='ns')
-    #        ##cocotb.simulator.end_simulation()
-    #        #break
 
 @cocotb.test()
 async def tair(dut):

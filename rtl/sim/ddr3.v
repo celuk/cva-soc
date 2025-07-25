@@ -1,4 +1,5 @@
-//`define MAX_MEM
+`define MAX_MEM
+`define mem_init
 
 /****************************************************************************************
 *
@@ -408,7 +409,8 @@ module ddr3 (
         reg [BA_BITS - 1 : 0] bank;
         reg [ROW_BITS - 1 : 0] row;
         reg [COL_BITS - 1 : 0] col;
-        reg [BA_BITS + ROW_BITS + COL_BITS - 1 : 0] addr;
+        //reg [BA_BITS + ROW_BITS + COL_BITS - 1 : 0] addr;
+        reg [31 : 0] addr;
         reg [BL_MAX * DQ_BITS - 1 : 0] data;
         //TODO: replace string and $fscanf
 //        string char;
@@ -431,19 +433,22 @@ module ddr3 (
 
         // Preload section
     `ifdef mem_init
-        in = $fopen("mem_init.txt","r");
+        //in = $fopen("mem_init.txt","r");
+        //in = $fopen("/home/shc/projects/cva-soc/tests/demo/demo_mem_init.txt","r");
+        in = $fopen("/home/shc/projects/riscv-linux-boot/opensbi/build/platform/template/firmware/fw_dynamic_mem_init.txt","r");
         while (! $feof(in)) begin
-            fio_status = $fscanf(in, "%h %s %h", addr, char, data); // TODO:replace
+            //fio_status = $fscanf(in, "%h %s %h", addr, char, data); // TODO:replace
+            fio_status = $fscanf(in, "%h %h", addr, data);
             if (fio_status != -1) begin // Check for blank line or EOF
-                bank = addr [BA_BITS + ROW_BITS + COL_BITS - 1 : ROW_BITS + COL_BITS];
-                row = addr [ROW_BITS + COL_BITS - 1 : COL_BITS];
-                col = addr [COL_BITS - 1 : 0];
+                bank = addr [27:25]; //[BA_BITS + ROW_BITS + COL_BITS - 1 : ROW_BITS + COL_BITS];
+                row = addr [24:11]; //[ROW_BITS + COL_BITS - 1 : COL_BITS];
+                col = {addr [10:2], 1'b0}; //[COL_BITS - 1 : 0];
                 memory_write (bank, row, col, data);
                 // Next 4 lines are for debug only
-                $display ("MEMORY_WRITE: Bank = %h, Row = %h, Col = %h, Data = %h", bank, row, col, data);
-                data = 'hx; // This is to reset data to verify memory_read
-                memory_read(bank, row, col, data);
-                $display ("MEMORY_READ: Bank = %h, Row = %h, Col = %h, Data = %h", bank, row, col, data);
+                //$display ("MEMORY_WRITE: Bank = %h, Row = %h, Col = %h, Data = %h", bank, row, col, data);
+                //data = 'hx; // This is to reset data to verify memory_read
+                //memory_read(bank, row, col, data);
+                //$display ("MEMORY_READ: Bank = %h, Row = %h, Col = %h, Data = %h", bank, row, col, data);
             end
         end
         $fclose(in);
