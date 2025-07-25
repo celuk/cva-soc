@@ -15,7 +15,7 @@ def convert_vmem_to_mem_init(input_file, output_file):
 
                 if line.startswith('@'):
                     try:
-                        current_address = int(line[1:], 16) #- 0x80000000
+                        current_address = int(line[1:], 16) - 0x80000000
                     except ValueError:
                         current_address = None
                 elif current_address is not None:

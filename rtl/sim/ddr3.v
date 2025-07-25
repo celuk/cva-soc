@@ -456,6 +456,7 @@ module ddr3 (
     reg     [MEM_BITS:0]         memory_index;
     reg     [MEM_BITS:0]         memory_used = 0;
 
+    /*
     initial
     begin
         reg [BA_BITS - 1 : 0] bank;
@@ -474,14 +475,15 @@ module ddr3 (
                 col = addr [COL_BITS - 1 : 0];
                 memory_write (bank, row, col, data);
                 // Next 4 lines are for debug only
-                $display ("MEMORY_WRITE: Bank = %h, Row = %h, Col = %h, Data = %h", bank, row, col, data);
+                $display ("MEMORY_WRITE: Address = %h, Bank = %h, Row = %h, Col = %h, Data = %h", addr, bank, row, col, data);
                 data = 'hx; // This is to reset data to verify memory_read
                 memory_read(bank, row, col, data);
-                $display ("MEMORY_READ: Bank = %h, Row = %h, Col = %h, Data = %h", bank, row, col, data);
+                $display ("MEMORY_READ: Address = %h, Bank = %h, Row = %h, Col = %h, Data = %h", addr, bank, row, col, data);
             end
         end
         $fclose(in);
     end
+    */
 `endif
 
     // receive

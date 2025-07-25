@@ -34,7 +34,7 @@ module ddr3_core
     ,parameter DDR_COL_W        = 10
     ,parameter DDR_BANK_W       = 3
     ,parameter DDR_ROW_W        = 15
-    ,parameter DDR_BRC_MODE     = 0
+    ,parameter DDR_BRC_MODE     = 1
 )
 //-----------------------------------------------------------------
 // Ports
