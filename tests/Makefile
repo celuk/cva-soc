@@ -97,6 +97,7 @@ all:
 	python3 ../tools/bin2hex.py $(CPATH).bin > $(CPATH).hex
 
 	$(RISCVTYPE)-objcopy -O verilog $(CPATH).riscv $(CPATH).vmem
+	python3 ../tools/vmem_to_ddr3_init.py -i $(CPATH).vmem -o $(CPATH)_mem_init.txt
 
 ## use this for qspi flash sim
 #ifeq ($(BOOT), 1)

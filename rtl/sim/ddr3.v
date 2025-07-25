@@ -455,6 +455,33 @@ module ddr3 (
     reg     [`MAX_BITS-1:0]      address [0:`MEM_SIZE-1];
     reg     [MEM_BITS:0]         memory_index;
     reg     [MEM_BITS:0]         memory_used = 0;
+
+    initial
+    begin
+        reg [BA_BITS - 1 : 0] bank;
+        reg [ROW_BITS - 1 : 0] row;
+        reg [COL_BITS - 1 : 0] col;
+        reg [BA_BITS + ROW_BITS + COL_BITS - 1 : 0] addr;
+        reg [BL_MAX * DQ_BITS - 1 : 0] data;
+        reg [127:0] char;
+        integer in, fio_status;
+        in = $fopen("../../../tests/demo/demo_mem_init.txt","r");
+        while (! $feof(in)) begin
+            fio_status = $fscanf(in, "%h %h", addr, data);
+            if (fio_status != -1) begin // Check for blank line or EOF
+                bank = addr [BA_BITS + ROW_BITS + COL_BITS - 1 : ROW_BITS + COL_BITS];
+                row = addr [ROW_BITS + COL_BITS - 1 : COL_BITS];
+                col = addr [COL_BITS - 1 : 0];
+                memory_write (bank, row, col, data);
+                // Next 4 lines are for debug only
+                $display ("MEMORY_WRITE: Bank = %h, Row = %h, Col = %h, Data = %h", bank, row, col, data);
+                data = 'hx; // This is to reset data to verify memory_read
+                memory_read(bank, row, col, data);
+                $display ("MEMORY_READ: Bank = %h, Row = %h, Col = %h, Data = %h", bank, row, col, data);
+            end
+        end
+        $fclose(in);
+    end
 `endif
 
     // receive
