@@ -111,7 +111,7 @@ def load_dram_verilog_hex_file():
         #with open(tests[test]["TEST_FILE"].rsplit("/", 2)[0] + "/demo/demo.vmem", "r") as file:
         #with open(tests[test]["TEST_FILE"].rsplit("/", 2)[0] + "/atomics/atomics.vmem", "r") as file:
         #with open(tests[test]["TEST_FILE"].replace(".hex", ".vmem"), "r") as file:
-        with open("/home/shc/projects/riscv-linux-boot/opensbi/build/platform/template/firmware/fw_dynamic.vmem", "r") as file:
+        with open("/home/shc/projects/clones/riscv-opensbi-port/build/platform/template/firmware/fw_dynamic.vmem", "r") as file:
             lines = file.readlines()
 
         memory = {}
