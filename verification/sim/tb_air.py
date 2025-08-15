@@ -8,7 +8,7 @@ from cocotb.handle import SimHandleBase
 from cocotb.queue import Queue
 from cocotb.triggers import RisingEdge, FallingEdge, Edge, ClockCycles, Timer
 
-TIMEOUT = 250000000
+TIMEOUT = 200000000
 tests = {}
 
 import os
@@ -112,6 +112,7 @@ def load_dram_verilog_hex_file():
         #with open(tests[test]["TEST_FILE"].rsplit("/", 2)[0] + "/atomics/atomics.vmem", "r") as file:
         #with open(tests[test]["TEST_FILE"].replace(".hex", ".vmem"), "r") as file:
         with open("/home/shc/projects/clones/riscv-opensbi-port/build/platform/template/firmware/fw_dynamic.vmem", "r") as file:
+        #with open("/home/shc/projects/temp/tekno-kizil/testler/riscv-tests/isa/rv32ua-p-lrsc_static.hex", "r") as file:
             lines = file.readlines()
 
         memory = {}

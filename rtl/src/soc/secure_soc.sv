@@ -776,7 +776,7 @@ module secure_soc (
        .slv_aw_addr_i   (dram_axi_awaddr),
        .slv_aw_prot_i   (dram_axi_awprot),
        .slv_aw_region_i ('0),
-       .slv_aw_atop_i   ({2'b0, xbar_mst_ports_req[MASTER_DRAM_IDX].aw.atop}),
+       .slv_aw_atop_i   (xbar_mst_ports_req[MASTER_DRAM_IDX].aw.atop), //({2'b0, xbar_mst_ports_req[MASTER_DRAM_IDX].aw.atop}),
        .slv_aw_len_i    (dram_axi_awlen),
        .slv_aw_size_i   (dram_axi_awsize),
        .slv_aw_burst_i  (dram_axi_awburst),
