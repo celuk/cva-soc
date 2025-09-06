@@ -49,7 +49,7 @@ struct fw_dynamic_info {
 
 #define BOOT_HART_ID 0x0
 
-#define DTB_ADDRESS 0x0 //(OPENSBI_BASE_ADDR + 0xd000) // fw_fdt_bin (compiled dts - dtb file) address
+#define DTB_ADDRESS (OPENSBI_BASE_ADDR + 0xe000) // fw_fdt_bin (compiled dts - dtb file) address
 
 static inline void opensbi_init()
 {
@@ -71,9 +71,9 @@ static inline void opensbi_init()
         "li t0, %[entry]\n"
         "jalr x0, t0, 0\n"
         :
-        : [hart_id]"r"(0x0),
-          [dtb_addr]"r"(0x0),
-          [info_addr]"r"(0x0),
+        : [hart_id]"r"(hart_id),
+          [dtb_addr]"r"(DTB_ADDRESS),
+          [info_addr]"r"(&dynamic_info),
           [entry]"i"(OPENSBI_BASE_ADDR)
         : "a0", "a1", "a2", "t0"
     );
