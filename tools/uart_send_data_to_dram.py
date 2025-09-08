@@ -3,17 +3,19 @@ import argparse
 import os
 
 parser = argparse.ArgumentParser(description="Send data to the UART")
-parser.add_argument("--port", '-p', type=str, default="/dev/ttyUSB1", required=False, help="Serial port to use")
+parser.add_argument("--port", '-p', type=str, default="/dev/ttyUSB2", required=False, help="Serial port to use")
 parser.add_argument("--baud_rate", '-b', type=int, default=921600, help="Baud rate to use")
 parser.add_argument("--file", '-f', type=str, default="./tests/qspi_demo/qspi_demo.hex", help="File to send")
 parser.add_argument("--file_format", '-ff', type=int, default=1, help="File format to send")
 parser.add_argument("--program_sequence", '-ps', type=str, default="DRAMWRITE", help="Program sequence to send")
+parser.add_argument("--start_address", '-sa', type=str, default="0x00000000", help="Start address for DRAM write")
 args = parser.parse_args()
 port = args.port
 baud_rate = args.baud_rate
 file = args.file
 file_format = args.file_format
 program_sequence = args.program_sequence
+start_address = int(args.start_address, 16)
 
 if file_format == 1:
     line_count = 0
@@ -33,6 +35,10 @@ if file_format == 1:
     
     hex_str = int(hex_str, 16).to_bytes(4, 'big')
     ser.write(hex_str)
+
+    print(f"Start address is {hex(start_address)}")
+    start_address_bytes = int(hex(start_address), 16).to_bytes(4, 'big')
+    ser.write(start_address_bytes)
 
     with open(file, 'r') as f:
         for line in f:
@@ -56,6 +62,10 @@ elif file_format == 2:
     
     hex_str = int(hex_str, 16).to_bytes(4, 'big')
     ser.write(hex_str)
+
+    print(f"Start address is {hex(start_address)}")
+    start_address_bytes = int(hex(start_address), 16).to_bytes(4, 'big')
+    ser.write(start_address_bytes)
     
     with open(file, 'rb') as f:
         while True:

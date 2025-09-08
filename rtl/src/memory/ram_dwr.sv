@@ -189,6 +189,7 @@ module ram32_dwr #(
    localparam SequenceProgram        = 4'b0110;
    localparam SequenceFinish         = 4'b0100;
    localparam SequenceDramWriteLengthCalc = 4'b1010;
+   localparam SequenceDramWriteAddrCalc   = 4'b1011;
    localparam SequenceDramWriteProgram    = 4'b1110;
    localparam SequenceDramWriteFinish     = 4'b1100;
    
@@ -253,6 +254,11 @@ module ram32_dwr #(
           state_prog_next = SequenceWait;
         end
         SequenceDramWriteLengthCalc: begin
+          if ((prog_uart_do != ~0) && &instruction_byte_ctr) begin
+            state_prog_next = SequenceDramWriteAddrCalc;
+          end
+        end
+        SequenceDramWriteAddrCalc: begin
           if ((prog_uart_do != ~0) && &instruction_byte_ctr) begin
             state_prog_next = SequenceDramWriteProgram;
           end
@@ -400,6 +406,16 @@ module ram32_dwr #(
             dram_prog_addr <= 32'h0;
             if (prog_uart_do != ~0) begin
               dram_prog_size <= {dram_prog_size[3*8-1:0],prog_uart_do[7:0]};
+              if (&instruction_byte_ctr) begin
+                instruction_byte_ctr <= 2'b0;
+              end else begin
+                instruction_byte_ctr <= instruction_byte_ctr + 2'b1;
+              end
+            end
+          end
+          SequenceDramWriteAddrCalc: begin
+            if (prog_uart_do != ~0) begin
+              dram_prog_addr <= {dram_prog_addr[3*8-1:0],prog_uart_do[7:0]};
               if (&instruction_byte_ctr) begin
                 instruction_byte_ctr <= 2'b0;
               end else begin
