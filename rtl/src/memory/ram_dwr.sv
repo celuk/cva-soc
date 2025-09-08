@@ -481,7 +481,7 @@ module ram32_dwr #(
    assign rvalid_o = rvalid_r;
    assign rdata_o = ram_rdata;
    assign prog_mode_led_o = (state_prog == SequenceProgram);
-   assign system_reset_o = prog_sys_rst_n && dram_prog_sys_rst_n && boot_done;
+   assign system_reset_o = prog_sys_rst_n && dram_prog_sys_rst_n && !soft_rst && boot_done;
    assign ram_prog_rd_en = (state_prog != SequenceFinish) && (state_prog != SequenceDramWriteFinish);
 
    // New DRAM output assignments
