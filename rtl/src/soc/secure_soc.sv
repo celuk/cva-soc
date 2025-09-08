@@ -772,7 +772,7 @@ module secure_soc (
        .RISCV_WORD_WIDTH   (32)
    ) i_axi_atomics (
        .clk_i(clkwiz_o),
-       .rst_ni(rst_n),
+       .rst_ni( (rst_ni & system_reset_o & pll_locked) || uart_dram_mode ),
        .slv_aw_addr_i   (dram_axi_awaddr),
        .slv_aw_prot_i   (dram_axi_awprot),
        .slv_aw_region_i ('0),

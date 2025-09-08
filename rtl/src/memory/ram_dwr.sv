@@ -90,12 +90,13 @@ module ram32_dwr #(
    localparam SEQ_BREAK_THRESHOLD = 32'hffffffff; //32'd1000000;
    
    reg [PROG_SEQ_LENGTH*8-1:0] received_sequence;
+   wire soft_rst = (received_sequence == RESET_SEQUENCE);
    
    reg rvalid_r;
    always @(posedge clk_i or negedge rst_ni) begin
       if (!rst_ni)
          rvalid_r <= 1'b0;
-      else if(received_sequence == RESET_SEQUENCE)
+      else if(soft_rst)
          rvalid_r <= 1'b0;
       else
          rvalid_r <= req_i;
@@ -126,7 +127,7 @@ module ram32_dwr #(
             boot_done <= 1'b1;
          end
       end
-      else if(received_sequence == RESET_SEQUENCE) begin
+      else if(soft_rst) begin
          if (`USE_BOOTROM) begin
             boot_rom_addr <= 32'd0;
             boot_in_progress <= 1'b1;  
@@ -206,7 +207,7 @@ module ram32_dwr #(
       if (!rst_ni) begin
         state_prog <= SequenceWait;
       end
-      else if(received_sequence == RESET_SEQUENCE) begin
+      else if(soft_rst) begin
         state_prog <= SequenceWait;
       end
       else begin
@@ -295,7 +296,7 @@ module ram32_dwr #(
         dram_prog_inst_valid <= 1'b0;
         dram_prog_sys_rst_n  <= 1'b1;
       end
-      else if(received_sequence == RESET_SEQUENCE) begin
+      else if(soft_rst) begin
         instruction_byte_ctr <= 2'b0;
         prog_instruction     <= 32'h0;
         prog_intr_number     <= 32'h0;
