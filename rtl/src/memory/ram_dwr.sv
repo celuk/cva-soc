@@ -90,7 +90,14 @@ module ram32_dwr #(
    localparam SEQ_BREAK_THRESHOLD = 32'hffffffff; //32'd1000000;
    
    reg [PROG_SEQ_LENGTH*8-1:0] received_sequence;
-   wire soft_rst = (received_sequence == RESET_SEQUENCE);
+   reg soft_rst;
+   always @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+         soft_rst <= 1'b0;
+      end else begin
+         soft_rst <= (received_sequence == RESET_SEQUENCE);
+      end
+   end
    
    reg rvalid_r;
    always @(posedge clk_i or negedge rst_ni) begin
@@ -404,7 +411,7 @@ module ram32_dwr #(
           end
           SequenceDramWriteLengthCalc: begin
             dram_prog_ctr <= 32'h0;
-            //dram_prog_addr <= 32'h0;
+            dram_prog_addr <= 32'h0;
             if (prog_uart_do != ~0) begin
               dram_prog_size <= {dram_prog_size[3*8-1:0],prog_uart_do[7:0]};
               if (&instruction_byte_ctr) begin
@@ -481,7 +488,7 @@ module ram32_dwr #(
    assign rvalid_o = rvalid_r;
    assign rdata_o = ram_rdata;
    assign prog_mode_led_o = (state_prog == SequenceProgram);
-   assign system_reset_o = prog_sys_rst_n && boot_done && (state_prog != SequenceDramWriteFinish);
+   assign system_reset_o = prog_sys_rst_n && dram_prog_sys_rst_n && boot_done;
    assign ram_prog_rd_en = (state_prog != SequenceFinish) && (state_prog != SequenceDramWriteFinish);
 
    // New DRAM output assignments
