@@ -11,10 +11,10 @@ int main(){
 
     wait_for_us(500);
 
-    unsigned int address = 0x80000000;
+    unsigned int address = 0x90000000;
     unsigned int data_read;
     //while(data_read != 0xFFFFFFFF) {
-    for (unsigned int i = 0; i < 40000; i += 1) { // 7218*4 = 28872
+    for (unsigned int i = 0; i < 100; i += 1) { // 7218*4 = 28872
         //unsigned int *data_16bytes = dram_read_16bytes(address);
         data_read = *((volatile unsigned int*)(address));
         //tekno_printf("Read data %x at address: %x\n", data_read, address);
