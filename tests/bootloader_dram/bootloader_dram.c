@@ -44,12 +44,13 @@ struct fw_dynamic_info {
 #define FW_DYNAMIC_INFO_NEXT_MODE_U 0x0
 #define FW_DYNAMIC_INFO_NEXT_MODE_S 0x1
 #define FW_DYNAMIC_INFO_NEXT_MODE_M 0x3
-#define FW_DYNAMIC_NEXT_ADDRESS_OFFSET 0x00100000
+#define FW_DYNAMIC_NEXT_ADDRESS_OFFSET 0x00400000
 #define FW_DYNAMIC_NEXT_ADDRESS (OPENSBI_BASE_ADDR + FW_DYNAMIC_NEXT_ADDRESS_OFFSET) //0x90000000
 
 #define BOOT_HART_ID 0x0
 
-#define DTB_ADDRESS (OPENSBI_BASE_ADDR + 0xe000) // fw_fdt_bin (compiled dts - dtb file) address
+#define DTB_ADDRESS_OFFSET 0x20000000
+#define DTB_ADDRESS (OPENSBI_BASE_ADDR + DTB_ADDRESS_OFFSET) // fw_fdt_bin (compiled dts - dtb file) address
 
 static inline void opensbi_init()
 {
