@@ -4,7 +4,7 @@ from collections import OrderedDict
 
 BASE_ADDRESS = 0x80000000
 KERNEL_OFFSET = 0x00400000
-DTB_OFFSET = 0x20000000
+DTB_OFFSET = 0x02000000
 
 def convert_vmem_to_mem_init(input_files, output_file):
     memory = OrderedDict()

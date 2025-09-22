@@ -163,7 +163,7 @@ always_comb begin
       155:    rdata_o = 32'h0007A823;
       156:    rdata_o = 32'h0007AA23;
       157:    rdata_o = 32'hF1402773;
-      158:    rdata_o = 32'hA00006B7;
+      158:    rdata_o = 32'h820006B7;
       159:    rdata_o = 32'h00070513;
       160:    rdata_o = 32'h00068593;
       161:    rdata_o = 32'h00078613;
