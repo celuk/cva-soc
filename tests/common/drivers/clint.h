@@ -1,0 +1,17 @@
+#ifndef CLINT_H
+#define CLINT_H
+
+#include <stdint.h>
+
+#define CLINT_BASE_ADDR  0xFF080000
+#define CLINT_MSIP_OFFSET 0x0000
+#define CLINT_MTIMECMP_OFFSET 0x4000
+#define CLINT_MTIME_OFFSET 0xBFF8
+
+#define CLINT_MSIP (*(volatile uint32_t*) (CLINT_BASE_ADDR + CLINT_MSIP_OFFSET))
+#define CLINT_MTIMECMP_LOW (*(volatile uint32_t*) (CLINT_BASE_ADDR + CLINT_MTIMECMP_OFFSET))
+#define CLINT_MTIMECMP_HIGH (*(volatile uint32_t*) (CLINT_BASE_ADDR + CLINT_MTIMECMP_OFFSET + 4))
+#define CLINT_MTIME_LOW (*(volatile uint32_t*) (CLINT_BASE_ADDR + CLINT_MTIME_OFFSET))
+#define CLINT_MTIME_HIGH (*(volatile uint32_t*) (CLINT_BASE_ADDR + CLINT_MTIME_OFFSET + 4))
+
+#endif
