@@ -168,29 +168,17 @@ void tekno_printf(const char* fmt, ...)
 
 int uart_rxempty()
 {
-    // __asm__ volatile("fence" ::: "memory");
-    return (UART_CFG & 0x2) == 0; // RX complete biti kontrol ediliyor
+    return (UART_CFG & 0x2) == 0;
 }
 
 char zgetchar()
 {
-    // Veri gelene kadar bekle
     while (uart_rxempty()) {
-        // Bekle
     }
-    // __asm__ volatile("fence" ::: "memory");
+    
     char c = (char)UART_RDR;
-
-    // RX complete bitini temizle
-    // __asm__ volatile("fence" ::: "memory");
-    UART_CFG &= ~0x2;
-    // __asm__ volatile("fence" ::: "memory");
-
     return c;
 }
-//-----------------------------------------------
-// scan multiple characters.
-//-----------------------------------------------
 
 int zscan(char* buffer, int max_size, int echo)
 {
@@ -199,25 +187,25 @@ int zscan(char* buffer, int max_size, int echo)
 
     while (1) {
         c = zgetchar();
-        if (c == '\b') { // BACKSPACE
+        if (c == '\b') {
             if (length != 0) {
                 if (echo) {
-                    print("\b \b"); // delete last char in console
+                    print("\b \b");
                 }
                 buffer--;
                 length--;
             }
-        } else if (c == '\r') // carriage return
+        } else if (c == '\r')
             break;
         else if ((c >= ' ') && (c <= '~') && (length < (max_size - 1))) {
             if (echo) {
-                zputchar(c); // echo
+                zputchar(c);
             }
             *buffer++ = c;
             length++;
         }
     }
-    *buffer = '\0'; // terminate string
+    *buffer = '\0';
     print("\n");
 
     return length;
