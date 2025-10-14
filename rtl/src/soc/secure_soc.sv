@@ -82,7 +82,7 @@ module secure_soc (
    `endif
 );
 
-   wire uart_rx_i;
+   //wire uart_rx_i;
 
    logic system_reset_o;
    logic uart_dram_write_rst;
@@ -526,7 +526,7 @@ module secure_soc (
        .s_axi_rvalid (uart_axi_rvalid),  .s_axi_rready (uart_axi_rready),
        .s_axi_rid    (uart_axi_rid),     .s_axi_rdata  (uart_axi_rdata),
        .s_axi_rresp  (uart_axi_rresp),
-       .rx_i    ( uart_rx_i     ), .tx_o    ( uart_tx_o     )
+       .rx_i    ( program_rx_i     ), .tx_o    ( uart_tx_o     )
    );
 
    logic                            timer_axi_awvalid;

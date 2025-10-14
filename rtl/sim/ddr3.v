@@ -436,9 +436,10 @@ module ddr3 (
         //in = $fopen("mem_init.txt","r");
         //in = $fopen("/home/shc/projects/cva-soc/tests/demo/demo_mem_init.txt","r");
         //in = $fopen("/home/shc/projects/riscv-linux-boot/opensbi/build/platform/template/firmware/fw_dynamic_mem_init.txt","r");
-        //in = $fopen("/home/shc/projects/clones/riscv-opensbi-port/build/platform/template/firmware/fw_dynamic_mem_init.txt","r");
+        
+        in = $fopen("/home/shc/projects/clones/riscv-opensbi-port/build/platform/template/firmware/fw_dynamic_mem_init.txt","r");
         //in = $fopen("/home/shc/projects/cva-soc/tests/clint/clint_mem_init.txt","r");
-        in = $fopen("/home/shc/projects/cva-soc/tests/interrupt/interrupt_mem_init.txt","r");
+        //in = $fopen("/home/shc/projects/cva-soc/tests/interrupt/interrupt_mem_init.txt","r");
 
         //in = $fopen("/home/shc/projects/temp/tekno-kizil/testler/riscv-tests/isa/rv32ua-p-lrsc_mem_init.txt","r");
         //in = $fopen("/home/shc/projects/cva-soc/tests/atomics_lrsc/atomics_lrsc_mem_init.txt","r");
