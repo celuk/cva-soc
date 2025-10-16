@@ -18,8 +18,12 @@ module uart_controller (
    output reg  [31:0] wb_dat_o,
 
    input  wire uart_rx_i,
-   output wire uart_tx_o
+   output wire uart_tx_o,
+   output wire irq_o
 );
+
+   assign irq_o = 1'b0; // placeholder
+
    reg [31:0] baud_div;
    reg [1:0] stop_bit;
 

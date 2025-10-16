@@ -37,7 +37,8 @@ module uart_controller_axi #(
     output logic [1:0]                      s_axi_rresp,
 
     input  logic rx_i,
-    output logic tx_o
+    output logic tx_o,
+    output logic irq_o
 );
 
     localparam DATA_BYTES = AXI_DATA_WIDTH / 8;
@@ -65,7 +66,8 @@ module uart_controller_axi #(
        .clk_i(clk_i), .rst_i(~rst_ni), .wb_adr_i(wb_adr_reg[WB_ADDR_WIDTH-1:0]),
        .wb_dat_i(wb_dat_w_reg), .wb_we_i(wb_we), .wb_stb_i(wb_stb),
        .wb_sel_i(wb_sel_reg), .wb_cyc_i(wb_cyc), .wb_ack_o(wb_ack),
-       .wb_dat_o(wb_dat_r), .uart_rx_i(rx_i), .uart_tx_o(tx_o)
+       .wb_dat_o(wb_dat_r), .uart_rx_i(rx_i), .uart_tx_o(tx_o),
+       .irq_o(irq_o)
     );
 
     assign s_axi_awready = (current_state == S_IDLE);
