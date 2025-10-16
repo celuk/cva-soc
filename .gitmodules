@@ -22,3 +22,6 @@
 [submodule "axi_riscv_atomics"]
 	path = axi_riscv_atomics
 	url = https://github.com/pulp-platform/axi_riscv_atomics
+[submodule "rv_plic"]
+	path = rv_plic
+	url = https://github.com/pulp-platform/rv_plic
