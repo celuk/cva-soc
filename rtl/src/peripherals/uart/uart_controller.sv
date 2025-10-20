@@ -21,15 +21,12 @@ module uart_controller (
    output wire uart_tx_o,
    output wire irq_o
 );
-
-   assign irq_o = 1'b0; // placeholder
-
    reg [31:0] baud_div;
    reg [1:0] stop_bit;
 
    reg tx_en;
-   reg cfg_1;
-   reg cfg_2;
+   reg rx_irq_en;
+   reg tx_irq_en;
 
    reg tx_we;
    wire tx_full;
@@ -40,11 +37,6 @@ module uart_controller (
    wire rx_full;
    wire rx_empty;
    wire [7:0] rx_data;
-
-   reg tx_full_0;
-   reg tx_full_1;
-   reg rx_full_0;
-   reg rx_full_1;
 
    uart_tx uart_tx_dut (
       .clk_i     (clk_i),
@@ -72,9 +64,7 @@ module uart_controller (
       .rx_i      (uart_rx_i)
    );
 
-
-   wire tx_stopped = {tx_full_1, tx_full_0} == 2'b10;
-   wire rx_stopped = {rx_full_1, rx_full_0} == 2'b10;
+   assign irq_o = (rx_full && rx_irq_en) || (tx_empty && tx_irq_en);
 
    always @(posedge clk_i) begin
       if (rst_i) begin
@@ -85,14 +75,9 @@ module uart_controller (
          rx_re    <= 1'b0;
          tx_we    <= 1'b0;
          stop_bit <= 2'b0;
-         cfg_1    <= 1'b1;
-         cfg_2    <= 1'b1;
-         tx_full_0<= 1'b0;
-         tx_full_1<= 1'b0;
+         rx_irq_en <= 1'b0;
+         tx_irq_en <= 1'b0;
       end else begin
-         tx_full_0 <= tx_full;
-         tx_full_1 <= tx_full_0;
-
          rx_re <= 1'b0;
          tx_we <= 1'b0;
          if (wb_cyc_i) begin
@@ -130,20 +115,13 @@ module uart_controller (
                end
                5'h10: begin
                   if (wb_stb_i & wb_we_i & !wb_ack_o) begin
-                     tx_en <= wb_sel_i[0] ? wb_dat_i[0] : tx_en;
-                     cfg_1 <= wb_sel_i[0] ? wb_dat_i[1] : cfg_1;
-                     cfg_2 <= wb_sel_i[0] ? wb_dat_i[2] : cfg_2;
+                     tx_en     <= wb_sel_i[0] ? wb_dat_i[0] : tx_en;
+                     rx_irq_en <= wb_sel_i[0] ? wb_dat_i[1] : rx_irq_en;
+                     tx_irq_en <= wb_sel_i[0] ? wb_dat_i[2] : tx_irq_en;
                   end
-                  wb_dat_o <= {29'b0, cfg_2, cfg_1, tx_en};
+                  wb_dat_o <= {27'b0, tx_irq_en, rx_irq_en, tx_full, rx_empty, tx_en};
                end
             endcase
-         end
-
-         if (tx_stopped) begin
-            cfg_2 <= 1'b1;
-         end
-         if (rx_stopped) begin
-            cfg_1 <= 1'b1;
          end
       end
    end

@@ -13,16 +13,20 @@
 #define UART_TDR       (*(volatile uint32_t*)0xFF00000c)
 #define UART_CFG       (*(volatile uint32_t*)0xFF000010)
 
-void     tekno_printf    (const char *fmt, ...);
-void     print           (const char *p);
-int      zscan           (char *buffer, int max_size, int echo);
-char     zgetchar        ();
-void     zputchar        (char c);
-int      strcmp          (const char *p1, const char *p2);
-size_t   strlen          (const char *s);
-int 	 uart_txfull	 ();
-int 	 uart_rxempty	 ();
-void init_uart();
+#define UART_CFG_TX_EN_BIT      (1 << 0)
+#define UART_CFG_RX_FULL_BIT    (1 << 1)
+#define UART_CFG_TX_FULL_BIT    (1 << 2)
+#define UART_CFG_RX_IRQ_EN_BIT  (1 << 3)
+#define UART_CFG_TX_IRQ_EN_BIT  (1 << 4)
+
+void     init_uart();
+void     uart_enable_rx_irq();
+void     uart_disable_rx_irq();
+void     uart_isr();
+char     zgetchar();
+void     zputchar(char c);
+void     print(const char *p);
+void     tekno_printf(const char *fmt, ...);
 
 typedef union
 {
