@@ -2,16 +2,47 @@
 #include "defines.h"
 
 #ifndef USE_COREMARK_UTILS
-int uart_txfull(){
-	uart_status uart_stat;
-	uart_stat.bits = UART_STATUS;
-	return uart_stat.fields.tx_full;
+#define RX_BUFFER_SIZE 64
+static volatile char rx_buffer[RX_BUFFER_SIZE];
+static volatile int rx_head = 0;
+static volatile int rx_tail = 0;
+
+void uart_enable_rx_irq()
+{
+    UART_CTRL |= UART_CTRL_RX_IRQ_EN;
+}
+
+void uart_disable_rx_irq()
+{
+    UART_CTRL &= ~UART_CTRL_RX_IRQ_EN;
+}
+
+void uart_isr()
+{
+    if (UART_STATUS & UART_STATUS_RX_FULL) {
+        char received_char = (char)UART_RDATA;
+        int next_head = (rx_head + 1) % RX_BUFFER_SIZE;
+        if (next_head != rx_tail) {
+            rx_buffer[rx_head] = received_char;
+            rx_head = next_head;
+        }
+    }
+}
+
+char zgetchar()
+{
+    while (rx_head == rx_tail) {
+    }
+    char c = rx_buffer[rx_tail];
+    rx_tail = (rx_tail + 1) % RX_BUFFER_SIZE;
+    return c;
 }
 
 void zputchar(char c)
 {
-	while(uart_txfull());
-	UART_WDATA = c;
+    while (UART_STATUS & UART_STATUS_TX_FULL) {
+    }
+    UART_WDATA = c;
 }
 
 int strcmp(const char* p1, const char* p2)
@@ -36,10 +67,6 @@ size_t strlen(const char* s)
     return p - s;
 }
 #endif
-
-//-----------------------------------------------
-// print a string (char*).
-//-----------------------------------------------
 
 void print(const char* p)
 {
@@ -152,7 +179,6 @@ void tekno_printf(const char* fmt, ...)
                 break;
             default:
                 print("%");
-                // print(" unknown instruction ");
                 is_format = false;
                 is_long = false;
                 is_char = false;
@@ -168,25 +194,6 @@ void tekno_printf(const char* fmt, ...)
         }
     }
     va_end(vl);
-}
-
-//-----------------------------------------------
-// scan a single character.
-//-----------------------------------------------
-
-int uart_rxempty(){
-	uart_status uart_stat;
-	uart_stat.bits  = UART_STATUS;
-	return uart_stat.fields.rx_empty;
-}
-
-char zgetchar()
-{
-	while(1){
-		if (!uart_rxempty()){
-			return(char)UART_RDATA;
-		}
-	}
 }
 
 int zscan(char* buffer, int max_size, int echo)
@@ -222,9 +229,6 @@ int zscan(char* buffer, int max_size, int echo)
 
 void init_uart()
 {
-    uart_ctrl uart_control;
-	uart_control.fields.tx_en = 0x1;
-	uart_control.fields.rx_en = 0x1;
-	uart_control.fields.baud_div = CPU_CLK/BAUD_RATE;
-	UART_CTRL = uart_control.bits;
+    uint32_t baud_divisor = CPU_CLK / BAUD_RATE;
+    UART_CTRL = (baud_divisor << 16) | UART_CTRL_TX_EN | UART_CTRL_RX_EN;
 }

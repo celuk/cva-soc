@@ -49,7 +49,8 @@ hang:
 exception_handler:
     j exception_handler
 
-
+.global exc_wrapper
+.type   exc_wrapper, @function
 # wrapper for exception handlers (saves registers and calls a handler function)
 exc_wrapper:
     # save registers:

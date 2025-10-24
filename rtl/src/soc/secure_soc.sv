@@ -548,6 +548,8 @@ module secure_soc (
    assign xbar_mst_ports_resp[MASTER_UART_IDX].r.resp   = uart_axi_rresp;
    assign xbar_mst_ports_resp[MASTER_UART_IDX].r.last   = 1'b1; // AXI-Lite
 
+   wire uart_rx_i = (!uart_dram_mode) ? program_rx_i : 1'b1;
+
    uart_controller_axi #(
        .AXI_ID_WIDTH  (AXI_ID_WIDTH_XBAR_MST),
        .AXI_ADDR_WIDTH(XbarCfg.AxiAddrWidth),
@@ -567,7 +569,7 @@ module secure_soc (
        .s_axi_rvalid (uart_axi_rvalid),  .s_axi_rready (uart_axi_rready),
        .s_axi_rid    (uart_axi_rid),     .s_axi_rdata  (uart_axi_rdata),
        .s_axi_rresp  (uart_axi_rresp),
-       .rx_i    ( program_rx_i     ), .tx_o    ( uart_tx_o     ),
+       .rx_i    ( uart_rx_i     ), .tx_o    ( uart_tx_o     ),
        .irq_o   ( uart_irq        )
    );
 

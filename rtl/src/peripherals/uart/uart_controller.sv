@@ -20,20 +20,23 @@ module uart_controller (
    output wire uart_tx_o,
    output wire irq_o
 );
-   assign irq_o = 1'b0; // placeholder
-   
    reg [15:0] baud_div;
    
    reg tx_en;
+   reg rx_en;
+   reg tx_irq_en;
+   reg rx_irq_en;
+
    reg tx_we;
    wire tx_full;
    wire tx_empty;
    
-   reg  rx_en;
    reg  rx_re;
    wire rx_full;
    wire rx_empty;
    wire [7:0] rx_data;
+
+   assign irq_o = (rx_full && rx_irq_en) || (tx_empty && tx_irq_en);
    
    uart_tx uart_tx_dut (
       .clk_i (clk_i ),
@@ -65,6 +68,8 @@ module uart_controller (
          baud_div <= 16'b0;
          rx_en    <= 1'b0;
          tx_en    <= 1'b0;
+         rx_irq_en<= 1'b0;
+         tx_irq_en<= 1'b0;
          rx_re    <= 1'b0;
          tx_we    <= 1'b0;
       end else begin
@@ -75,11 +80,13 @@ module uart_controller (
             case(wb_adr_i[3:2])
                2'h0: begin
                   if(wb_stb_i & wb_we_i & !wb_ack_o) begin
-                     tx_en    <=   wb_sel_i[0]    ? wb_dat_i[0]     : tx_en;
-                     rx_en    <=   wb_sel_i[0]    ? wb_dat_i[1]     : rx_en;
-                     baud_div <= (&wb_sel_i[3:2]) ? wb_dat_i[31:16] : baud_div;
+                     tx_en     <=   wb_sel_i[0]    ? wb_dat_i[0]     : tx_en;
+                     rx_en     <=   wb_sel_i[0]    ? wb_dat_i[1]     : rx_en;
+                     rx_irq_en <=   wb_sel_i[0]    ? wb_dat_i[2]     : rx_irq_en;
+                     tx_irq_en <=   wb_sel_i[0]    ? wb_dat_i[3]     : tx_irq_en;
+                     baud_div  <= (&wb_sel_i[3:2]) ? wb_dat_i[31:16] : baud_div;
                   end
-                  wb_dat_o <= {baud_div, 14'b0, rx_en, tx_en};
+                  wb_dat_o <= {baud_div, 12'b0, tx_irq_en, rx_irq_en, rx_en, tx_en};
                end
                2'h1: begin
                   wb_dat_o <= {28'b0,rx_empty,rx_full,tx_empty,tx_full};
