@@ -4,6 +4,7 @@
 // --- CSR Addresses and Bitmasks ---
 #define CSR_MSTATUS             0x300
 #define CSR_MIE                 0x304
+#define CSR_MTVEC               0x305
 #define CSR_MCAUSE              0x342
 
 #define MSTATUS_MIE_BIT         (1 << 3)
@@ -32,19 +33,30 @@ static inline uint32_t csr_read(uint32_t csr) {
     return result;
 }
 
-extern void exc_wrapper();
-
-void exception_handler(uint32_t mcause, uint32_t mepc) {
-    if ((mcause & MCAUSE_INT_MASK) && ((mcause & MCAUSE_CODE_MASK) == MCAUSE_MACHINE_EXT_INT)) {
+// --- The Combined Interrupt Handler and Dispatcher ---
+// The 'interrupt' attribute tells the compiler to generate the full
+// interrupt entry/exit code (saving/restoring registers and using 'mret').
+// This completely replaces the need for 'exc_wrapper'.
+void __attribute__((interrupt)) trap_handler_c(void) {
+    uint32_t mcause_val = csr_read(CSR_MCAUSE);
+    
+    // Check if it's a Machine External Interrupt (from the PLIC)
+    if ((mcause_val & MCAUSE_INT_MASK) && ((mcause_val & MCAUSE_CODE_MASK) == MCAUSE_MACHINE_EXT_INT)) {
         
         volatile uint32_t* claim_reg = (uint32_t*)PLIC_CLAIM_BASE;
         uint32_t irq_id = *claim_reg;
 
-        if (irq_id == UART_IRQ_SOURCE_ID) {
-            uart_isr();
-        }
+        // If an interrupt is pending (irq_id is not 0)
+        if (irq_id) {
+            // Service the interrupt (e.g., call the UART handler)
+            if (irq_id == UART_IRQ_SOURCE_ID) {
+                uart_isr();
+            }
 
-        *claim_reg = irq_id;
+            // "Complete" the interrupt by writing the ID back. This must be done
+            // after servicing to prevent race conditions.
+            *claim_reg = irq_id;
+        }
     }
 }
 
@@ -54,6 +66,7 @@ int main()
 
     init_uart();
 
+    // --- PLIC and CPU Interrupt Setup ---
     volatile uint32_t* plic_prio_reg = (uint32_t*)(PLIC_PRIORITY_BASE + (UART_IRQ_SOURCE_ID * 4));
     *plic_prio_reg = 1;
 
@@ -63,27 +76,26 @@ int main()
     volatile uint32_t* plic_threshold_reg = (uint32_t*)(PLIC_THRESHOLD_BASE);
     *plic_threshold_reg = 0;
 
-    csr_write(0x305, (uint32_t)exc_wrapper);
+    // Set the Machine Trap Vector (mtvec) to our C handler's address
+    csr_write(CSR_MTVEC, (uint32_t)trap_handler_c);
+
+    // Enable Machine External Interrupts in the 'mie' CSR
     csr_write(CSR_MIE, csr_read(CSR_MIE) | MIE_MEIE_BIT);
+
+    // Enable Global Interrupts in the 'mstatus' CSR
     csr_write(CSR_MSTATUS, csr_read(CSR_MSTATUS) | MSTATUS_MIE_BIT);
     
+    // Enable the receiver interrupt within the UART peripheral itself
     uart_enable_rx_irq();
     
-    tekno_printf("UART RX Test. Send characters from your terminal.\n");
-    tekno_printf("Send '1' for Command 1.\n");
-    tekno_printf("Send '2' for Command 2.\n");
-    tekno_printf("Any other character will be echoed back.\n");
+    tekno_printf("UART Interrupt Test Ready. Type characters:\n");
 
     while (1) {
+        // zgetchar now waits for the software buffer to be filled by the ISR
         received_char = zgetchar();
 
-        if (received_char == '1') {
-            tekno_printf("Command 1 received!\n");
-        } else if (received_char == '2') {
-            tekno_printf("Command 2 received!\n");
-        } else {
-            zputchar(received_char);
-        }
+        // Echo the character back
+        zputchar(received_char);
     }
 
     return 0;

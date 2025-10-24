@@ -36,7 +36,7 @@ module uart_controller (
    wire rx_empty;
    wire [7:0] rx_data;
 
-   assign irq_o = (rx_full && rx_irq_en) || (tx_empty && tx_irq_en);
+   assign irq_o = (rx_full && rx_irq_en);
    
    uart_tx uart_tx_dut (
       .clk_i (clk_i ),

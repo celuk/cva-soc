@@ -378,7 +378,7 @@ module secure_soc (
      .req_i(plic_reg_req),
      .resp_o(plic_reg_rsp),
      .le_i('0),
-     .irq_sources_i({30'b0, uart_irq}),
+     .irq_sources_i({29'b0, uart_irq, 1'b0}),
      .eip_targets_o(plic_irq)
    );
  
