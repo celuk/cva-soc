@@ -374,7 +374,7 @@ module secure_soc (
      .reg_rsp_t(reg_rsp_t)
    ) i_plic (
      .clk_i(clkwiz_o),
-     .rst_ni(rst_n),
+     .rst_ni(rst_ni & pll_locked),
      .req_i(plic_reg_req),
      .resp_o(plic_reg_rsp),
      .le_i('0),
