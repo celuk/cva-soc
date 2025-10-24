@@ -2,30 +2,38 @@
 #include "defines.h"
 
 #ifndef USE_COREMARK_UTILS
-int uart_txfull()
-{
-    // __asm__ volatile("fence" ::: "memory");
-    while ((UART_CFG & 0x4) == 0) { }
-    // __asm__ volatile("fence" ::: "memory");
+int uart_txfull(){
+	uart_status uart_stat;
+	uart_stat.bits = UART_STATUS;
+	return uart_stat.fields.tx_full;
 }
 
 void zputchar(char c)
 {
-    uart_txfull();
+	while(uart_txfull());
+	UART_WDATA = c;
+}
 
-    // __asm__ volatile("fence" ::: "memory");
-    // TX complete bitini temizle
-    UART_CFG &= ~0x4;
-    // __asm__ volatile("fence" ::: "memory");
-    // Veriyi gönder
-    UART_TDR = c;
-    // __asm__ volatile("fence" ::: "memory");
-    // TX enable bitini set et
-    UART_CFG = UART_CFG | 0x1;
-    // __asm__ volatile("fence" ::: "memory");
+int strcmp(const char* p1, const char* p2)
+{
+    const unsigned char* s1 = (const unsigned char*)p1;
+    const unsigned char* s2 = (const unsigned char*)p2;
+    unsigned char c1, c2;
+    do {
+        c1 = (unsigned char)*s1++;
+        c2 = (unsigned char)*s2++;
+        if (c1 == '\0')
+            return c1 - c2;
+    } while (c1 == c2);
+    return c1 - c2;
+}
 
-    // TX tamamlanana kadar bekle
-    uart_txfull();
+size_t strlen(const char* s)
+{
+    const char* p = s;
+    while (*p)
+        p++;
+    return p - s;
 }
 #endif
 
@@ -166,18 +174,19 @@ void tekno_printf(const char* fmt, ...)
 // scan a single character.
 //-----------------------------------------------
 
-int uart_rxempty()
-{
-    return (UART_CFG & 0x2) == 0;
+int uart_rxempty(){
+	uart_status uart_stat;
+	uart_stat.bits  = UART_STATUS;
+	return uart_stat.fields.rx_empty;
 }
 
 char zgetchar()
 {
-    while (uart_rxempty()) {
-    }
-    
-    char c = (char)UART_RDR;
-    return c;
+	while(1){
+		if (!uart_rxempty()){
+			return(char)UART_RDATA;
+		}
+	}
 }
 
 int zscan(char* buffer, int max_size, int echo)
@@ -211,41 +220,11 @@ int zscan(char* buffer, int max_size, int echo)
     return length;
 }
 
-#ifndef USE_COREMARK_UTILS
-int strcmp(const char* p1, const char* p2)
-{
-    const unsigned char* s1 = (const unsigned char*)p1;
-    const unsigned char* s2 = (const unsigned char*)p2;
-    unsigned char c1, c2;
-    do {
-        c1 = (unsigned char)*s1++;
-        c2 = (unsigned char)*s2++;
-        if (c1 == '\0')
-            return c1 - c2;
-    } while (c1 == c2);
-    return c1 - c2;
-}
-
-size_t strlen(const char* s)
-{
-    const char* p = s;
-    while (*p)
-        p++;
-    return p - s;
-}
-#endif
-
 void init_uart()
 {
-    uart_cpb uart_cpb;
-    uart_cpb.fields.data = CPU_CLK / BAUD_RATE;
-    // TX enable bitini set et
-
-    // __asm__ volatile("fence" ::: "memory");
-    UART_CFG = UART_CFG | 0x7;
-    // __asm__ volatile("fence" ::: "memory");
-    UART_CPB = uart_cpb.bits;
-    // __asm__ volatile("fence" ::: "memory");
-    UART_STP = UART_STP | 0x1;
-    // __asm__ volatile("fence" ::: "memory");
+    uart_ctrl uart_control;
+	uart_control.fields.tx_en = 0x1;
+	uart_control.fields.rx_en = 0x1;
+	uart_control.fields.baud_div = CPU_CLK/BAUD_RATE;
+	UART_CTRL = uart_control.bits;
 }

@@ -7,11 +7,10 @@
 #include <stdarg.h>
 #include <stdbool.h>
 
-#define UART_CPB       (*(volatile uint32_t*)0xFF000000)
-#define UART_STP       (*(volatile uint32_t*)0xFF000004)
-#define UART_RDR       (*(volatile uint32_t*)0xFF000008)
-#define UART_TDR       (*(volatile uint32_t*)0xFF00000c)
-#define UART_CFG       (*(volatile uint32_t*)0xFF000010)
+#define UART_CTRL       (*(volatile uint32_t*)0xFF000000)
+#define UART_STATUS     (*(volatile uint32_t*)0xFF000004)
+#define UART_RDATA      (*(volatile uint32_t*)0xFF000008)
+#define UART_WDATA      (*(volatile uint32_t*)0xFF00000c)
 
 void     tekno_printf    (const char *fmt, ...);
 void     print           (const char *p);
@@ -27,47 +26,24 @@ void init_uart();
 typedef union
 {
 	struct {
-		unsigned int cfg_0    : 1;
-		unsigned int cfg_1 	  : 1;
-		unsigned int cfg_2 	  : 1;
-		unsigned int null	  : 29;
+		unsigned int tx_en    : 1;
+		unsigned int rx_en 	  : 1;
+		unsigned int null	  : 14;
+		unsigned int baud_div : 16;
 	} fields;
 	uint32_t bits;
-}uart_cfg;
+}uart_ctrl;
 
 typedef union
 {
 	struct {
-		unsigned int stp    : 2;
-		unsigned int null	  : 30;
+		unsigned int tx_full  : 1;
+		unsigned int rx_full  : 1;
+		unsigned int tx_empty : 1;
+		unsigned int rx_empty : 1;
+		unsigned int null	  : 28;
 	} fields;
 	uint32_t bits;
-}uart_stp;
-
-typedef union
-{
-	struct {
-		unsigned int data    : 8;
-		unsigned int null    : 24;
-	} fields;
-	uint32_t bits;
-}uart_tdr;
-
-typedef union
-{
-	struct {
-		unsigned int data    : 8;
-		unsigned int null    : 24;
-	} fields;
-	uint32_t bits;
-}uart_rdr;
-
-typedef union
-{
-	struct {
-		unsigned int data    : 32;
-	} fields;
-	uint32_t bits;
-}uart_cpb;
+}uart_status;
 
 #endif

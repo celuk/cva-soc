@@ -4,7 +4,6 @@
 
 `include "header.vh"
 
-// Bu modulun tek gorevi wishbone sinyallerini UART registerlarina yazmak
 module uart_controller (
    input  wire        clk_i,
    input  wire        rst_i,
@@ -21,129 +20,86 @@ module uart_controller (
    output wire uart_tx_o,
    output wire irq_o
 );
-
    assign irq_o = 1'b0; // placeholder
-
-   reg [31:0] baud_div;
-   reg [1:0] stop_bit;
-
+   
+   reg [15:0] baud_div;
+   
    reg tx_en;
-   reg cfg_1;
-   reg cfg_2;
-
    reg tx_we;
    wire tx_full;
    wire tx_empty;
-
-   reg rx_en;
-   reg rx_re;
+   
+   reg  rx_en;
+   reg  rx_re;
    wire rx_full;
    wire rx_empty;
    wire [7:0] rx_data;
-
-   reg tx_full_0;
-   reg tx_full_1;
-   reg rx_full_0;
-   reg rx_full_1;
-
+   
    uart_tx uart_tx_dut (
-      .clk_i     (clk_i),
-      .rst_i     (rst_i),
+      .clk_i (clk_i ),
+      .rst_i (rst_i ),
       .baud_div_i(baud_div),
-      .we_i      (tx_we),
-      .stall_i   (~tx_en),
-      .data_i    (wb_dat_i[7:0]),
-      .stop_bit_i(stop_bit[1:0]),
-      .full_o    (tx_full),
-      .empty_o   (tx_empty),
-      .tx_o      (uart_tx_o)
+      .we_i    (tx_we        ),
+      .stall_i (~tx_en       ),
+      .data_i  (wb_dat_i[7:0]),
+      .full_o  (tx_full      ),
+      .empty_o (tx_empty     ),
+      .tx_o    (uart_tx_o    )
    );
-
+   
    uart_rx uart_rx_dut (
-      .clk_i     (clk_i),
-      .rst_i     (rst_i),
-      .baud_div_i(baud_div),
-      .stop_bit_i(stop_bit[1:0]),
-      .re_i      (rx_re),
-      .stall_i   (~rx_en),
-      .data_o    (rx_data),
-      .full_o    (rx_full),
-      .empty_o   (rx_empty),
-      .rx_i      (uart_rx_i)
+      .clk_i (clk_i ),
+      .rst_i (rst_i ),
+      .baud_div_i (baud_div),
+      .re_i    (rx_re    ),
+      .stall_i (~rx_en   ),
+      .data_o  (rx_data  ),
+      .full_o  (rx_full  ),
+      .empty_o (rx_empty ),
+      .rx_i    (uart_rx_i)
    );
-
-
-   wire tx_stopped = {tx_full_1, tx_full_0} == 2'b10;
-   wire rx_stopped = {rx_full_1, rx_full_0} == 2'b10;
-
+   
    always @(posedge clk_i) begin
       if (rst_i) begin
          wb_ack_o <= 1'b0;
-         baud_div <= 32'b0;
-         rx_en    <= 1'b1;
+         baud_div <= 16'b0;
+         rx_en    <= 1'b0;
          tx_en    <= 1'b0;
          rx_re    <= 1'b0;
          tx_we    <= 1'b0;
-         stop_bit <= 2'b0;
-         cfg_1    <= 1'b1;
-         cfg_2    <= 1'b1;
-         tx_full_0<= 1'b0;
-         tx_full_1<= 1'b0;
       end else begin
-         tx_full_0 <= tx_full;
-         tx_full_1 <= tx_full_0;
-
-         rx_re <= 1'b0;
-         tx_we <= 1'b0;
-         if (wb_cyc_i) begin
-            wb_ack_o <= wb_stb_i & !wb_ack_o; // butun islemler 1 cycle surer ve ack sinyali cyc'dan hemen sonra gonderilir.
-            case (wb_adr_i[4:0])
-               5'h0: begin
-                  if (wb_stb_i & wb_we_i & !wb_ack_o) begin
-                     baud_div[7:0]   <= wb_sel_i[0] ? wb_dat_i[7:0] : baud_div[7:0];
-                     baud_div[15:8]  <= wb_sel_i[1] ? wb_dat_i[15:8] : baud_div[15:8];
-                     baud_div[23:16] <= wb_sel_i[2] ? wb_dat_i[23:16] : baud_div[23:16];
-                     baud_div[31:24] <= wb_sel_i[3] ? wb_dat_i[31:24] : baud_div[31:24];
+         rx_re    <= 1'b0;
+         tx_we    <= 1'b0;
+         if(wb_cyc_i) begin
+            wb_ack_o <= wb_stb_i & !wb_ack_o;
+            case(wb_adr_i[3:2])
+               2'h0: begin
+                  if(wb_stb_i & wb_we_i & !wb_ack_o) begin
+                     tx_en    <=   wb_sel_i[0]    ? wb_dat_i[0]     : tx_en;
+                     rx_en    <=   wb_sel_i[0]    ? wb_dat_i[1]     : rx_en;
+                     baud_div <= (&wb_sel_i[3:2]) ? wb_dat_i[31:16] : baud_div;
                   end
-                  wb_dat_o <= baud_div;
+                  wb_dat_o <= {baud_div, 14'b0, rx_en, tx_en};
                end
-               5'h4: begin
-                  if (wb_stb_i & wb_we_i & !wb_ack_o) begin
-                     stop_bit <= wb_sel_i[0] ? wb_dat_i[1:0] : stop_bit[1:0];
-                  end
-                  wb_dat_o <= {30'b0, stop_bit};
+               2'h1: begin
+                  wb_dat_o <= {28'b0,rx_empty,rx_full,tx_empty,tx_full};
                end
-               5'h8: begin
-                  if (wb_stb_i & !wb_ack_o) begin
-                     if (~rx_empty) begin
-                        wb_dat_o <= {24'b0, rx_data};
+               2'h2: begin
+                  if(wb_stb_i & !wb_ack_o) begin
+                     if(~rx_empty)begin
+                        wb_dat_o <= {24'b0,rx_data};
                         rx_re <= 1'b1;
                      end
                   end
                end
-               5'hc: begin
-                  if (wb_stb_i & wb_we_i & !wb_ack_o) begin
-                     if (~tx_full) begin
-                        tx_we <= wb_sel_i[0] ? 1'b1 : 1'b0;
+               2'h3: begin
+                  if(wb_stb_i & wb_we_i & !wb_ack_o) begin
+                     if(~tx_full) begin
+                        tx_we    <=   wb_sel_i[0]    ? 1'b1     : 1'b0;
                      end
                   end
                end
-               5'h10: begin
-                  if (wb_stb_i & wb_we_i & !wb_ack_o) begin
-                     tx_en <= wb_sel_i[0] ? wb_dat_i[0] : tx_en;
-                     cfg_1 <= wb_sel_i[0] ? wb_dat_i[1] : cfg_1;
-                     cfg_2 <= wb_sel_i[0] ? wb_dat_i[2] : cfg_2;
-                  end
-                  wb_dat_o <= {29'b0, cfg_2, cfg_1, tx_en};
-               end
             endcase
-         end
-
-         if (tx_stopped) begin
-            cfg_2 <= 1'b1;
-         end
-         if (rx_stopped) begin
-            cfg_1 <= 1'b1;
          end
       end
    end
