@@ -7,20 +7,11 @@
 #include <stdarg.h>
 #include <stdbool.h>
 
-#define UART_CTRL       (*(volatile uint32_t*)0xFF000000)
-#define UART_STATUS     (*(volatile uint32_t*)0xFF000004)
-#define UART_RDATA      (*(volatile uint32_t*)0xFF000008)
-#define UART_WDATA      (*(volatile uint32_t*)0xFF00000c)
-
-#define UART_CTRL_TX_EN         (1 << 0)
-#define UART_CTRL_RX_EN         (1 << 1)
-#define UART_CTRL_RX_IRQ_EN     (1 << 2)
-#define UART_CTRL_TX_IRQ_EN     (1 << 3)
-
-#define UART_STATUS_TX_FULL     (1 << 0)
-#define UART_STATUS_TX_EMPTY    (1 << 1)
-#define UART_STATUS_RX_FULL     (1 << 2)
-#define UART_STATUS_RX_EMPTY    (1 << 3)
+#define UART_CPB       (*(volatile uint32_t*)0xFF000000)
+#define UART_STP       (*(volatile uint32_t*)0xFF000004)
+#define UART_RDR       (*(volatile uint32_t*)0xFF000008)
+#define UART_TDR       (*(volatile uint32_t*)0xFF00000c)
+#define UART_CFG       (*(volatile uint32_t*)0xFF000010)
 
 void     tekno_printf    (const char *fmt, ...);
 void     print           (const char *p);
@@ -33,31 +24,50 @@ int 	 uart_txfull	 ();
 int 	 uart_rxempty	 ();
 void init_uart();
 
-void     uart_enable_rx_irq();
-void     uart_disable_rx_irq();
-void     uart_isr();
+typedef union
+{
+	struct {
+		unsigned int cfg_0    : 1;
+		unsigned int cfg_1 	  : 1;
+		unsigned int cfg_2 	  : 1;
+		unsigned int null	  : 29;
+	} fields;
+	uint32_t bits;
+}uart_cfg;
 
 typedef union
 {
 	struct {
-		unsigned int tx_en    : 1;
-		unsigned int rx_en 	  : 1;
-		unsigned int null	  : 14;
-		unsigned int baud_div : 16;
+		unsigned int stp    : 2;
+		unsigned int null	  : 30;
 	} fields;
 	uint32_t bits;
-}uart_ctrl;
+}uart_stp;
 
 typedef union
 {
 	struct {
-		unsigned int tx_full  : 1;
-		unsigned int rx_full  : 1;
-		unsigned int tx_empty : 1;
-		unsigned int rx_empty : 1;
-		unsigned int null	  : 28;
+		unsigned int data    : 8;
+		unsigned int null    : 24;
 	} fields;
 	uint32_t bits;
-}uart_status;
+}uart_tdr;
+
+typedef union
+{
+	struct {
+		unsigned int data    : 8;
+		unsigned int null    : 24;
+	} fields;
+	uint32_t bits;
+}uart_rdr;
+
+typedef union
+{
+	struct {
+		unsigned int data    : 32;
+	} fields;
+	uint32_t bits;
+}uart_cpb;
 
 #endif

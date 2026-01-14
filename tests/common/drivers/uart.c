@@ -2,71 +2,36 @@
 #include "defines.h"
 
 #ifndef USE_COREMARK_UTILS
-#define RX_BUFFER_SIZE 64
-static volatile char rx_buffer[RX_BUFFER_SIZE];
-static volatile int rx_head = 0;
-static volatile int rx_tail = 0;
-
-void uart_enable_rx_irq()
+int uart_txfull()
 {
-    UART_CTRL |= UART_CTRL_RX_IRQ_EN;
-}
-
-void uart_disable_rx_irq()
-{
-    UART_CTRL &= ~UART_CTRL_RX_IRQ_EN;
-}
-
-void uart_isr()
-{
-    if (UART_STATUS & UART_STATUS_RX_FULL) {
-        char received_char = (char)UART_RDATA;
-        int next_head = (rx_head + 1) % RX_BUFFER_SIZE;
-        if (next_head != rx_tail) {
-            rx_buffer[rx_head] = received_char;
-            rx_head = next_head;
-        }
-    }
-}
-
-char zgetchar()
-{
-    while (rx_head == rx_tail) {
-    }
-    char c = rx_buffer[rx_tail];
-    rx_tail = (rx_tail + 1) % RX_BUFFER_SIZE;
-    return c;
+    // __asm__ volatile("fence" ::: "memory");
+    while ((UART_CFG & 0x4) == 0) { }
+    // __asm__ volatile("fence" ::: "memory");
 }
 
 void zputchar(char c)
 {
-    while (UART_STATUS & UART_STATUS_TX_FULL) {
-    }
-    UART_WDATA = c;
-}
+    uart_txfull();
 
-int strcmp(const char* p1, const char* p2)
-{
-    const unsigned char* s1 = (const unsigned char*)p1;
-    const unsigned char* s2 = (const unsigned char*)p2;
-    unsigned char c1, c2;
-    do {
-        c1 = (unsigned char)*s1++;
-        c2 = (unsigned char)*s2++;
-        if (c1 == '\0')
-            return c1 - c2;
-    } while (c1 == c2);
-    return c1 - c2;
-}
+    // __asm__ volatile("fence" ::: "memory");
+    // TX complete bitini temizle
+    UART_CFG &= ~0x4;
+    // __asm__ volatile("fence" ::: "memory");
+    // Veriyi gönder
+    UART_TDR = c;
+    // __asm__ volatile("fence" ::: "memory");
+    // TX enable bitini set et
+    UART_CFG = UART_CFG | 0x1;
+    // __asm__ volatile("fence" ::: "memory");
 
-size_t strlen(const char* s)
-{
-    const char* p = s;
-    while (*p)
-        p++;
-    return p - s;
+    // TX tamamlanana kadar bekle
+    uart_txfull();
 }
 #endif
+
+//-----------------------------------------------
+// print a string (char*).
+//-----------------------------------------------
 
 void print(const char* p)
 {
@@ -179,6 +144,7 @@ void tekno_printf(const char* fmt, ...)
                 break;
             default:
                 print("%");
+                // print(" unknown instruction ");
                 is_format = false;
                 is_long = false;
                 is_char = false;
@@ -194,6 +160,24 @@ void tekno_printf(const char* fmt, ...)
         }
     }
     va_end(vl);
+}
+
+//-----------------------------------------------
+// scan a single character.
+//-----------------------------------------------
+
+int uart_rxempty()
+{
+    return (UART_CFG & 0x2) == 0;
+}
+
+char zgetchar()
+{
+    while (uart_rxempty()) {
+    }
+    
+    char c = (char)UART_RDR;
+    return c;
 }
 
 int zscan(char* buffer, int max_size, int echo)
@@ -227,8 +211,41 @@ int zscan(char* buffer, int max_size, int echo)
     return length;
 }
 
+#ifndef USE_COREMARK_UTILS
+int strcmp(const char* p1, const char* p2)
+{
+    const unsigned char* s1 = (const unsigned char*)p1;
+    const unsigned char* s2 = (const unsigned char*)p2;
+    unsigned char c1, c2;
+    do {
+        c1 = (unsigned char)*s1++;
+        c2 = (unsigned char)*s2++;
+        if (c1 == '\0')
+            return c1 - c2;
+    } while (c1 == c2);
+    return c1 - c2;
+}
+
+size_t strlen(const char* s)
+{
+    const char* p = s;
+    while (*p)
+        p++;
+    return p - s;
+}
+#endif
+
 void init_uart()
 {
-    uint32_t baud_divisor = CPU_CLK / BAUD_RATE;
-    UART_CTRL = (baud_divisor << 16) | UART_CTRL_TX_EN | UART_CTRL_RX_EN;
+    uart_cpb uart_cpb;
+    uart_cpb.fields.data = CPU_CLK / BAUD_RATE;
+    // TX enable bitini set et
+
+    // __asm__ volatile("fence" ::: "memory");
+    UART_CFG = UART_CFG | 0x7;
+    // __asm__ volatile("fence" ::: "memory");
+    UART_CPB = uart_cpb.bits;
+    // __asm__ volatile("fence" ::: "memory");
+    UART_STP = UART_STP | 0x1;
+    // __asm__ volatile("fence" ::: "memory");
 }
