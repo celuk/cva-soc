@@ -117,6 +117,23 @@ show:
 gen_dramw: rmtemp
 	python3 ./tools/generate_simple_dram_writes.py -f $(ARGS)
 
+.PHONY: program
+program:
+	$(XILINX_VIVADO)/bin/vivado -mode batch -nolog -nojournal -source vivado/program_zc706.tcl -tclargs $(ARGS)
+
+.PHONY: program_linux
+program_linux:
+	$(MAKE) program ARGS="/home/shc/projects/cva-soc/vivado/cva_soc_zc706/cva_soc_zc706.runs/impl_1/secure_soc.bit"
+	python3 tools/uart_send_data_to_dram.py -f /home/shc/projects/clones/riscv-opensbi-port/platform/template/custom.dtb.hex -p /dev/ttyUSB$(ARGS) -sa 0x01400000 -b 921600
+	$(MAKE) program ARGS="/home/shc/projects/cva-soc/vivado/cva_soc_zc706/cva_soc_zc706.runs/impl_1/secure_soc.bit"
+	python3 tools/uart_send_data_to_dram.py -f /home/shc/projects/clones/riscv-linux-ue/arch/riscv/boot/Image.hex -p /dev/ttyUSB$(ARGS) -sa 0x00400000 -b 921600
+	$(MAKE) program ARGS="/home/shc/projects/cva-soc/vivado/cva_soc_zc706/cva_soc_zc706.runs/impl_1/secure_soc.bit"
+	python3 tools/uart_send_data_to_dram.py -f /home/shc/projects/clones/riscv-opensbi-port/build/platform/template/firmware/fw_dynamic.hex -p /dev/ttyUSB$(ARGS) -b 921600
+
+.PHONY: program_basys3
+program_basys3:
+	$(XILINX_VIVADO)/bin/vivado -mode batch -nolog -nojournal -source vivado/program_basys3.tcl -tclargs $(ARGS)
+
 .PHONY: clean
 clean:
 	-rm -rf ./build
