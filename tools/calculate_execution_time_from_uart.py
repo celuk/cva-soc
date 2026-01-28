@@ -28,15 +28,15 @@ def main():
                 sys.stdout.flush()
                 buffer += data
 
-                if start_time is None:
-                    if start_marker in buffer:
-                        start_time = time.time_ns()
-                        buffer = ""
-                else:
-                    if end_marker in buffer:
-                        end_time = time.time_ns()
-                        print(f"\n{end_time - start_time}")
-                        break
+                if start_marker in buffer:
+                    start_time = time.time_ns()
+                    buffer = buffer.split(start_marker, 1)[1]
+
+                if start_time is not None and end_marker in buffer:
+                    end_time = time.time_ns()
+                    print(f"\n{end_time - start_time}")
+                    start_time = None
+                    buffer = buffer.split(end_marker, 1)[1]
             else:
                 time.sleep(0.001)
 
