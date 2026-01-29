@@ -52,7 +52,7 @@
 `define ZC706
 //`define DDR3_AXI
 `define DDR_MHZ 50
-//`define DRAM_SIM
+`define DRAM_SIM
 //`define USE_SRAM
 
 /*
@@ -90,3 +90,5 @@ PERIPHERALS
 
 `define PLIC_BASE_ADDR  32'hFC00_0000
 `define PLIC_RANGE      32'h0040_0000
+
+`define SECURE_LAYER2
