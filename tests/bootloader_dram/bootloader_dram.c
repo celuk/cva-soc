@@ -49,7 +49,7 @@ struct fw_dynamic_info {
 
 #define BOOT_HART_ID 0x0
 
-#define DTB_ADDRESS_OFFSET 0x01400000
+#define DTB_ADDRESS_OFFSET 0x10000000 //0x01400000
 #define DTB_ADDRESS (OPENSBI_BASE_ADDR + DTB_ADDRESS_OFFSET) // fw_fdt_bin (compiled dts - dtb file) address
 
 static inline void opensbi_init()

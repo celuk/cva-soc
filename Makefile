@@ -124,7 +124,7 @@ program:
 .PHONY: program_linux
 program_linux:
 	$(MAKE) program ARGS="/home/shc/projects/cva-soc/vivado/cva_soc_zc706/cva_soc_zc706.runs/impl_1/secure_soc.bit"
-	python3 tools/uart_send_data_to_dram.py -f /home/shc/projects/clones/riscv-opensbi-port/platform/template/custom.dtb.hex -p /dev/ttyUSB$(ARGS) -sa 0x01400000 -b 921600
+	python3 tools/uart_send_data_to_dram.py -f /home/shc/projects/clones/riscv-opensbi-port/platform/template/custom.dtb.hex -p /dev/ttyUSB$(ARGS) -sa 0x10000000 -b 921600
 	$(MAKE) program ARGS="/home/shc/projects/cva-soc/vivado/cva_soc_zc706/cva_soc_zc706.runs/impl_1/secure_soc.bit"
 	python3 tools/uart_send_data_to_dram.py -f /home/shc/projects/clones/riscv-linux-ue/arch/riscv/boot/Image.hex -p /dev/ttyUSB$(ARGS) -sa 0x00400000 -b 921600
 	$(MAKE) program ARGS="/home/shc/projects/cva-soc/vivado/cva_soc_zc706/cva_soc_zc706.runs/impl_1/secure_soc.bit"
