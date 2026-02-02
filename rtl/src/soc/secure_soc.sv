@@ -22,6 +22,8 @@ module secure_soc (
 
    input wire rst_ni,
 
+   //input  wire uart_rx_i,
+   
    input  wire program_rx_i,
    output wire prog_mode_led_o,
    
@@ -80,6 +82,8 @@ module secure_soc (
    `endif
 );
 
+   //wire uart_rx_i;
+
    logic system_reset_o;
    logic uart_dram_write_rst;
    logic uart_dram_mode;
@@ -101,17 +105,19 @@ module secure_soc (
       wire clk_ddr_dqs;
       wire clk_i;
       clk_wiz_0 u_pll
+      //clk_wiz_1 u_pll
       (
          .clk_in1_p(clk_p),
          .clk_in1_n(clk_n)
 
          ,.reset(~rst_ni)
 
-         ,.clk_out1(clk100)      
-         ,.clk_out2(clk_ddr)     
-         ,.clk_out3(clk_ref)     
-         ,.clk_out4(clk_ddr_dqs) 
-         ,.clk_out5(clk_i)       
+         // first values for 100mhz, second values for 50mhz
+         ,.clk_out1(clk100)      // 100, 50
+         ,.clk_out2(clk_ddr)     // 400, 200
+         ,.clk_out3(clk_ref)     // 200, 200
+         ,.clk_out4(clk_ddr_dqs) // 400, 200 (phase 90)
+         ,.clk_out5(clk_i)       // 100, 50
          ,.locked(pll_locked)
       );
 
@@ -125,17 +131,19 @@ module secure_soc (
       wire clk_ddr_dqs;
       wire clk_i;
       clk_wiz_0 u_pll
+      //clk_wiz_1 u_pll
       (
          .clk_in1_p(clk_p),
          .clk_in1_n(clk_n)
 
          ,.reset(~rst_ni)
 
-         ,.clk_out1(clk100)      
-         ,.clk_out2(clk_ddr)     
-         ,.clk_out3(clk_ref)     
-         ,.clk_out4(clk_ddr_dqs) 
-         ,.clk_out5(clk_i)       
+         // first values for 100mhz, second values for 50mhz
+         ,.clk_out1(clk100)      // 100, 50
+         ,.clk_out2(clk_ddr)     // 400, 200
+         ,.clk_out3(clk_ref)     // 200, 200
+         ,.clk_out4(clk_ddr_dqs) // 400, 200 (phase 90)
+         ,.clk_out5(clk_i)       // 100, 50
          ,.locked(pll_locked)
       );
 
@@ -170,9 +178,9 @@ module secure_soc (
       .rst_ni               ( rst_n                        ),
       .boot_addr_i          ( `BOOT_ADDR                   ),
       .hart_id_i            ( `HART_ID                     ),
-      .irq_i                ( plic_irq                     ),
-      .ipi_i                ( ipi[0]                       ),
-      .time_irq_i           ( timer_irq[0]                 ),
+      .irq_i                ( plic_irq                           ),
+      .ipi_i                ( ipi[0]                         ),
+      .time_irq_i           ( timer_irq[0]                         ),
       .debug_req_i          ( 1'b0                         ),
       .rvfi_probes_o        (                              ),
       .cvxif_req_o          (                              ),
@@ -181,9 +189,9 @@ module secure_soc (
       .noc_resp_i           ( cva6_axi_resp                )
    );
 
-   localparam int unsigned NUM_SLAVES_XBAR = 1; 
+   localparam int unsigned NUM_SLAVES_XBAR = 1; // CVA6
    `ifdef ZC706
-   localparam int unsigned NUM_MASTERS_XBAR = 6; 
+   localparam int unsigned NUM_MASTERS_XBAR = 6; // RAM, UART, TIMER, DRAM, CLINT, PLIC
    `elsif USE_SRAM
    localparam int unsigned NUM_MASTERS_XBAR = 6;
    `elsif DDR3_AXI
@@ -313,7 +321,7 @@ module secure_soc (
            clk_rtc <= 0;
        end
        else begin
-           if (count == 50/2 - 1) begin 
+           if (count == 50/2 - 1) begin // 50 MHz to 1MHz
                clk_rtc <= ~clk_rtc;
                count   <= 0;
            end
@@ -561,7 +569,8 @@ module secure_soc (
        .s_axi_rvalid (uart_axi_rvalid),  .s_axi_rready (uart_axi_rready),
        .s_axi_rid    (uart_axi_rid),     .s_axi_rdata  (uart_axi_rdata),
        .s_axi_rresp  (uart_axi_rresp),
-       .rx_i    ( uart_rx_i     ), .tx_o    ( uart_tx_o     )
+       .rx_i    ( uart_rx_i     ), .tx_o    ( uart_tx_o     ),
+       .irq_o   ( uart_irq        )
    );
 
    logic                            timer_axi_awvalid;
@@ -662,6 +671,9 @@ module secure_soc (
    wire [1:0] ddr3_dqs_p;
    wire [1:0] ddr3_dqs_n;
    wire [15:0] ddr3_dq;
+
+   //`define den1024Mb
+   //`include "1024Mb_ddr3_parameters.vh"
 
    ddr3 ddr3_dut (
       .rst_n  (ddr3_reset_n),
@@ -808,7 +820,7 @@ module secure_soc (
        .slv_aw_addr_i   (dram_axi_awaddr),
        .slv_aw_prot_i   (dram_axi_awprot),
        .slv_aw_region_i ('0),
-       .slv_aw_atop_i   (xbar_mst_ports_req[MASTER_DRAM_IDX].aw.atop),
+       .slv_aw_atop_i   (xbar_mst_ports_req[MASTER_DRAM_IDX].aw.atop), //({2'b0, xbar_mst_ports_req[MASTER_DRAM_IDX].aw.atop}),
        .slv_aw_len_i    (dram_axi_awlen),
        .slv_aw_size_i   (dram_axi_awsize),
        .slv_aw_burst_i  (dram_axi_awburst),
@@ -897,267 +909,79 @@ module secure_soc (
        .mst_b_valid_i   (atomics_mst_bvalid)
    );
 
-   logic                            encrypted_axi_awvalid;
-   logic                            encrypted_axi_awready;
-   logic [XbarCfg.AxiAddrWidth-1:0] encrypted_axi_awaddr;
-   logic [AXI_ID_WIDTH_XBAR_MST-1:0]encrypted_axi_awid;
-   logic [7:0]                      encrypted_axi_awlen;
-   logic [2:0]                      encrypted_axi_awsize;
-   logic [1:0]                      encrypted_axi_awburst;
-   logic [2:0]                      encrypted_axi_awprot;
-   logic                            encrypted_axi_wvalid;
-   logic                            encrypted_axi_wready;
-   logic [XbarCfg.AxiDataWidth-1:0] encrypted_axi_wdata;
-   logic [XbarCfg.AxiDataWidth/8-1:0] encrypted_axi_wstrb;
-   logic                            encrypted_axi_wlast;
-   logic                            encrypted_axi_bvalid;
-   logic                            encrypted_axi_bready;
-   logic [AXI_ID_WIDTH_XBAR_MST-1:0]encrypted_axi_bid;
-   logic [1:0]                      encrypted_axi_bresp;
-   logic                            encrypted_axi_arvalid;
-   logic                            encrypted_axi_arready;
-   logic [XbarCfg.AxiAddrWidth-1:0] encrypted_axi_araddr;
-   logic [AXI_ID_WIDTH_XBAR_MST-1:0]encrypted_axi_arid;
-   logic [7:0]                      encrypted_axi_arlen;
-   logic [2:0]                      encrypted_axi_arsize;
-   logic [1:0]                      encrypted_axi_arburst;
-   logic [2:0]                      encrypted_axi_arprot;
-   logic                            encrypted_axi_rvalid;
-   logic                            encrypted_axi_rready;
-   logic [AXI_ID_WIDTH_XBAR_MST-1:0]encrypted_axi_rid;
-   logic [XbarCfg.AxiDataWidth-1:0] encrypted_axi_rdata;
-   logic [1:0]                      encrypted_axi_rresp;
-   logic                            encrypted_axi_rlast;
-
-   logic [XbarCfg.AxiDataWidth-1:0] ddr3_wdata_encrypted;
-   logic [XbarCfg.AxiDataWidth-1:0] ddr3_rdata_decrypted;
-
-   `ifdef SECURE_LAYER2
-   localparam DDR3_CTR_KEY = 256'hDEADBEEFCAFEF00DBAADF00D1234567887654321ABCDEF01FEDCBA9876543210;
-
-   logic w_addr_fifo_push, w_addr_fifo_pop, w_addr_fifo_empty, w_addr_fifo_full;
-   logic [XbarCfg.AxiAddrWidth-1:0] w_addr_fifo_data_i, w_addr_fifo_data_o, write_addr_for_enc;
-   logic write_burst_active;
-
-   assign w_addr_fifo_push = atomics_mst_awvalid && atomics_mst_awready;
-   assign w_addr_fifo_data_i = atomics_mst_awaddr;
-   assign w_addr_fifo_pop = atomics_mst_wvalid && atomics_mst_wready && !write_burst_active;
-
-   wire rst_n_dram = (rst_ni & system_reset_o & pll_locked) || uart_dram_mode;
-
-   always_ff @(posedge clkwiz_o or negedge rst_n_dram) begin
-      if (~rst_n_dram) write_burst_active <= 1'b0;
-      else if (atomics_mst_wvalid && atomics_mst_wready) write_burst_active <= !atomics_mst_wlast;
-   end
-
-   always_ff @(posedge clkwiz_o or negedge rst_n_dram) begin
-      if (~rst_n_dram) write_addr_for_enc <= '0;
-      else if (w_addr_fifo_pop) write_addr_for_enc <= w_addr_fifo_data_o;
-      else if (atomics_mst_wvalid && atomics_mst_wready && write_burst_active) write_addr_for_enc <= write_addr_for_enc + (XbarCfg.AxiDataWidth / 8);
-   end
-
-   fifo_v3 #(
-       .DATA_WIDTH(XbarCfg.AxiAddrWidth),
-       .DEPTH(16)
-   ) w_addr_fifo (
-       .clk_i      (clkwiz_o),
-       .rst_ni     (rst_n_dram),
-       .flush_i    (1'b0),
-       .testmode_i (1'b0),
-       .full_o     (w_addr_fifo_full),
-       .empty_o    (w_addr_fifo_empty),
-       .usage_o    (),
-       .data_i     (w_addr_fifo_data_i),
-       .push_i     (w_addr_fifo_push),
-       .data_o     (w_addr_fifo_data_o),
-       .pop_i      (w_addr_fifo_pop)
-   );
-
-   ctr_encoder_decoder #(
-       .KEY(DDR3_CTR_KEY)
-   ) ddr3_ctr_enc (
-       .row_number (write_addr_for_enc),
-       .data_in    (atomics_mst_wdata),
-       .data_out   (ddr3_wdata_encrypted)
-   );
-
-   logic r_addr_fifo_push, r_addr_fifo_pop, r_addr_fifo_empty, r_addr_fifo_full;
-   logic [XbarCfg.AxiAddrWidth-1:0] r_addr_fifo_data_i, r_addr_fifo_data_o, read_addr_for_dec;
-   logic read_burst_active;
-
-   assign r_addr_fifo_push = atomics_mst_arvalid && atomics_mst_arready;
-   assign r_addr_fifo_data_i = atomics_mst_araddr;
-   assign r_addr_fifo_pop = encrypted_axi_rvalid && encrypted_axi_rready && !read_burst_active;
-
-   always_ff @(posedge clkwiz_o or negedge rst_n_dram) begin
-      if (~rst_n_dram) read_burst_active <= 1'b0;
-      else if (encrypted_axi_rvalid && encrypted_axi_rready) read_burst_active <= !encrypted_axi_rlast;
-   end
-
-   always_ff @(posedge clkwiz_o or negedge rst_n_dram) begin
-      if (~rst_n_dram) read_addr_for_dec <= '0;
-      else if (r_addr_fifo_pop) read_addr_for_dec <= r_addr_fifo_data_o;
-      else if (encrypted_axi_rvalid && encrypted_axi_rready && read_burst_active) read_addr_for_dec <= read_addr_for_dec + (XbarCfg.AxiDataWidth / 8);
-   end
-
-   fifo_v3 #(
-       .DATA_WIDTH(XbarCfg.AxiAddrWidth),
-       .DEPTH(16)
-   ) r_addr_fifo (
-       .clk_i      (clkwiz_o),
-       .rst_ni     (rst_n_dram),
-       .flush_i    (1'b0),
-       .testmode_i (1'b0),
-       .full_o     (r_addr_fifo_full),
-       .empty_o    (r_addr_fifo_empty),
-       .usage_o    (),
-       .data_i     (r_addr_fifo_data_i),
-       .push_i     (r_addr_fifo_push),
-       .data_o     (r_addr_fifo_data_o),
-       .pop_i      (r_addr_fifo_pop)
-   );
-
-   ctr_encoder_decoder #(
-       .KEY(DDR3_CTR_KEY)
-   ) ddr3_ctr_dec (
-       .row_number (read_addr_for_dec),
-       .data_in    (encrypted_axi_rdata),
-       .data_out   (ddr3_rdata_decrypted)
-   );
-   `else
-   assign ddr3_wdata_encrypted = atomics_mst_wdata;
-   assign ddr3_rdata_decrypted = encrypted_axi_rdata;
-   `endif
-
-   assign encrypted_axi_awvalid = atomics_mst_awvalid;
-   assign atomics_mst_awready   = encrypted_axi_awready;
-   assign encrypted_axi_awaddr  = atomics_mst_awaddr;
-   assign encrypted_axi_awid    = atomics_mst_awid;
-   assign encrypted_axi_awlen   = atomics_mst_awlen;
-   assign encrypted_axi_awsize  = atomics_mst_awsize;
-   assign encrypted_axi_awburst = atomics_mst_awburst;
-   assign encrypted_axi_awprot  = atomics_mst_awprot;
-   assign encrypted_axi_wvalid  = atomics_mst_wvalid;
-   assign atomics_mst_wready    = encrypted_axi_wready;
-   assign encrypted_axi_wdata   = ddr3_wdata_encrypted;
-   assign encrypted_axi_wstrb   = atomics_mst_wstrb;
-   assign encrypted_axi_wlast   = atomics_mst_wlast;
-   assign atomics_mst_bvalid    = encrypted_axi_bvalid;
-   assign encrypted_axi_bready  = atomics_mst_bready;
-   assign atomics_mst_bid       = encrypted_axi_bid;
-   assign atomics_mst_bresp     = encrypted_axi_bresp;
-   assign encrypted_axi_arvalid = atomics_mst_arvalid;
-   assign atomics_mst_arready   = encrypted_axi_arready;
-   assign encrypted_axi_araddr  = atomics_mst_araddr;
-   assign encrypted_axi_arid    = atomics_mst_arid;
-   assign encrypted_axi_arlen   = atomics_mst_arlen;
-   assign encrypted_axi_arsize  = atomics_mst_arsize;
-   assign encrypted_axi_arburst = atomics_mst_arburst;
-   assign encrypted_axi_arprot  = atomics_mst_arprot;
-   assign atomics_mst_rvalid    = encrypted_axi_rvalid;
-   assign encrypted_axi_rready  = atomics_mst_rready;
-   assign atomics_mst_rid       = encrypted_axi_rid;
-   assign atomics_mst_rdata     = ddr3_rdata_decrypted;
-   assign atomics_mst_rresp     = encrypted_axi_rresp;
-   assign atomics_mst_rlast     = encrypted_axi_rlast;
-
    dram_controller_axi #(
        .AXI_ID_WIDTH  (AXI_ID_WIDTH_XBAR_MST),
        .AXI_ADDR_WIDTH(XbarCfg.AxiAddrWidth),
        .AXI_DATA_WIDTH(XbarCfg.AxiDataWidth)
    ) dram_dut (
-       .clk_i        (clkwiz_o),
-       .rst_ni       ((rst_ni & system_reset_o & pll_locked) || uart_dram_mode),
-       .s_axi_awvalid(encrypted_axi_awvalid),
-       .s_axi_awready(encrypted_axi_awready),
-       .s_axi_awaddr (encrypted_axi_awaddr),
-       .s_axi_awid   (encrypted_axi_awid),
-       .s_axi_awlen  (encrypted_axi_awlen),
-       .s_axi_awsize (encrypted_axi_awsize),
-       .s_axi_awburst(encrypted_axi_awburst),
-       .s_axi_awprot (encrypted_axi_awprot),
-       .s_axi_wvalid (encrypted_axi_wvalid),
-       .s_axi_wready (encrypted_axi_wready),
-       .s_axi_wdata  (encrypted_axi_wdata),
-       .s_axi_wstrb  (encrypted_axi_wstrb),
-       .s_axi_wlast  (encrypted_axi_wlast),
-       .s_axi_bvalid (encrypted_axi_bvalid),
-       .s_axi_bready (encrypted_axi_bready),
-       .s_axi_bid    (encrypted_axi_bid),
-       .s_axi_bresp  (encrypted_axi_bresp),
-       .s_axi_arvalid(encrypted_axi_arvalid),
-       .s_axi_arready(encrypted_axi_arready),
-       .s_axi_araddr (encrypted_axi_araddr),
-       .s_axi_arid   (encrypted_axi_arid),
-       .s_axi_arlen  (encrypted_axi_arlen),
-       .s_axi_arsize (encrypted_axi_arsize),
-       .s_axi_arburst(encrypted_axi_arburst),
-       .s_axi_arprot (encrypted_axi_arprot),
-       .s_axi_rvalid (encrypted_axi_rvalid),
-       .s_axi_rready (encrypted_axi_rready),
-       .s_axi_rid    (encrypted_axi_rid),
-       .s_axi_rdata  (encrypted_axi_rdata),
-       .s_axi_rresp  (encrypted_axi_rresp),
-       .s_axi_rlast  (encrypted_axi_rlast),
-       .ddr3_reset_n (ddr3_reset_n),
-       .ddr3_cke     (ddr3_cke),
-       .ddr3_ck_p    (ddr3_ck_p),
-       .ddr3_ck_n    (ddr3_ck_n),
-       .ddr3_cs_n    (ddr3_cs_n),
-       .ddr3_ras_n   (ddr3_ras_n),
-       .ddr3_cas_n   (ddr3_cas_n),
-       .ddr3_we_n    (ddr3_we_n),
-       .ddr3_ba      (ddr3_ba),
-       .ddr3_addr    (ddr3_addr),
-       .ddr3_odt     (ddr3_odt),
-       .ddr3_dm      (ddr3_dm),
-       .ddr3_dqs_p   (ddr3_dqs_p),
-       .ddr3_dqs_n   (ddr3_dqs_n),
-       .ddr3_dq      (ddr3_dq),
-       .clk100       (clk100),
-       .clk_ddr      (clk_ddr),
-       .clk_ref      (clk_ref),
-       .clk_ddr_dqs  (clk_ddr_dqs),
-       .uart_dram_write_we_i   (uart_dram_write_we),
+       .clk_i        ( clkwiz_o         ),
+       .rst_ni       ( (rst_ni & system_reset_o & pll_locked) || uart_dram_mode ),
+
+       .s_axi_awvalid( atomics_mst_awvalid ),
+       .s_axi_awready( atomics_mst_awready ),
+       .s_axi_awaddr ( atomics_mst_awaddr  ),
+       .s_axi_awid   ( atomics_mst_awid    ),
+       .s_axi_awlen  ( atomics_mst_awlen   ),
+       .s_axi_awsize ( atomics_mst_awsize  ),
+       .s_axi_awburst( atomics_mst_awburst ),
+       .s_axi_awprot ( atomics_mst_awprot  ),
+
+       .s_axi_wvalid ( atomics_mst_wvalid  ),
+       .s_axi_wready ( atomics_mst_wready  ),
+       .s_axi_wdata  ( atomics_mst_wdata   ),
+       .s_axi_wstrb  ( atomics_mst_wstrb   ),
+       .s_axi_wlast  ( atomics_mst_wlast   ),
+
+       .s_axi_bvalid ( atomics_mst_bvalid  ),
+       .s_axi_bready ( atomics_mst_bready  ),
+       .s_axi_bid    ( atomics_mst_bid     ),
+       .s_axi_bresp  ( atomics_mst_bresp   ),
+
+       .s_axi_arvalid( atomics_mst_arvalid ),
+       .s_axi_arready( atomics_mst_arready ),
+       .s_axi_araddr ( atomics_mst_araddr  ),
+       .s_axi_arid   ( atomics_mst_arid    ),
+       .s_axi_arlen  ( atomics_mst_arlen   ),
+       .s_axi_arsize ( atomics_mst_arsize  ),
+       .s_axi_arburst( atomics_mst_arburst ),
+       .s_axi_arprot ( atomics_mst_arprot  ),
+
+       .s_axi_rvalid ( atomics_mst_rvalid  ),
+       .s_axi_rready ( atomics_mst_rready  ),
+       .s_axi_rid    ( atomics_mst_rid     ),
+       .s_axi_rdata  ( atomics_mst_rdata   ),
+       .s_axi_rresp  ( atomics_mst_rresp   ),
+       .s_axi_rlast  ( atomics_mst_rlast   ),
+
+       .ddr3_reset_n( ddr3_reset_n ),
+       .ddr3_cke    ( ddr3_cke     ),
+       .ddr3_ck_p   ( ddr3_ck_p    ),
+       .ddr3_ck_n   ( ddr3_ck_n    ),
+       .ddr3_cs_n   ( ddr3_cs_n    ),
+       .ddr3_ras_n  ( ddr3_ras_n   ),
+       .ddr3_cas_n  ( ddr3_cas_n   ),
+       .ddr3_we_n   ( ddr3_we_n    ),
+       .ddr3_ba     ( ddr3_ba      ),
+       .ddr3_addr   ( ddr3_addr    ),
+       .ddr3_odt    ( ddr3_odt     ),
+       .ddr3_dm     ( ddr3_dm      ),
+       .ddr3_dqs_p  ( ddr3_dqs_p   ),
+       .ddr3_dqs_n  ( ddr3_dqs_n   ),
+       .ddr3_dq     ( ddr3_dq      ),
+
+       .clk100      ( clk100       ),
+       .clk_ddr     ( clk_ddr      ),
+       .clk_ref     ( clk_ref      ),
+       .clk_ddr_dqs ( clk_ddr_dqs  ),
+
+       .uart_dram_write_we_i (uart_dram_write_we),
        .uart_dram_write_addr_i (uart_dram_write_addr),
        .uart_dram_write_data_i (uart_dram_write_data),
-       .uart_dram_write_rst_i  (0)
+       .uart_dram_write_rst_i (0)
    );
    `elsif USE_SRAM
    adapter_obi_req_t mem8_obi_req;
    adapter_obi_rsp_t mem8_obi_rsp;
-
-   logic [AdapterObiCfg.DataWidth-1:0] sram_wdata_encrypted;
-   logic [AdapterObiCfg.DataWidth-1:0] sram_rdata_decrypted;
-
-   `ifdef SECURE_LAYER2
-   reg [AdapterObiCfg.AddrWidth-1:0] sram_addr_holder;
-   always_ff @(posedge clkwiz_o or negedge rst_n) begin
-      if (~rst_n) begin
-         sram_addr_holder <= '0;
-      end
-      else if (mem8_obi_req.req && !mem8_obi_req.a.we) begin
-         sram_addr_holder <= mem8_obi_req.a.addr;
-      end
-   end
-
-   localparam SRAM_CTR_KEY = 256'hDEADBEEFCAFEF00DBAADF00D1234567887654321ABCDEF01FEDCBA9876543210;
-
-   ctr_encoder_decoder #(.KEY(SRAM_CTR_KEY)) sram_ctr_enc (
-      .row_number(mem8_obi_req.a.addr),
-      .data_in(mem8_obi_req.a.wdata),
-      .data_out(sram_wdata_encrypted)
-   );
-
-   ctr_encoder_decoder #(.KEY(SRAM_CTR_KEY)) sram_ctr_dec (
-      .row_number(sram_addr_holder),
-      .data_in(ram8_rdata_o),
-      .data_out(sram_rdata_decrypted)
-   );
-   `else
-   assign sram_wdata_encrypted = mem8_obi_req.a.wdata;
-   assign sram_rdata_decrypted = ram8_rdata_o;
-   `endif
 
    axi_to_obi #(
       .ObiCfg         ( AdapterObiCfg          ),
@@ -1202,18 +1026,18 @@ module secure_soc (
    assign ram8_req_i   = mem8_obi_req.req;
    assign ram8_we_i    = mem8_obi_req.a.we;
    assign ram8_addr_i  = mem8_obi_req.a.addr[30:0];
-   assign ram8_wdata_i = sram_wdata_encrypted;
+   assign ram8_wdata_i = mem8_obi_req.a.wdata;
    assign ram8_be_i    = mem8_obi_req.a.be;
 
    assign mem8_obi_rsp.gnt    = 1;
    assign mem8_obi_rsp.rvalid = ram8_rvalid_o;
-   assign mem8_obi_rsp.r.rdata = sram_rdata_decrypted;
+   assign mem8_obi_rsp.r.rdata = ram8_rdata_o;
    assign mem8_obi_rsp.r.rid   = mem8_obi_req.a.aid;
    assign mem8_obi_rsp.r.err  = 1'b0;
 
    ram32 #(
       .SIZE     ('h40000/4),
-      .INIT_FILE(`RAM_FPATH), 
+      .INIT_FILE(`RAM_FPATH), //("/home/shc/projects/riscv-linux-boot/opensbi/build/platform/template/firmware/fw_dynamic.hex"),
       .USE_BOOTROM(0)
    ) main_memory8 (
       .clk_i   (clkwiz_o),
@@ -1261,124 +1085,6 @@ module secure_soc (
    logic [1:0]                      dram_axi_rresp;
    logic                            dram_axi_rlast;
 
-   logic [XbarCfg.AxiDataWidth-1:0] ddr3_wdata_encrypted;
-   logic [XbarCfg.AxiDataWidth-1:0] ddr3_rdata_decrypted;
-
-   `ifdef SECURE_LAYER2
-   localparam DDR3_CTR_KEY = 256'hDEADBEEFCAFEF00DBAADF00D1234567887654321ABCDEF01FEDCBA9876543210;
-
-   logic                               w_addr_fifo_push;
-   logic                               w_addr_fifo_pop;
-   logic [XbarCfg.AxiAddrWidth-1:0]    w_addr_fifo_data_i;
-   logic [XbarCfg.AxiAddrWidth-1:0]    w_addr_fifo_data_o;
-   logic                               w_addr_fifo_empty;
-   logic                               w_addr_fifo_full;
-   logic [XbarCfg.AxiAddrWidth-1:0]    write_addr_for_enc;
-   logic                               write_burst_active;
-
-   assign w_addr_fifo_push = xbar_mst_ports_req[MASTER_DRAM_IDX].aw_valid && dram_axi_awready;
-   assign w_addr_fifo_data_i = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.addr;
-   assign w_addr_fifo_pop = xbar_mst_ports_req[MASTER_DRAM_IDX].w_valid && dram_axi_wready && !write_burst_active;
-
-   always_ff @(posedge clkwiz_o or negedge rst_n) begin
-       if (~rst_n) begin
-           write_burst_active <= 1'b0;
-       end else if (xbar_mst_ports_req[MASTER_DRAM_IDX].w_valid && dram_axi_wready) begin
-           write_burst_active <= !xbar_mst_ports_req[MASTER_DRAM_IDX].w.last;
-       end
-   end
-
-   always_ff @(posedge clkwiz_o or negedge rst_n) begin
-       if (~rst_n) begin
-           write_addr_for_enc <= '0;
-       end else if (w_addr_fifo_pop) begin 
-           write_addr_for_enc <= w_addr_fifo_data_o;
-       end else if (xbar_mst_ports_req[MASTER_DRAM_IDX].w_valid && dram_axi_wready && write_burst_active) begin
-           write_addr_for_enc <= write_addr_for_enc + (XbarCfg.AxiDataWidth / 8);
-       end
-   end
-
-   fifo_v3 #(
-       .DATA_WIDTH(XbarCfg.AxiAddrWidth),
-       .DEPTH(16)
-   ) w_addr_fifo (
-       .clk_i(clkwiz_o),
-       .rst_ni(rst_n),
-       .flush_i(1'b0),
-       .testmode_i(1'b0),
-       .full_o(w_addr_fifo_full),
-       .empty_o(w_addr_fifo_empty),
-       .usage_o(),
-       .data_i(w_addr_fifo_data_i),
-       .push_i(w_addr_fifo_push),
-       .data_o(w_addr_fifo_data_o),
-       .pop_i(w_addr_fifo_pop)
-   );
-
-   ctr_encoder_decoder #(.KEY(DDR3_CTR_KEY)) ddr3_ctr_enc (
-       .row_number(write_addr_for_enc),
-       .data_in(xbar_mst_ports_req[MASTER_DRAM_IDX].w.data),
-       .data_out(ddr3_wdata_encrypted)
-   );
-
-   logic                               r_addr_fifo_push;
-   logic                               r_addr_fifo_pop;
-   logic [XbarCfg.AxiAddrWidth-1:0]    r_addr_fifo_data_i;
-   logic [XbarCfg.AxiAddrWidth-1:0]    r_addr_fifo_data_o;
-   logic                               r_addr_fifo_empty;
-   logic                               r_addr_fifo_full;
-   logic [XbarCfg.AxiAddrWidth-1:0]    read_addr_for_dec;
-   logic                               read_burst_active;
-
-   assign r_addr_fifo_push = xbar_mst_ports_req[MASTER_DRAM_IDX].ar_valid && dram_axi_arready;
-   assign r_addr_fifo_data_i = xbar_mst_ports_req[MASTER_DRAM_IDX].ar.addr;
-   assign r_addr_fifo_pop = dram_axi_rvalid && dram_axi_rready && !read_burst_active;
-
-   always_ff @(posedge clkwiz_o or negedge rst_n) begin
-       if (~rst_n) begin
-           read_burst_active <= 1'b0;
-       end else if (dram_axi_rvalid && dram_axi_rready) begin
-           read_burst_active <= !dram_axi_rlast;
-       end
-   end
-
-   always_ff @(posedge clkwiz_o or negedge rst_n) begin
-       if (~rst_n) begin
-           read_addr_for_dec <= '0;
-       end else if (r_addr_fifo_pop) begin 
-           read_addr_for_dec <= r_addr_fifo_data_o;
-       end else if (dram_axi_rvalid && dram_axi_rready && read_burst_active) begin
-           read_addr_for_dec <= read_addr_for_dec + (XbarCfg.AxiDataWidth / 8);
-       end
-   end
-
-   fifo_v3 #(
-       .DATA_WIDTH(XbarCfg.AxiAddrWidth),
-       .DEPTH(16)
-   ) r_addr_fifo (
-       .clk_i(clkwiz_o),
-       .rst_ni(rst_n),
-       .flush_i(1'b0),
-       .testmode_i(1'b0),
-       .full_o(r_addr_fifo_full),
-       .empty_o(r_addr_fifo_empty),
-       .usage_o(),
-       .data_i(r_addr_fifo_data_i),
-       .push_i(r_addr_fifo_push),
-       .data_o(r_addr_fifo_data_o),
-       .pop_i(r_addr_fifo_pop)
-   );
-
-   ctr_encoder_decoder #(.KEY(DDR3_CTR_KEY)) ddr3_ctr_dec (
-       .row_number(read_addr_for_dec),
-       .data_in(dram_axi_rdata),
-       .data_out(ddr3_rdata_decrypted)
-   );
-   `else
-   assign ddr3_wdata_encrypted = xbar_mst_ports_req[MASTER_DRAM_IDX].w.data;
-   assign ddr3_rdata_decrypted = dram_axi_rdata;
-   `endif
-   
    assign dram_axi_awvalid = xbar_mst_ports_req[MASTER_DRAM_IDX].aw_valid;
    assign dram_axi_awaddr  = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.addr;
    assign dram_axi_awid    = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.id;
@@ -1387,7 +1093,7 @@ module secure_soc (
    assign dram_axi_awprot  = xbar_mst_ports_req[MASTER_DRAM_IDX].aw.prot;
 
    assign dram_axi_wvalid  = xbar_mst_ports_req[MASTER_DRAM_IDX].w_valid;
-   assign dram_axi_wdata   = ddr3_wdata_encrypted;
+   assign dram_axi_wdata   = xbar_mst_ports_req[MASTER_DRAM_IDX].w.data;
    assign dram_axi_wstrb   = xbar_mst_ports_req[MASTER_DRAM_IDX].w.strb;
    assign dram_axi_wlast   = xbar_mst_ports_req[MASTER_DRAM_IDX].w.last;
 
@@ -1411,7 +1117,7 @@ module secure_soc (
 
    assign xbar_mst_ports_resp[MASTER_DRAM_IDX].r_valid  = dram_axi_rvalid;
    assign xbar_mst_ports_resp[MASTER_DRAM_IDX].r.id     = dram_axi_rid;
-   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].r.data   = ddr3_rdata_decrypted;
+   assign xbar_mst_ports_resp[MASTER_DRAM_IDX].r.data   = dram_axi_rdata;
    assign xbar_mst_ports_resp[MASTER_DRAM_IDX].r.resp   = dram_axi_rresp;
    assign xbar_mst_ports_resp[MASTER_DRAM_IDX].r.last   = dram_axi_rlast;
 
