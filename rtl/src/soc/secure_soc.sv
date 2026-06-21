@@ -161,8 +161,6 @@ module secure_soc (
 
    logic [1:0] timer_irq;
    logic [1:0] ipi;
-   logic plic_irq;
-   logic uart_irq;
 
    cva6 #(
       .CVA6Cfg ( CVA6Cfg )
@@ -178,7 +176,7 @@ module secure_soc (
       .rst_ni               ( rst_n                        ),
       .boot_addr_i          ( `BOOT_ADDR                   ),
       .hart_id_i            ( `HART_ID                     ),
-      .irq_i                ( plic_irq                           ),
+      .irq_i                ( '0                           ),
       .ipi_i                ( ipi[0]                         ),
       .time_irq_i           ( timer_irq[0]                         ),
       .debug_req_i          ( 1'b0                         ),
@@ -191,25 +189,24 @@ module secure_soc (
 
    localparam int unsigned NUM_SLAVES_XBAR = 1; // CVA6
    `ifdef ZC706
-   localparam int unsigned NUM_MASTERS_XBAR = 6; // RAM, UART, TIMER, DRAM, CLINT, PLIC
+   localparam int unsigned NUM_MASTERS_XBAR = 5; // RAM, UART, TIMER, DRAM, CLINT
    `elsif USE_SRAM
-   localparam int unsigned NUM_MASTERS_XBAR = 6;
-   `elsif DDR3_AXI
-   localparam int unsigned NUM_MASTERS_XBAR = 6;
-   `else
    localparam int unsigned NUM_MASTERS_XBAR = 5;
+   `elsif DDR3_AXI
+   localparam int unsigned NUM_MASTERS_XBAR = 5;
+   `else
+   localparam int unsigned NUM_MASTERS_XBAR = 4;
    `endif
-   localparam int unsigned MASTER_RAM_IDX   = 0;
-   localparam int unsigned MASTER_UART_IDX  = 1;
+   localparam int unsigned MASTER_RAM_IDX  = 0;
+   localparam int unsigned MASTER_UART_IDX = 1;
    localparam int unsigned MASTER_TIMER_IDX = 2;
    localparam int unsigned MASTER_CLINT_IDX = 3;
-   localparam int unsigned MASTER_PLIC_IDX  = 4;
    `ifdef ZC706 
-   localparam int unsigned MASTER_DRAM_IDX = 5;
+   localparam int unsigned MASTER_DRAM_IDX = 4;
    `elsif USE_SRAM
-   localparam int unsigned MASTER_DRAM_IDX = 5;
+   localparam int unsigned MASTER_DRAM_IDX = 4;
    `elsif DDR3_AXI
-   localparam int unsigned MASTER_DRAM_IDX = 5;
+   localparam int unsigned MASTER_DRAM_IDX = 4;
    `endif
 
    localparam axi_pkg::xbar_cfg_t XbarCfg = '{
@@ -240,8 +237,7 @@ module secure_soc (
       '{ start_addr: `MEM_BASE_ADDR,   end_addr: `MEM_BASE_ADDR  + `MEM_RANGE,   idx: MASTER_RAM_IDX  },
       '{ start_addr: `UART_BASE_ADDR,  end_addr: `UART_BASE_ADDR + `UART_RANGE,  idx: MASTER_UART_IDX },
       '{ start_addr: `TIMER_BASE_ADDR, end_addr: `TIMER_BASE_ADDR+ `TIMER_RANGE, idx: MASTER_TIMER_IDX },
-      '{ start_addr: `CLINT_BASE_ADDR, end_addr: `CLINT_BASE_ADDR + `CLINT_RANGE, idx: MASTER_CLINT_IDX },
-      '{ start_addr: `PLIC_BASE_ADDR,  end_addr: `PLIC_BASE_ADDR + `PLIC_RANGE,  idx: MASTER_PLIC_IDX  }
+      '{ start_addr: `CLINT_BASE_ADDR, end_addr: `CLINT_BASE_ADDR + `CLINT_RANGE, idx: MASTER_CLINT_IDX }
       `ifdef ZC706 
       ,'{ start_addr: `DRAM_BASE_ADDR, end_addr: `DRAM_BASE_ADDR+ `DRAM_RANGE, idx: MASTER_DRAM_IDX }
       `elsif USE_SRAM
@@ -343,43 +339,6 @@ module secure_soc (
      .rtc_i(clk_rtc),
      .timer_irq_o(timer_irq),
      .ipi_o(ipi)
-   );
-
-   reg_req_t plic_reg_req;
-   reg_rsp_t plic_reg_rsp;
-
-   axi_to_reg_v2 #(
-     .AxiAddrWidth(XbarCfg.AxiAddrWidth),
-     .AxiDataWidth(XbarCfg.AxiDataWidth),
-     .AxiIdWidth(AXI_ID_WIDTH_XBAR_MST),
-     .RegDataWidth(XbarCfg.AxiDataWidth),
-     .axi_req_t(ariane_axi::req_t),
-     .axi_rsp_t(ariane_axi::resp_t),
-     .reg_req_t(reg_req_t),
-     .reg_rsp_t(reg_rsp_t)
-   ) i_axi_to_reg_plic (
-     .clk_i(clkwiz_o),
-     .rst_ni(rst_n),
-     .axi_req_i(xbar_mst_ports_req[MASTER_PLIC_IDX]),
-     .axi_rsp_o(xbar_mst_ports_resp[MASTER_PLIC_IDX]),
-     .reg_req_o(plic_reg_req),
-     .reg_rsp_i(plic_reg_rsp)
-   );
-
-   plic_top #(
-     .N_SOURCE    (31),
-     .N_TARGET    (1),
-     .MAX_PRIO    (7),
-     .reg_req_t(reg_req_t),
-     .reg_rsp_t(reg_rsp_t)
-   ) i_plic (
-     .clk_i(clkwiz_o),
-     .rst_ni(rst_ni & pll_locked),
-     .req_i(plic_reg_req),
-     .resp_o(plic_reg_rsp),
-     .le_i('0),
-     .irq_sources_i({29'b0, uart_irq, 1'b0}),
-     .eip_targets_o(plic_irq)
    );
  
    import obi_pkg::*;
@@ -548,8 +507,6 @@ module secure_soc (
    assign xbar_mst_ports_resp[MASTER_UART_IDX].r.resp   = uart_axi_rresp;
    assign xbar_mst_ports_resp[MASTER_UART_IDX].r.last   = 1'b1; // AXI-Lite
 
-   wire uart_rx_i = (!uart_dram_mode) ? program_rx_i : 1'b1;
-
    uart_controller_axi #(
        .AXI_ID_WIDTH  (AXI_ID_WIDTH_XBAR_MST),
        .AXI_ADDR_WIDTH(XbarCfg.AxiAddrWidth),
@@ -569,8 +526,7 @@ module secure_soc (
        .s_axi_rvalid (uart_axi_rvalid),  .s_axi_rready (uart_axi_rready),
        .s_axi_rid    (uart_axi_rid),     .s_axi_rdata  (uart_axi_rdata),
        .s_axi_rresp  (uart_axi_rresp),
-       .rx_i    ( uart_rx_i     ), .tx_o    ( uart_tx_o     ),
-       .irq_o   ( uart_irq        )
+       .rx_i    ( program_rx_i     ), .tx_o    ( uart_tx_o     )
    );
 
    logic                            timer_axi_awvalid;
